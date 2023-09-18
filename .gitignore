@@ -1,0 +1,11 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+docs/.vuepress/.cache
+docs/.vuepress/.temp
+types
+.vscode/extensions.json
+docs/.vitepress/cache/
+package-lock.json

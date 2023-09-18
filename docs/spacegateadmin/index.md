@@ -1,0 +1,1 @@
+# spacegate admin view
