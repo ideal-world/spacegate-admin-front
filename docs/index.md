@@ -2,4 +2,4 @@
 
 [Getting Started](./guide)
 
-[spacegate admin-home](./spacegateadmin/home)
+[spacegate admin view](./spacegateadmin/index)

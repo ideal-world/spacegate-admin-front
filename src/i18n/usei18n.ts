@@ -1,67 +1,41 @@
-import { createI18n } from 'vue-i18n'
-import type { I18n, I18nOptions} from 'vue-i18n'
+import { ComposerTranslation, createI18n, I18n, I18nOptions } from 'vue-i18n';
 
+let i18nInstance: I18n;
 
-let globalI18n: ReturnType<typeof createI18n>;
+/// only can set once
+export async function setupI18n(options?: I18nOptions): Promise<I18n> {
+  if (i18nInstance) {
+    return i18nInstance;
+  }
 
-export const setupI18n=(options:I18nOptions)=> {
-  globalI18n = createI18n(options);
+  if (options) {
+    i18nInstance = createI18n(options);
+  } else {
+    const locale={lang:'zh-CN'}
+    const defaultLocal = await import(`../locales/${locale.lang}.ts`)
+    const message = defaultLocal.default ?? {}
+    // 如果没有传入选项，初始化一个默认的 i18n 实例
+    i18nInstance = createI18n({
+      locale: locale.lang,
+      messages: {
+        [locale.lang]: message,
+      },
+    });
+  }
+
+  return i18nInstance;
 }
 
-// export const useI18n=()=> {
-//   if (!globalI18n) {
-//     throw new Error('Global i18n is not set. Please use setGlobalI18n to set it.');
-//   }
-//   return globalI18n;
-// }
-
-type I18nGlobalTranslation = {
-  (key: string): string
-  (key: string, locale: string): string
-  (key: string, locale: string, list: unknown[]): string
-  (key: string, locale: string, named: Record<string, unknown>): string
-  (key: string, list: unknown[]): string
-  (key: string, named: Record<string, unknown>): string
+export const useI18n=async ():Promise<ComposerTranslation> => {
+  if (i18nInstance) {
+    return i18nInstance.global.t;
+  }
+  return (await setupI18n()).global.t;
 }
 
-type I18nTranslationRestParameters = [string, any]
-
-const getKey = (namespace: string | undefined, key: string) => {
-  if (!namespace) {
-    return key
+export const changelang=async (lang:string)=>{
+  if (i18nInstance) {
+    i18nInstance.global.locale=lang
   }
-  if (key.startsWith(namespace)) {
-    return key
-  }
-  return `${namespace}.${key}`
+  (await setupI18n()).global.locale=lang;
 }
-
-export const useI18n = (
-  namespace?: string
-): {
-  t: I18nGlobalTranslation
-} => {
-  const normalFn = {
-    t: (key: string) => {
-      return getKey(namespace, key)
-    }
-  }
-
-  if (!globalI18n) {
-    return normalFn
-  }
-
-  const { t, ...methods } = globalI18n.global
-
-  const tFn: I18nGlobalTranslation = (key: string, ...arg: any[]) => {
-    if (!key) return ''
-    if (!key.includes('.') && !namespace) return key
-    return (t as any)(getKey(namespace, key), ...(arg as I18nTranslationRestParameters))
-  }
-  return {
-    ...methods,
-    t: tFn
-  }
-}
-
-export const t = (key: string) => key

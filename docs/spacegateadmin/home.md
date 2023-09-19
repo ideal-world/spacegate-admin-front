@@ -2,9 +2,9 @@
 aside: false
 ---
 <script setup>
-import Basic from './vue/Basic.vue'
+import Home from './vue/Home.vue'
 </script>
 
 <DemoContainer>
-  <Basic/>
+  <Home/>
 </DemoContainer>

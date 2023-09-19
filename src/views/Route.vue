@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { Table } from 'element-plus'
 import { reactive } from 'vue'
 import { Search,Edit } from '@element-plus/icons-vue'
 
 import { useI18n } from '../i18n/usei18n'
 
-const { t } = useI18n()
+const t = await useI18n()
 
 const tableData = [
   {
@@ -80,5 +79,4 @@ const handleDelete = (index: number, row: Route) => {
       @size-change="()=>{}"
       @current-change="()=>{}"
     />
-  
 </template>

@@ -21,8 +21,10 @@ export default {
       {
         text: 'spacegate-admin-view',
         items: [
+          { text: 'read me', link: '/spacegateadmin/index' },
           { text: 'home', link: '/spacegateadmin/home' },
-          { text: 'route', link: '/spacegateadmin/route' },
+          { text: 'route', link: '/spacegateadmin/route' }
+          // { text: 'route-view', items: [{text: 'route',link: '/spacegateadmin/route' },{text: 'route-edit',link: '/spacegateadmin/route/routeedit' }]},
         ]
       }
     ],
@@ -33,7 +35,7 @@ export default {
   vite: {
     resolve: {
       alias: {
-        'formula-editor': path.resolve(__dirname, '../../src')
+        'spacegate-admin': path.resolve(__dirname, '../../src')
       },
       dedupe: ['vue', /element-plus\/.+/]
     }

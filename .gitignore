@@ -6,6 +6,5 @@ dist-ssr
 docs/.vuepress/.cache
 docs/.vuepress/.temp
 types
-.vscode/extensions.json
 docs/.vitepress/cache/
 package-lock.json
