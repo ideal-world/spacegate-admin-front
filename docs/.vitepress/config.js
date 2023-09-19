@@ -23,8 +23,7 @@ export default {
         items: [
           { text: 'read me', link: '/spacegateadmin/index' },
           { text: 'home', link: '/spacegateadmin/home' },
-          { text: 'route', link: '/spacegateadmin/route' }
-          // { text: 'route-view', items: [{text: 'route',link: '/spacegateadmin/route' },{text: 'route-edit',link: '/spacegateadmin/route/routeedit' }]},
+          { text: 'route-view', items: [{text: 'route',link: '/spacegateadmin/route' },{text: 'route-edit',link: '/spacegateadmin/route/routeedit' }]},
         ]
       }
     ],
