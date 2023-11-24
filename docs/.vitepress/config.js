@@ -4,7 +4,7 @@ export default {
   title: 'spacegate admin',
   description: 'A relatively complete formula editor',
   themeConfig: {
-    repo: 'https://github.com/idealworld/formula-editor',
+    repo: 'https://github.com/idealworld/spacegate-admin',
     sidebar: [
       {
         text: 'Introduction',
@@ -22,8 +22,18 @@ export default {
         text: 'spacegate-admin-view',
         items: [
           { text: 'read me', link: '/spacegateadmin/index' },
-          { text: 'home', link: '/spacegateadmin/home' },
-          { text: 'route-view', items: [{text: 'route',link: '/spacegateadmin/route' },{text: 'route-edit',link: '/spacegateadmin/route/routeedit' }]},
+          {text: 'dashboard',link: '/spacegateadmin/dashboard' },
+          { text: 'route-view',link: '/spacegateadmin/index', 
+              items: [
+                {text: 'route',link: '/spacegateadmin/route' },
+                {text: 'route-edit',link: '/spacegateadmin/route/routeedit' },
+                {text: 'service',link: '/spacegateadmin/service' },
+                {text: 'upstream',link: '/spacegateadmin/upstream' },
+                {text: 'certificate',link: '/spacegateadmin/certificate' },
+                {text: 'plugin',link: '/spacegateadmin/plugin' },
+                {text: 'gateway',link: '/spacegateadmin/gateway' }
+              ]
+          },
         ]
       }
     ],

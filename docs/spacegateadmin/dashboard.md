@@ -2,9 +2,9 @@
 aside: false
 ---
 <script setup>
-import Home from './vue/Home.vue'
+import Dashboard from './vue/Dashboard.vue'
 </script>
 
 <DemoContainer>
-  <Home/>
+  <Dashboard/>
 </DemoContainer>
