@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ElDrawer, ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { deleteGatewaysApi, getGatewaysApi } from '../requset/api/gateway'
-import { Gateway, Listener, Tls } from 'types/gateway';
+import { Gateway, GatewayVO, Listener, Tls } from 'types/gateway';
 
 import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParams } from 'requset/api/gateway/type';
 
 const t = await useI18n()
 
-const currentRow = reactive({ data: [] as Gateway[] })
+const currentRow = reactive({ data: [] as GatewayVO[] })
 const searchDto = reactive<GetGatewayParams>({})
-const drawer = reactive({ isOpen: false, is_edit: false, data: { parameters: {} } as Gateway })
+const opDialog = reactive({ isOpen: false, isEdit: false, data: { parameters: {} } as GatewayVO })
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -64,15 +64,15 @@ const formatPort = (_row: any, _column: any, cellValue: Listener[]) => {
   return port.length > 0 ? port.substring(0, port.length - 1) : '-'
 }
 
-const handleEdit = (_index: number, row: Gateway) => {
-  drawer.isOpen = true;
-  drawer.is_edit = true;
-  drawer.data = row;
+const handleEdit = (_index: number, row: GatewayVO) => {
+  opDialog.isOpen = true;
+  opDialog.isEdit = true;
+  opDialog.data = row;
 }
 
-const handleDelete = async (_index: number, row: Gateway) => {
+const handleDelete = async (_index: number, row: GatewayVO) => {
   await deleteGatewaysApi({ name: row.name, namespace: searchDto.namespace || undefined })
-    .then(() => { ElMessage.success(t('common.operation.result.suceess')) })
+    .then(() => { ElMessage.success(t('common.status.success')) })
     .catch((a) => { console.log('catch=====' + a) })
     .finally(async () => {
       await onSearch()
@@ -81,23 +81,27 @@ const handleDelete = async (_index: number, row: Gateway) => {
 
 
 
-const drawerRef = ref<InstanceType<typeof ElDrawer>>()
 const onSumbit = () => {
-  console.log(JSON.stringify(drawer.data))
-  closeDrawer()
+  console.log(JSON.stringify(opDialog.data))
+  closeDialog()
 }
-const closeDrawer = () => {
-  drawer.data = { parameters: {} } as Gateway
-  drawerRef.value!.close()
+const closeDialog = () => {
+  opDialog.data = { parameters: {} } as GatewayVO
+  opDialog.isOpen = false
 }
 
-const addListener = () => {
-  if (!drawer.data.listeners) { drawer.data.listeners = [] }
-  drawer.data.listeners.push({} as Listener)
+const addIp = () => {
+  if (!opDialog.data.ip) { opDialog.data.ip = [] }
+  opDialog.data.ip.push("")
 }
-const deleteListener = (index: number) => {
-  drawer.data.listeners.splice(index, 1)
-}
+
+// const addListener = () => {
+//   if (!opDialog.data.listeners) { opDialog.data.listeners = [] }
+//   opDialog.data.listeners.push({} as Listener)
+// }
+// const deleteListener = (index: number) => {
+//   opDialog.data.listeners.splice(index, 1)
+// }
 
 const tls_options = ref([
   { id: 1, label: 'disable', data: '' },
@@ -118,103 +122,66 @@ const tls_options = ref([
       <el-col :span="23"><span class="sp-view-header__sub-title">Set you service</span></el-col>
     </el-row>
   </div>
-  <div>
-    <el-form :inline="true" :model="searchDto">
-      <el-form-item :label="t('route.name')">
-        <el-input placeholder="name of gateway" v-model="searchDto.name" />
-      </el-form-item>
-      <el-form-item label="namespace">
-        <el-input placeholder="namespace of gateway" v-model="searchDto.namespace" />
-      </el-form-item>
-      <el-form-item label="port">
-        <el-input placeholder="port of gateway" v-model="searchDto.port" />
-      </el-form-item>
-      <el-form-item label="hostname">
-        <el-input placeholder="namespace of gateway" v-model="searchDto.hostname" />
-      </el-form-item>
-      <el-form-item><el-button @click="drawer.isOpen = true">{{ t('common.operation.add') }}</el-button> <el-button
-          @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
+  <div class="pt-4">
+    <el-space fill direction="vertical" style="width: 100%">
+      <el-card shadow="never">
+        <el-form :inline="true" :model="searchDto">
+          <el-form-item :label="t('route.name')">
+            <el-input placeholder="name of service" v-model="searchDto.name" />
+          </el-form-item>
+          <el-form-item label="namespace">
+            <el-input placeholder="namespace of service" v-model="searchDto.namespace" />
+          </el-form-item>
+          <el-form-item label="port">
+            <el-input placeholder="port of service" v-model="searchDto.port" />
+          </el-form-item>
+          <el-form-item label="hostname">
+            <el-input placeholder="namespace of service" v-model="searchDto.hostname" />
+          </el-form-item>
+          <el-form-item><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add') }}</el-button> <el-button
+              @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
 
-    </el-form>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
-      style="width: 100% ">
-      <el-table-column prop="name" label="Name" width="180" />
-      <el-table-column :label="t('gateway.listener')">
-        <el-table-column prop="listeners" label="ip" :formatter="formatIp" />
-        <el-table-column prop="listeners" label="hostname" :formatter="formatHostname" />
-        <el-table-column prop="listeners" label="port" :formatter="formatPort" width="180" />
-      </el-table-column>
-      <el-table-column prop="filters" :label="t('gateway.plugin')">
-        {{ filters }}
-        <el-tag v-for="item in currentRow.data.filters" class="mx-1" round>
-          {{ item }}
-        </el-tag>
-      </el-table-column>
-      <el-table-column :label="t('common.operations')">
-        <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-            t('common.operation.delete') }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    <el-drawer ref="drawerRef" v-model="drawer.isOpen" :title="drawer.is_edit ? 'edit gateway' : 'add gateway'"
-      direction="ltr" size="70%" class="sp-gateway-drawer" :before-close="closeDrawer">
-      <div class="sp-gateway-drawer__content">
-        <el-form :inline="true" :model="drawer.data">
+        </el-form>
+      </el-card>
+      <el-table $loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+        style="width: 100% ">
+        <el-table-column prop="name" label="Name" width="180" />
+        <el-table-column :label="t('service.listener')">
+          <el-table-column prop="listeners" label="ip" :formatter="formatIp" />
+          <el-table-column prop="listeners" label="hostname" :formatter="formatHostname" />
+          <el-table-column prop="listeners" label="port" :formatter="formatPort" width="180" />
+        </el-table-column>
+        <!-- <el-table-column prop="filters" :label="t('service.plugin')">
+          {{ filters }}
+          <el-tag v-for="item in currentRow.data.filters" class="mx-1" round>
+            {{ item }}
+          </el-tag>
+        </el-table-column> -->
+        <el-table-column :label="t('common.operations')">
+          <template #default="scope">
+            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+              t('common.operation.delete') }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-space>
+    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit service' : 'add service'"
+      class="sp-service-drawer" :before-close="closeDialog">
+      <div class="sp-service-drawer__content">
+        <el-form :inline="true" :model="opDialog.data">
           <el-form-item label="Name">
-            <el-input v-model="drawer.data.name" autocomplete="off" />
+            <el-input v-model="opDialog.data.name" autocomplete="off" />
           </el-form-item>
-
-          <el-form-item label="parameters">
+          <el-form-item v-for="( ip, index ) in    opDialog.data.ip  " :key="index" :label="'ip:'">
             <el-form-item>
-              <el-input v-model="drawer.data.parameters.lang">
-                <template #prepend>
-                  lang
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-input v-model="drawer.data.parameters.log_level">
-                <template #prepend>
-                  log_level
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-input v-model="drawer.data.parameters.redis_url">
-                <template #prepend>
-                  redis_url
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item>
-              <div class="el-input el-input-group el-input-group--prepend">
-                <div class="el-input-group__prepend">disable_tls</div>
-                <el-select name="tls" v-model="drawer.data.parameters.ignore_tls_verification">
-                  <el-option label="disable" :value="false" />
-                  <el-option label="able" :value="true" />
-                </el-select>
-              </div>
-            </el-form-item>
-          </el-form-item>
-          <el-form-item v-for="( listener, index ) in    drawer.data.listeners  " :key="index"
-            :label="'Listener:' + listener.name" :prop="'listeners.' + index">
-            <el-form-item>
-              <el-input v-model="listener.name">
-                <template #prepend>
-                  name
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-input v-model="listener.ip">
+              <el-input v-model="opDialog.data.ip[index]">
                 <template #prepend>
                   ip
                 </template>
               </el-input>
             </el-form-item>
-            <el-form-item label="port" :prop="'listeners.' + index + '.port'" :rules="[
+            <!-- <el-form-item label="port" :prop="'listeners.' + index + '.port'" :rules="[
               { required: true, message: 'port is required', trigger: 'blur' },
               { type: 'number', message: 'port must be a number', trigger: 'blur' },
             ]
@@ -263,25 +230,69 @@ const tls_options = ref([
                 </el-input>
               </el-form-item>
             </div>
-            <el-button class="mt-2" @click.prevent="deleteListener(index)">Delete</el-button>
+            <el-button class="mt-2" @click.prevent="deleteListener(index)">Delete</el-button>-->
           </el-form-item>
-          <el-button @click="addListener">Add
-            Listener</el-button>
+          <el-button @click="addIp">+</el-button>
         </el-form>
-        <div class="demo-drawer__footer">
-          <el-button @click="closeDrawer">Cancel</el-button>
-          <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
-            tableLoading ? 'Submitting ...' : 'Submit'
-          }}</el-button>
-        </div>
+        <el-collapse accordion>
+          <el-collapse-item>
+            <template #title>
+              {{ t('common.advanced') }}<el-icon class="header-icon">
+                <info-filled />
+              </el-icon>
+            </template>
+            <div>
+              <el-form-item label="parameters">
+                <el-form-item>
+                  <div class="el-input el-input-group el-input-group--prepend">
+                    <div class="el-input-group__prepend">disable_tls</div>
+                    <el-select name="tls" v-model="opDialog.data.parameters.ignore_tls_verification">
+                      <el-option label="disable" :value="false" />
+                      <el-option label="able" :value="true" />
+                    </el-select>
+                  </div>
+                </el-form-item>
+              </el-form-item>
+              <el-form-item>
+                <el-input v-model="opDialog.data.parameters.lang">
+                  <template #prepend>
+                    lang
+                  </template>
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input v-model="opDialog.data.parameters.log_level">
+                  <template #prepend>
+                    log_level
+                  </template>
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input v-model="opDialog.data.parameters.redis_url">
+                  <template #prepend>
+                    redis_url
+                  </template>
+                </el-input>
+              </el-form-item>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
       </div>
-    </el-drawer>
+      <template #footer>
+        <span>
+          <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
+          <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+            tableLoading ? t('common.status.submitting') : t('common.operation.submit')
+          }}</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <style lang="scss" scoped>
 @import '../assets/main.scss';
 
-@include b('gateway-drawer') {
+@include b('service-drawer') {
   margin: 50px;
 
   .el-form-item__content {
@@ -291,7 +302,7 @@ const tls_options = ref([
   }
 }
 
-:deep(.sp-gateway-drawer) {
+:deep(.sp-service-drawer) {
   size: 80px;
 }
 </style>

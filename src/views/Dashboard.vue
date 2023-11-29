@@ -14,7 +14,6 @@
       <el-col :span="23"><span class="sp-view-header__sub-title">Welcome back</span></el-col>
     </el-row>
   </div>
-
   <el-row>
     <el-col :span="24">
       <el-row>
@@ -48,64 +47,42 @@
           </el-row>
         </el-card>
       </el-row>
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>Gateway</h3>
-            <el-divider />
-            <span>
-              Total Gateway number: 1
-            </span>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>Route</h3>
-            <el-divider />
-            <span>
-              Total Route number: 0
-            </span>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>Plugin</h3>
-            <el-divider />
-            <span>
-              Total Plugin number: 0
-            </span>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>Upstream</h3>
-            <el-divider />
-            <span>
-              Total Upstream number: 0
-            </span>
-          </el-card>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>TLS</h3>
-            <el-divider />
-            <span>
-              Total TLS number: 0
-            </span>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card">
-            <h3>Instance</h3>
-            <el-divider />
-            <span>
-              Total Instance number: 1
-            </span>
-          </el-card>
-        </el-col>
-      </el-row>
+      <div style="text-align: center;">
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total Gateway number" :value="1" />
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total Route number" :value="1" />
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total Plugin number" :value="1" />
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total Upstream number" :value="1" />
+            </el-card>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total TLS number" :value="1" />
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="box-card">
+              <el-statistic title="Total Instance number" :value="1" />
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
     </el-col>
   </el-row>
 </template>

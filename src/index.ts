@@ -1,10 +1,10 @@
 import { App } from 'vue'
 import * as components from './components'
+import './index.css'
 
 
 
-
-function install (app: App) {
+function install(app: App) {
   for (const key in components) {
     // @ts-expect-error
     app.component(key, components[key])
@@ -15,7 +15,7 @@ import './assets/main.scss'
 
 export default { install }
 
-export {setupI18n} from './i18n/usei18n'
+export { setupI18n } from './i18n/usei18n'
 export * from './components'
 export * from './constants'
 export * from './utils'
