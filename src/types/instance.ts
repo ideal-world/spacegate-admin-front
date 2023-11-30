@@ -4,6 +4,20 @@ export interface InstConfigVo {
   redis_config?: RedisConfig | null;
 }
 
+export function getInstName(config: InstConfigVo): string | undefined {
+  if (config.type_ == InstConfigType.K8sClusterConfig) {
+    if (config.k8s_cluster_config) {
+      return config.k8s_cluster_config.name
+    }
+  }
+  if (config.type_ == InstConfigType.RedisConfig) {
+    if (config.redis_config) {
+      return config.redis_config.name
+    }
+  }
+
+}
+
 export enum InstConfigType {
   K8sClusterConfig = 'K8sClusterConfig',
   RedisConfig = 'RedisConfig',

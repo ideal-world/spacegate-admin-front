@@ -30,8 +30,19 @@ module.exports = defineConfig({
       autoInstall: true
     })
   ],
-  resolve:{
-    alias:{
+  server: {
+    host: true,
+    port: 3000,
+    proxy: {
+      '/admin': {
+        target: 'http://192.168.31.164:9080/',
+        changeOrigin: true,
+        // rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
+  resolve: {
+    alias: {
       "@": path.resolve("./src")
     },
   },

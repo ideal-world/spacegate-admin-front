@@ -9,9 +9,9 @@ import type {
 } from 'axios'
 
 declare type AxiosHeaders =
-| 'application/json'
-| 'application/x-www-form-urlencoded'
-| 'multipart/form-data'
+  | 'application/json'
+  | 'application/x-www-form-urlencoded'
+  | 'multipart/form-data'
 
 
 interface AxiosConfig<T = AxiosResponse> {

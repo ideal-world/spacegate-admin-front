@@ -37,3 +37,15 @@ export interface GatewayVO {
   tls?: Tls;
   filters?: string[];
 }
+
+export function convertGatewayToVO(gateway: Gateway): GatewayVO {
+  return {
+    name: gateway.name,
+    parameters: gateway.parameters,
+    ip: gateway.listeners.map((listener) => listener.ip),
+    port: gateway.listeners.map((listener) => listener.port),
+    protocol: gateway.listeners.map((listener) => listener.protocol),
+    hostname: gateway.listeners.map((listener) => listener.hostname),
+    tls: gateway.listeners[0].tls,
+  };
+}

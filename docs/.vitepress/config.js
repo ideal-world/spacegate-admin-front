@@ -31,7 +31,8 @@ export default {
                 {text: 'upstream',link: '/spacegateadmin/upstream' },
                 {text: 'certificate',link: '/spacegateadmin/certificate' },
                 {text: 'plugin',link: '/spacegateadmin/plugin' },
-                {text: 'gateway',link: '/spacegateadmin/gateway' }
+                {text: 'gateway',link: '/spacegateadmin/gateway' },
+                {text: 'selectInstace',link: '/spacegateadmin/selectInstance' }
               ]
           },
         ]
@@ -47,6 +48,17 @@ export default {
         'spacegate-admin': path.resolve(__dirname, '../../src')
       },
       dedupe: ['vue', /element-plus\/.+/]
-    }
+    },
+    server: {
+      host: true,
+      port: 3000,
+      proxy: {
+        '/admin': {
+          target: 'http://192.168.31.164:9080/',
+          changeOrigin: true,
+          // rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      }
+    },
   }
 }

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { deleteGatewaysApi, getGatewaysApi } from '../requset/api/gateway'
-import { Gateway, Listener, Tls } from 'types/gateway';
+import { deleteGatewaysApi, getGatewaysApi } from '../requset/api/service'
+import { Gateway, Listener, Tls } from 'types/service';
 
 import { useI18n } from '../i18n/usei18n'
-import { GetGatewayParams } from 'requset/api/gateway/type';
+import { GetGatewayParams } from 'requset/api/service/type';
 
 const t = await useI18n()
 
@@ -79,14 +79,15 @@ const closeDialog = () => {
           <el-form-item :label="t('route.name')">
             <el-input placeholder="name of service" v-model="searchDto.name" />
           </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add') }}</el-button> <el-button
-              @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
+          <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
+          }}</el-button>
+            <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
 
         </el-form>
       </el-card>
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
-        <el-table-column prop="name" label="Name" width="180" />
+        <!-- <el-table-column prop="name" label="Name" width="180" />
         <el-table-column :label="t('service.listener')">
           <el-table-column prop="listeners" label="ip" :formatter="formatIp" />
           <el-table-column prop="listeners" label="hostname" :formatter="formatHostname" />
@@ -97,7 +98,7 @@ const closeDialog = () => {
           <el-tag v-for="item in currentRow.data.filters" class="mx-1" round>
             {{ item }}
           </el-tag>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column :label="t('common.operations')">
           <!-- <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
@@ -115,7 +116,6 @@ const closeDialog = () => {
           <el-collapse-item>
             <template #title>
               {{ t('common.advanced') }}<el-icon class="header-icon">
-                <info-filled />
               </el-icon>
             </template>
           </el-collapse-item></el-collapse>
@@ -135,4 +135,4 @@ const closeDialog = () => {
 </template>
 <style lang="scss" scoped>
 :deep() {}
-</style>
+</style>../requset/api/servicerequset/api/service/typetypes/service

@@ -1,4 +1,4 @@
-import { Gateway } from "types/gateway"
+import { Gateway } from "types/service"
 
 export interface GetGatewayParams {
   name?: string

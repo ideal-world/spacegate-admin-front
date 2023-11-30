@@ -28,6 +28,9 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_PATH
 })
 
+
+apiClient.defaults.withCredentials = true
+
 const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
   if (
     config.method === 'post' &&

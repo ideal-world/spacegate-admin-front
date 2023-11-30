@@ -1,4 +1,4 @@
-import { Gateway } from 'types/gateway'
+import { Gateway } from 'types/service'
 import request, { IResponse } from '../../index'
 import { AddGateway, DeleteGatewayParams, GetGatewayParams } from './type'
 

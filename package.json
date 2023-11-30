@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "scripts": {
     "build": "rimraf dist && vue-tsc && vite build",
-    "docs:dev": "VITE_API_BASE_PATH='http://192.168.31.164:9080/admin' vitepress dev docs --host 0.0.0.0",
+    "docs:dev": "VITE_API_BASE_PATH='http://localhost:3000/admin' vitepress dev docs --host 0.0.0.0",
     "docs:build": "vitepress build docs",
     "docs:serve": "vitepress serve docs"
   },
