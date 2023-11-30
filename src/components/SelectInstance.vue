@@ -2,8 +2,7 @@
 import { getInstName } from '../types/instance'
 import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from '../i18n/usei18n'
-import { getInstanceList, getSelectInstance, selectInstanceApi } from '../requset/api/instance'
-import { IResponse } from 'requset'
+import { getInstanceListApi, getSelectedInstanceApi, selectInstanceApi } from '../requset/api/instance'
 
 const t = await useI18n()
 
@@ -11,20 +10,20 @@ const selectInstance = ref("")
 const selectInstanceOptions = ref(["default"])
 
 onMounted(async () => {
-  let res: void | IResponse<string> = await getSelectInstance()
+  let res = await getSelectedInstanceApi()
     .catch((a) => { console.log('catch=====' + a) })
     .finally(() => {
 
     })
   if (res) {
-    selectInstance.value = res.data
+    selectInstance.value = res.data.name
   }
   await getInstances()
 })
 
 const getInstances = async () => {
 
-  let res = await getInstanceList()
+  let res = await getInstanceListApi()
     .catch((a) => { console.log('catch=====' + a) })
     .finally(() => {
     })

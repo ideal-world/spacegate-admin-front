@@ -1,6 +1,8 @@
+import './index.css'
+import './assets/preflight.css'
 import { App } from 'vue'
 import * as components from './components'
-import './index.css'
+
 
 
 

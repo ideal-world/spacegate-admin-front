@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { deleteGatewaysApi, getGatewaysApi } from '../requset/api/service'
-import { convertGatewayToVO, GatewayVO, Listener, Tls } from '../types/service';
+import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } from '../requset/api/service'
+import { convertGatewayToVO, converVOToGateway, GatewayVO, Listener, Tls } from '../types/service';
 
 import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParams } from 'requset/api/service/type';
@@ -34,8 +34,6 @@ const onSearch = async () => {
   if (res) {
     currentRow.data = res.data.map((resData) => convertGatewayToVO(resData))
   }
-  //todo remove
-  console.log('currentRow.data=====' + JSON.stringify(currentRow.data))
 }
 
 const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
@@ -43,7 +41,7 @@ const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
   if (cellValue) {
     cellValue.forEach((item) => {
       if (item != null && item != undefined) {
-        result = item + ','
+        result = result + item + ','
       }
     }
     )
@@ -53,21 +51,21 @@ const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
 
 const formatPort = (_row: any, _column: any, cellValue: number[]) => {
   let port = ''
-  console.log('port cellValue=====' + JSON.stringify(cellValue))
   if (cellValue) {
     cellValue.forEach((item) => {
       if (item) {
-        port = item + ','
+        port = port + item + ','
       }
     })
   }
+
   return port.length > 0 ? port.substring(0, port.length - 1) : '-'
 }
 
 const handleAdd = () => {
   opDialog.isOpen = true;
   opDialog.isEdit = false;
-  opDialog.data = { parameters: {} } as GatewayVO
+  opDialog.data = { parameters: {}, port: [80], protocol: ["Http"] } as GatewayVO
 }
 
 const handleEdit = (_index: number, row: GatewayVO) => {
@@ -87,9 +85,15 @@ const handleDelete = async (_index: number, row: GatewayVO) => {
 
 
 
-const onSumbit = () => {
-  console.log(JSON.stringify(opDialog.data))
+const onSumbit = async () => {
+  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToGateway(opDialog.data)).catch((a) => { console.log('catch=====' + a) }) :
+    await addGatewaysApi(converVOToGateway(opDialog.data)).catch((a) => { console.log('catch=====' + a) })
+
+  if (res) {
+    ElMessage.success(t('common.status.success'))
+  }
   closeDialog()
+  await onSearch()
 }
 
 const closeDialog = () => {
@@ -102,7 +106,9 @@ const addIp = () => {
   opDialog.data.ip.push("")
 }
 const deleteIp = (index: number) => {
-  opDialog.data.ip.splice(index, 1)
+  if (opDialog.data.ip) {
+    opDialog.data.ip.splice(index, 1)
+  }
 }
 const addPort = () => {
   if (!opDialog.data.port) { opDialog.data.port = [] }
@@ -116,12 +122,14 @@ const addHostname = () => {
   opDialog.data.hostname.push("")
 }
 const deleteHostname = (index: number) => {
-  opDialog.data.hostname.splice(index, 1)
+  if (opDialog.data.hostname) {
+    opDialog.data.hostname.splice(index, 1)
+  }
 }
 
 const addProtocol = () => {
   if (!opDialog.data.protocol) { opDialog.data.protocol = [] }
-  opDialog.data.protocol.push("http")
+  opDialog.data.protocol.push("Http")
 }
 const deleteProtocol = (index: number) => {
   opDialog.data.protocol.splice(index, 1)
@@ -212,6 +220,40 @@ const deleteFilter = (index: number) => {
           </el-form-item>
           <el-row>
             <el-col :span="18">
+              <el-form-item :label="'protocol:'" :rules="[
+                { required: true, message: 'protocol is required', trigger: 'blur' },
+              ]">
+                <div v-for="( _, index ) in    opDialog.data.protocol  " :key="index">
+                  <el-select name="protocol" v-model="opDialog.data.protocol[index]">
+                    <el-option label="HTTP" value="Http" />
+                    <el-option label="HTTPS" value="Https" />
+                  </el-select>
+                  <el-button class="ml-2" v-if="index > 0" @click.prevent="deleteProtocol(index)">-</el-button>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="4">
+              <el-button @click="addProtocol">+</el-button>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="18">
+              <el-form-item :label="'port:'" :rules="[
+                { required: true, message: 'port is required', trigger: 'blur' },
+                { type: 'number', message: 'port must be a number', trigger: 'blur' },
+              ]">
+                <div v-for=" ( _, index ) in opDialog.data.port " :key="index">
+                  <el-input-number class=" inline" :controls="false" v-model="opDialog.data.port[index]" />
+                  <el-button class="ml-2" v-if="index > 0" @click.prevent="deletePort(index)">-</el-button>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="4">
+              <el-button @click="addPort">+</el-button>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="18">
               <el-form-item :label="'ip:'">
                 <div v-for="( _, index ) in opDialog.data.ip  " :key="index">
                   <el-input class=" inline" v-model="opDialog.data.ip[index]" />
@@ -264,19 +306,6 @@ const deleteFilter = (index: number) => {
           </el-row>
           <el-row>
             <el-col :span="18">
-              <el-form-item :label="'port:'">
-                <div v-for="( _, index ) in    opDialog.data.port  " :key="index">
-                  <el-input class=" inline" v-model="opDialog.data.port[index]" />
-                  <el-button class="ml-2" @click.prevent="deletePort(index)">-</el-button>
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="4">
-              <el-button @click="addPort">+</el-button>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
               <el-form-item :label="'hostname:'">
                 <div v-for="( _, index ) in    opDialog.data.hostname  " :key="index">
                   <el-input class=" inline" v-model="opDialog.data.hostname[index]" />
@@ -286,22 +315,6 @@ const deleteFilter = (index: number) => {
             </el-col>
             <el-col :span="4">
               <el-button @click="addHostname">+</el-button>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
-              <el-form-item :label="'protocol:'">
-                <div v-for="( _, index ) in    opDialog.data.protocol  " :key="index">
-                  <el-select name="protocol" v-model="opDialog.data.protocol[index]">
-                    <el-option label="HTTP" value="http" />
-                    <el-option label="HTTPS" value="https" />
-                  </el-select>
-                  <el-button class="ml-2" @click.prevent="deleteProtocol(index)">-</el-button>
-                </div>
-              </el-form-item>
-            </el-col>
-            <el-col :span="4">
-              <el-button @click="addProtocol">+</el-button>
             </el-col>
           </el-row>
           <el-row>

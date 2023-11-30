@@ -10,8 +10,12 @@ export const getGatewaysApi = (params: GetGatewayParams): Promise<IResponse<Gate
   return request.get({ url: '/gateway', params })
 }
 
-export const addGatewaysApi = (data: AddGateway, namespace?: string): Promise<IResponse<Gateway[]>> => {
-  return request.post({ url: '/gateway', params: { namespace: namespace || undefined }, data })
+export const addGatewaysApi = (data: AddGateway): Promise<IResponse<Gateway[]>> => {
+  return request.post({ url: '/gateway', data })
+}
+
+export const updateGatewaysApi = (data: Gateway): Promise<IResponse<Gateway[]>> => {
+  return request.put({ url: '/gateway', data })
 }
 
 export const deleteGatewaysApi = (params: DeleteGatewayParams): Promise<IResponse<Gateway[]>> => {

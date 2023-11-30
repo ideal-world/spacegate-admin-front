@@ -1,3 +1,8 @@
+export interface SelectedInstance {
+  name: string,
+  type_: InstConfigType
+}
+
 export interface InstConfigVo {
   type_: InstConfigType;
   k8s_cluster_config?: K8sClusterConfig | null;
