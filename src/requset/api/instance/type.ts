@@ -1,3 +1,3 @@
 export interface GetInstanceParams {
-  names?: string[]
+  names?: string
 }

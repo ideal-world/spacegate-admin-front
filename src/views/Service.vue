@@ -2,16 +2,18 @@
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } from '../requset/api/service'
-import { convertGatewayToVO, converVOToGateway, GatewayVO, Listener, Tls } from '../types/service';
+import { convertServiceToVO, converVOToService, ServiceVO, Listener, Tls } from '../types/service';
 
 import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParams } from 'requset/api/service/type';
+import { useSelectedInstanceStore } from '../stores/select_instance';
 
 const t = await useI18n()
+const selectedStore = useSelectedInstanceStore()
 
-const currentRow = reactive({ data: [] as GatewayVO[] })
+const currentRow = reactive({ data: [] as ServiceVO[] })
 const searchDto = reactive<GetGatewayParams>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { parameters: {} } as GatewayVO })
+const opDialog = reactive({ isOpen: false, isEdit: false, data: { parameters: {} } as ServiceVO })
 const tableLoading = ref(false)
 
 const tls_options = ref([
@@ -32,7 +34,7 @@ const onSearch = async () => {
     })
 
   if (res) {
-    currentRow.data = res.data.map((resData) => convertGatewayToVO(resData))
+    currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
   }
 }
 
@@ -65,17 +67,17 @@ const formatPort = (_row: any, _column: any, cellValue: number[]) => {
 const handleAdd = () => {
   opDialog.isOpen = true;
   opDialog.isEdit = false;
-  opDialog.data = { parameters: {}, port: [80], protocol: ["Http"] } as GatewayVO
+  opDialog.data = { parameters: {}, port: [80], protocol: ["Http"] } as ServiceVO
 }
 
-const handleEdit = (_index: number, row: GatewayVO) => {
+const handleEdit = (_index: number, row: ServiceVO) => {
   opDialog.isOpen = true;
   opDialog.isEdit = true;
   opDialog.data = row;
 }
 
-const handleDelete = async (_index: number, row: GatewayVO) => {
-  await deleteGatewaysApi({ name: row.name, namespace: searchDto.namespace || undefined })
+const handleDelete = async (_index: number, row: ServiceVO) => {
+  await deleteGatewaysApi({ name: row.name })
     .then(() => { ElMessage.success(t('common.status.success')) })
     .catch((a) => { console.log('catch=====' + a) })
     .finally(async () => {
@@ -86,8 +88,8 @@ const handleDelete = async (_index: number, row: GatewayVO) => {
 
 
 const onSumbit = async () => {
-  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToGateway(opDialog.data)).catch((a) => { console.log('catch=====' + a) }) :
-    await addGatewaysApi(converVOToGateway(opDialog.data)).catch((a) => { console.log('catch=====' + a) })
+  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)).catch((a) => { console.log('catch=====' + a) }) :
+    await addGatewaysApi(converVOToService(opDialog.data)).catch((a) => { console.log('catch=====' + a) })
 
   if (res) {
     ElMessage.success(t('common.status.success'))
@@ -97,7 +99,7 @@ const onSumbit = async () => {
 }
 
 const closeDialog = () => {
-  opDialog.data = { parameters: {} } as GatewayVO
+  opDialog.data = { parameters: {} } as ServiceVO
   opDialog.isOpen = false
 }
 
@@ -167,10 +169,10 @@ const deleteFilter = (index: number) => {
           <el-row>
             <el-col :span="6">
               <el-form-item :label="t('route.name')">
-                <el-input placeholder="name of service" v-model="searchDto.name" />
+                <el-input placeholder="name of service" v-model="searchDto.names" />
               </el-form-item>
             </el-col>
-            <el-col :span="6">
+            <el-col v-if="selectedStore.is_k8s()" :span="6">
               <el-form-item label="namespace">
                 <el-input placeholder="namespace of service" v-model="searchDto.namespace" />
               </el-form-item></el-col>

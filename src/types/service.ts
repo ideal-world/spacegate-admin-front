@@ -5,40 +5,40 @@ export interface Parameters {
   ignore_tls_verification?: boolean;
 }
 
-export interface Tls {
-  mode: string;
-  key: string;
-  cert: string;
-}
+// export interface Tls {
+//   mode: string;
+//   key: string;
+//   cert: string;
+// }
 
 export interface Listener {
   name: string;
   port: number;
   protocol: string;
   ip?: string;
-  tls?: Tls;
+  tls?: string;
   hostname?: string;
 }
 
-export interface Gateway {
+export interface Service {
   name: string;
   parameters: Parameters;
   listeners: Listener[];
   filters: string[];
 }
 
-export interface GatewayVO {
+export interface ServiceVO {
   name: string;
   parameters: Parameters;
   ip?: string[];
   port: number[];
   protocol: string[];
   hostname?: string[];
-  tls?: Tls;
+  tls?: string;
   filters: string[];
 }
 
-export function convertGatewayToVO(gateway: Gateway): GatewayVO {
+export function convertServiceToVO(gateway: Service): ServiceVO {
   return {
     name: gateway.name,
     parameters: gateway.parameters,
@@ -51,7 +51,7 @@ export function convertGatewayToVO(gateway: Gateway): GatewayVO {
   };
 }
 
-export function converVOToGateway(vo: GatewayVO): Gateway {
+export function converVOToService(vo: ServiceVO): Service {
   let listeners: Listener[] = [];
   vo.port.forEach(port => {
     for (let protocol of vo.protocol) {
@@ -101,7 +101,6 @@ export function converVOToGateway(vo: GatewayVO): Gateway {
       }
     }
   })
-  console.log("listeners===" + JSON.stringify(listeners))
   return {
     name: vo.name,
     parameters: vo.parameters,

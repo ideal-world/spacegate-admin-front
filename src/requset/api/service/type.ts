@@ -1,16 +1,15 @@
-import { Gateway } from "types/service"
+import { Service } from "types/service"
 
 export interface GetGatewayParams {
-  name?: string
+  names?: string
   namespace?: string
   port?: number
   hostname?: string
 }
-export interface AddGateway extends Gateway {
+export interface AddGateway extends Service {
 }
 export interface DeleteGatewayParams {
   name: string
-  namespace?: string
 }
 
 

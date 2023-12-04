@@ -1,8 +1,8 @@
-import { Gateway } from 'types/service'
+import { Service } from 'types/service'
 import request, { IResponse } from '../../index'
 import { AddGateway, DeleteGatewayParams, GetGatewayParams } from './type'
 
-export const getGatewaysApi = (params: GetGatewayParams): Promise<IResponse<Gateway[]>> => {
+export const getGatewaysApi = (params: GetGatewayParams): Promise<IResponse<Service[]>> => {
   params.hostname = params.hostname || undefined;
   params.port = params.port || undefined;
   params.name = params.name || undefined;
@@ -10,15 +10,14 @@ export const getGatewaysApi = (params: GetGatewayParams): Promise<IResponse<Gate
   return request.get({ url: '/gateway', params })
 }
 
-export const addGatewaysApi = (data: AddGateway): Promise<IResponse<Gateway[]>> => {
+export const addGatewaysApi = (data: AddGateway): Promise<IResponse<Service>> => {
   return request.post({ url: '/gateway', data })
 }
 
-export const updateGatewaysApi = (data: Gateway): Promise<IResponse<Gateway[]>> => {
+export const updateGatewaysApi = (data: Service): Promise<IResponse<Service>> => {
   return request.put({ url: '/gateway', data })
 }
 
-export const deleteGatewaysApi = (params: DeleteGatewayParams): Promise<IResponse<Gateway[]>> => {
-  params.namespace = params.namespace || undefined;
+export const deleteGatewaysApi = (params: DeleteGatewayParams): Promise<IResponse<void>> => {
   return request.delete({ url: '/gateway', params })
 }

@@ -3,13 +3,26 @@ export interface SelectedInstance {
   type_: InstConfigType
 }
 
-export interface InstConfigVo {
+export interface InstConfig {
   type_: InstConfigType;
   k8s_cluster_config?: K8sClusterConfig | null;
   redis_config?: RedisConfig | null;
 }
 
-export function getInstName(config: InstConfigVo): string | undefined {
+export interface InstConfigVO extends InstConfig {
+  name: string
+}
+export function convertInstanceToVO(config: InstConfig): InstConfigVO {
+  let name = getInstName(config);
+  return {
+    name: name ? name : '',
+    type_: config.type_,
+    k8s_cluster_config: config.k8s_cluster_config,
+    redis_config: config.redis_config
+  }
+}
+
+export function getInstName(config: InstConfig): string | undefined {
   if (config.type_ == InstConfigType.K8sClusterConfig) {
     if (config.k8s_cluster_config) {
       return config.k8s_cluster_config.name
