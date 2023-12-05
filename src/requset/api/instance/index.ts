@@ -19,5 +19,5 @@ export const getInstanceListApi = (params?: GetInstanceParams): Promise<IRespons
 }
 
 export const deleteInstanceApi = (paramName: string): Promise<IResponse<void>> => {
-  return request.delete({ url: '/gateway', params: { name: paramName } })
+  return request.delete({ url: '/gateway' + '/' + paramName })
 }

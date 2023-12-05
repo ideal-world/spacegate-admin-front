@@ -77,25 +77,24 @@ const handleEdit = (_index: number, row: ServiceVO) => {
 }
 
 const handleDelete = async (_index: number, row: ServiceVO) => {
-  await deleteGatewaysApi({ name: row.name })
-    .then(() => { ElMessage.success(t('common.status.success')) })
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(async () => {
-      await onSearch()
-    })
+  let a = await deleteGatewaysApi(row.name)
+  if (a) {
+    ElMessage.success(t('common.status.success'))
+  }
+  await onSearch()
 }
 
 
 
 const onSumbit = async () => {
-  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)).catch((a) => { console.log('catch=====' + a) }) :
-    await addGatewaysApi(converVOToService(opDialog.data)).catch((a) => { console.log('catch=====' + a) })
+  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)) :
+    await addGatewaysApi(converVOToService(opDialog.data))
 
   if (res) {
     ElMessage.success(t('common.status.success'))
+    await onSearch()
   }
   closeDialog()
-  await onSearch()
 }
 
 const closeDialog = () => {
@@ -218,7 +217,7 @@ const deleteFilter = (index: number) => {
       <div class="sp-service-drawer__content">
         <el-form :inline="true" :model="opDialog.data">
           <el-form-item label="Name">
-            <el-input v-model="opDialog.data.name" autocomplete="off" />
+            <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
           <el-row>
             <el-col :span="18">

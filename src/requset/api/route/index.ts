@@ -18,5 +18,5 @@ export const updateHttpRouteApi = (data: SgHttpRoute): Promise<IResponse<SgHttpR
 }
 
 export const deleteHttpRouteApi = (paramName: string): Promise<IResponse<void>> => {
-  return request.delete({ url: '/httproute', params: { name: paramName } })
+  return request.delete({ url: '/httproute' + '/' + paramName })
 }

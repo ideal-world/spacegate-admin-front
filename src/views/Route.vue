@@ -1,47 +1,49 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { Search, Edit } from '@element-plus/icons-vue'
 
 import { useI18n } from '../i18n/usei18n'
+import { GetHttpRouteParams } from '../requset/api/route/type'
+import { SgHttpRouteVO, convertServiceToVO } from '../types/route'
+import { deleteHttpRouteApi, getHttpRouteApi } from '../requset/api/route'
+import { ElMessage } from 'element-plus'
 
 const t = await useI18n()
 
-const tableData = [
-  {
-    name: 'iam-test',
-    namespace: 'idp',
-    priority: '0',
-    updateTime: '2016-05-03 10::20::00'
-  },
-]
-interface Route {
-  name: String,
-  namespace: String,
-  updateTime: Date,
-};
+const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
+const searchDto = reactive<GetHttpRouteParams>({})
+const opDialog = reactive({ isOpen: false, isEdit: false, data: { name: '' } as SgHttpRouteVO })
+const tableLoading = ref(false)
 
-const form = reactive({
-  name: '',
-  namespace: '',
-  currentPage: 1,
-  pageSize: 10,
+onMounted(async () => {
+  await onSearch()
 })
 
-const handleEdit = (_index: number, row: InstConfigVO) => {
+const onSearch = async () => {
+  tableLoading.value = true
+  let res = await getHttpRouteApi(searchDto)
+    .finally(() => {
+      tableLoading.value = false
+    })
+
+  if (res) {
+    currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
+  }
+}
+
+const handleEdit = (_index: number, row: SgHttpRouteVO) => {
   opDialog.isOpen = true;
   opDialog.isEdit = true;
   opDialog.data = row;
 }
 
-const handleDelete = async (_index: number, row: InstConfigVO) => {
-  await deleteInstanceApi(row.name,)
-    .then(() => { ElMessage.success(t('common.status.success')) })
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(async () => {
-      await onSearch()
-    })
+const handleDelete = async (_index: number, row: SgHttpRouteVO) => {
+  let result = await deleteHttpRouteApi(row.name,)
+  if (result) {
+    ElMessage.success(t('common.status.success'))
+  }
+  await onSearch()
 }
-
 
 
 const onSumbit = () => {
@@ -49,7 +51,7 @@ const onSumbit = () => {
   closeDialog()
 }
 const closeDialog = () => {
-  opDialog.data = { type_: InstConfigType.RedisConfig } as InstConfigVO
+  opDialog.data = {} as SgHttpRouteVO
   opDialog.isOpen = false
 }
 </script>
@@ -83,13 +85,7 @@ const closeDialog = () => {
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
         <el-table-column prop="name" label="Name" width="180" />
-        <el-table-column prop="type_" label="Type">
-          <template #default="scope">
-            <el-tag>{{ scope.row.type_ == "K8sClusterConfig" ? "Kubernetes" : "Redis" }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="redis_config" label="RedisConfig"></el-table-column>
-        <el-table-column prop="k8s_cluster_config" label="KubeConfig"></el-table-column>
+
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
@@ -99,43 +95,42 @@ const closeDialog = () => {
         </el-table-column>
       </el-table>
     </el-space>
-    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
-      class="sp-service-drawer" :before-close="closeDialog">
+    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit route' : 'add route'" class="sp-service-drawer"
+      :before-close="closeDialog">
       <div class="sp-service-drawer__content">
         <el-form :inline="true" :model="opDialog.data">
           <el-row>
             <el-col>
               <el-form-item label="Name">
-                <el-input v-model="opDialog.data.name" autocomplete="off" />
+                <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row>
             <el-col :span="18">
-              <el-form-item label="Type">
-                <el-select v-model="opDialog.data.type_">
-                  <el-option label="Redis" value="RedisConfig" />
-                  <el-option label="Kubernetes" value="K8sClusterConfig" />
-                </el-select>
+              <el-form-item label="Hostnames">
+                <el-input v-model="opDialog.data.hostnames"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
 
-          <el-row v-if="opDialog.data.type_ == 'RedisConfig'">
-            <el-col :span="18">
-              <el-form-item label="URL">
-                <el-input v-model="opDialog.data.redis_config.url"></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-collapse accordion v-if="opDialog.data.type_ == 'K8sClusterConfig'">
+          <el-collapse accordion>
             <el-collapse-item>
               <template #title>
                 {{ t('common.advanced') }}<el-icon class="header-icon">
                 </el-icon>
               </template>
-            </el-collapse-item></el-collapse>
+              <div>
+                <el-row>
+                  <el-col :span="18">
+                    <el-form-item label="TimeoutMs">
+                      <el-input v-model="opDialog.data.timeout_ms"></el-input>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
         </el-form>
       </div>
       <template #footer>

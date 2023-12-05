@@ -18,5 +18,5 @@ export const updatePluginApi = (data: SgPlugin): Promise<IResponse<SgPlugin>> =>
 }
 
 export const deletePluginApi = (paramName: string): Promise<IResponse<void>> => {
-  return request.delete({ url: '/backend', params: { name: paramName } })
+  return request.delete({ url: '/backend' + '/' + paramName })
 }

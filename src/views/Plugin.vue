@@ -2,7 +2,7 @@
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
-import { deletePluginApi, getPluginApi } from '../requset/api/plugin';
+import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
 import { useI18n } from '../i18n/usei18n';
 import { GetPluginParams } from '../requset/api/plugin/type';
 import { SgPlugin } from 'types/plugin';
@@ -38,7 +38,7 @@ const handleEdit = (_index: number, row: SgPlugin) => {
 }
 
 const handleDelete = async (_index: number, row: SgPlugin) => {
-  await deletePluginApi(row.name,)
+  await deletePluginApi(row.id,)
     .then(() => { ElMessage.success(t('common.status.success')) })
     .catch((a) => { console.log('catch=====' + a) })
     .finally(async () => {
@@ -48,12 +48,16 @@ const handleDelete = async (_index: number, row: SgPlugin) => {
 
 
 
-const onSumbit = () => {
-  console.log(JSON.stringify(opDialog.data))
+const onSumbit = async () => {
+  let result = opDialog.isEdit ? await updatePluginApi(opDialog.data) : await addPluginApi(opDialog.data)
+  if (result) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
+  }
   closeDialog()
 }
 const closeDialog = () => {
-  opDialog.data = { type_: InstConfigType.RedisConfig } as InstConfigVO
+  opDialog.data = {} as SgPlugin
   opDialog.isOpen = false
 }
 </script>
@@ -76,7 +80,7 @@ const closeDialog = () => {
     <el-space fill direction="vertical" style="width: 100%">
       <el-card shadow="never" class=" justify-center">
         <el-form :inline="true" :model="searchDto">
-          <el-form-item :label="t('route.name')">
+          <el-form-item :label="t('plugin.id')">
             <el-input placeholder="name of service" v-model="searchDto.names" />
           </el-form-item>
           <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
@@ -87,14 +91,13 @@ const closeDialog = () => {
       </el-card>
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
-        <el-table-column prop="name" label="Name" width="180" />
-        <el-table-column prop="type_" label="Type">
+        <el-table-column prop="id" label="Id" width="180" />
+        <el-table-column prop="code" label="Code">
           <template #default="scope">
-            <el-tag>{{ scope.row.type_ == "K8sClusterConfig" ? "Kubernetes" : "Redis" }}</el-tag>
+            <el-tag>{{ scope.row.code }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="redis_config" label="RedisConfig"></el-table-column>
-        <el-table-column prop="k8s_cluster_config" label="KubeConfig"></el-table-column>
+        <el-table-column prop="name" label="Name" />
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
@@ -104,43 +107,39 @@ const closeDialog = () => {
         </el-table-column>
       </el-table>
     </el-space>
-    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
-      class="sp-service-drawer" :before-close="closeDialog">
+    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit plugin' : 'add plugin'" class="sp-service-drawer"
+      :before-close="closeDialog">
       <div class="sp-service-drawer__content">
         <el-form :inline="true" :model="opDialog.data">
           <el-row>
             <el-col>
-              <el-form-item label="Name">
-                <el-input v-model="opDialog.data.name" autocomplete="off" />
+              <el-form-item label="Id">
+                <el-input v-model="opDialog.data.id" autocomplete="off" :disabled="opDialog.isEdit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col>
+              <el-form-item label="Code">
+                <el-input v-model="opDialog.data.code" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row>
-            <el-col :span="18">
-              <el-form-item label="Type">
-                <el-select v-model="opDialog.data.type_">
-                  <el-option label="Redis" value="RedisConfig" />
-                  <el-option label="Kubernetes" value="K8sClusterConfig" />
-                </el-select>
+            <el-col>
+              <el-form-item label="Name">
+                <el-input v-model="opDialog.data.name" />
               </el-form-item>
             </el-col>
           </el-row>
-
-          <el-row v-if="opDialog.data.type_ == 'RedisConfig'">
-            <el-col :span="18">
-              <el-form-item label="URL">
-                <el-input v-model="opDialog.data.redis_config.url"></el-input>
+          <el-row>
+            <el-col>
+              <el-form-item label="PluginConfig">
+                <el-input autosize type="textarea" v-model="opDialog.data.spec" />
               </el-form-item>
             </el-col>
           </el-row>
-
-          <el-collapse accordion v-if="opDialog.data.type_ == 'K8sClusterConfig'">
-            <el-collapse-item>
-              <template #title>
-                {{ t('common.advanced') }}<el-icon class="header-icon">
-                </el-icon>
-              </template>
-            </el-collapse-item></el-collapse>
         </el-form>
       </div>
       <template #footer>

@@ -1,3 +1,24 @@
+export interface SgHttpRouteVO {
+  name: string;
+  gateway_name: string;
+  hostnames?: string[] | null;
+  filters: string[];
+  matches?: SgHttpRouteMatch[] | null;
+  backends: string[];
+  timeout_ms?: number | null;
+}
+
+export function convertServiceToVO(route: SgHttpRoute): SgHttpRouteVO {
+  return {
+    name: route.name,
+    gateway_name: route.gateway_name,
+    hostnames: route.hostnames,
+    filters: route.filters,
+    matches: route.rules.map((rule) => rule.matches),
+    backends: route.rules.map((rule) => rule.backends),
+    timeout_ms: route.rules.map((rule) => rule.timeout_ms),
+  }
+}
 export interface SgHttpRoute {
   name: string;
   gateway_name: string;

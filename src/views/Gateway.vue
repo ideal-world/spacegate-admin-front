@@ -114,7 +114,7 @@ const formatName = (_row: any, _column: any, row: InstConfig) => {
           <el-row>
             <el-col>
               <el-form-item label="Name">
-                <el-input v-model="opDialog.data.name" autocomplete="off" />
+                <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
             </el-col>
           </el-row>

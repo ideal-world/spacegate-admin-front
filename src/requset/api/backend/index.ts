@@ -5,6 +5,7 @@ import { GetBackendParams } from './type';
 export const getBackendApi = (params?: GetBackendParams): Promise<IResponse<Backend[]>> => {
   if (params) {
     params.names = params.names || undefined
+    params.namespace = params.namespace || undefined
   }
   return request.get({ url: '/backend', params })
 }
@@ -18,5 +19,5 @@ export const updateBackendApi = (data: Backend): Promise<IResponse<Backend>> => 
 }
 
 export const deleteBackendApi = (paramName: string): Promise<IResponse<void>> => {
-  return request.delete({ url: '/backend', params: { name: paramName } })
+  return request.delete({ url: '/backend' + '/' + paramName })
 }

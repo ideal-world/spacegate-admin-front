@@ -18,6 +18,6 @@ export const updateGatewaysApi = (data: Service): Promise<IResponse<Service>> =>
   return request.put({ url: '/gateway', data })
 }
 
-export const deleteGatewaysApi = (params: DeleteGatewayParams): Promise<IResponse<void>> => {
-  return request.delete({ url: '/gateway', params })
+export const deleteGatewaysApi = (paramName: string): Promise<IResponse<void>> => {
+  return request.delete({ url: '/gateway' + '/' + paramName })
 }
