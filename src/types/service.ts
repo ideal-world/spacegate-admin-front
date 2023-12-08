@@ -1,3 +1,6 @@
+import { useSelectedInstanceStore } from "../stores/select_instance";
+import { formatK8sObjUnique, parseK8sObjUnique } from "./common";
+
 export interface Parameters {
   redis_url?: string;
   log_level?: string;
@@ -29,6 +32,7 @@ export interface Service {
 
 export interface ServiceVO {
   name: string;
+  namespace: string;
   parameters: Parameters;
   ip?: string[];
   port: number[];
@@ -39,8 +43,10 @@ export interface ServiceVO {
 }
 
 export function convertServiceToVO(gateway: Service): ServiceVO {
+  const selectedStore = useSelectedInstanceStore()
   return {
-    name: gateway.name,
+    name: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[1]: gateway.name,
+    namespace: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[0]: '',
     parameters: gateway.parameters,
     ip: gateway.listeners.map((listener) => listener.ip).filter((value): value is string => typeof value === "string").filter((value, index, self) => self.indexOf(value) === index),
     port: gateway.listeners.map((listener) => listener.port).filter((value, index, self) => self.indexOf(value) === index),
@@ -58,7 +64,7 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.ip && vo.hostname) {
         for (let ip of vo.ip) {
           for (let hostname of vo.hostname) {
-            let name = vo.name + 'listener-' + port + '-' + protocol + '-' + ip + '-' + hostname
+            let name = vo.name + '-listener-' + port + '-' + protocol + '-' + ip + '-' + hostname
             listeners.push({
               name: name.toLowerCase(),
               port: port,
@@ -73,7 +79,7 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.ip && (!vo.hostname || vo.hostname.length == 0)) {
         for (let ip of vo.ip) {
           listeners.push({
-            name: (vo.name + 'listener-' + port + '-' + protocol + '-' + ip).toLowerCase(),
+            name: (vo.name + '-listener-' + port + '-' + protocol + '-' + ip).toLowerCase(),
             port: port,
             protocol: protocol,
             ip: ip,
@@ -84,7 +90,7 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.hostname && (!vo.ip || vo.ip.length == 0)) {
         for (let hostname of vo.hostname) {
           listeners.push({
-            name: (vo.name + 'listener-' + port + '-' + protocol + '-' + hostname).toLowerCase(),
+            name: (vo.name + '-listener-' + port + '-' + protocol + '-' + hostname).toLowerCase(),
             port: port,
             protocol: protocol,
             hostname: hostname,
@@ -94,7 +100,7 @@ export function converVOToService(vo: ServiceVO): Service {
       }
       if ((!vo.ip || vo.ip.length == 0) && (!vo.hostname || vo.hostname.length == 0)) {
         listeners.push({
-          name: (vo.name + 'listener-' + port + '-' + protocol).toLowerCase(),
+          name: (vo.name + '-listener-' + port + '-' + protocol).toLowerCase(),
           port: port,
           protocol: protocol,
           tls: vo.tls,
@@ -102,8 +108,10 @@ export function converVOToService(vo: ServiceVO): Service {
       }
     }
   })
+  const selectedStore = useSelectedInstanceStore()
+  console.log('selectedStore.is_k8s()'+selectedStore.is_k8s())
   return {
-    name: vo.name,
+    name: selectedStore.is_k8s()?formatK8sObjUnique(vo.namespace,vo.name):vo.name,
     parameters: vo.parameters,
     listeners: listeners,
     filters: vo.filters ? vo.filters : [],

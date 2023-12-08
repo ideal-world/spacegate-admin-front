@@ -13,10 +13,6 @@ const selectInstanceOptions = ref(["default"])
 
 onMounted(async () => {
   let res = await getSelectedInstanceApi()
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-
-    })
   if (res) {
     selectedStore.selectedInstance = res.data
     selectInstance.value = res.data.name

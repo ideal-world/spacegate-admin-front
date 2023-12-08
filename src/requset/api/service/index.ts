@@ -1,12 +1,9 @@
 import { Service } from 'types/service'
 import request, { IResponse } from '../../index'
-import { AddGateway, DeleteGatewayParams, GetGatewayParams } from './type'
+import { AddGateway, GetGatewayParams, GetGatewayParamsVO, converVOToGetGatewayParams } from './type'
 
-export const getGatewaysApi = (params: GetGatewayParams): Promise<IResponse<Service[]>> => {
-  params.hostname = params.hostname || undefined;
-  params.port = params.port || undefined;
-  params.name = params.name || undefined;
-  params.namespace = params.namespace || undefined;
+export const getGatewaysApi = (paramsVo: GetGatewayParamsVO): Promise<IResponse<Service[]>> => {
+  let params=converVOToGetGatewayParams(paramsVo)
   return request.get({ url: '/gateway', params })
 }
 

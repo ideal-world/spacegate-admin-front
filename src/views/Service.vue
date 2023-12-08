@@ -2,17 +2,18 @@
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } from '../requset/api/service'
-import { convertServiceToVO, converVOToService, ServiceVO, Listener, Tls } from '../types/service';
+import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
 
 import { useI18n } from '../i18n/usei18n'
-import { GetGatewayParams } from 'requset/api/service/type';
+import { GetGatewayParams, GetGatewayParamsVO } from 'requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
+import { parseK8sObjUnique } from '../types/common';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as ServiceVO[] })
-const searchDto = reactive<GetGatewayParams>({})
+const searchDto = reactive<GetGatewayParamsVO>({})
 const opDialog = reactive({ isOpen: false, isEdit: false, data: { parameters: {} } as ServiceVO })
 const tableLoading = ref(false)
 
@@ -35,6 +36,26 @@ const onSearch = async () => {
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
+  }
+}
+
+const formatName = (_row: any, column: any, cellValue: string) => {
+  console.log('column============'+JSON.stringify(cellValue),)
+   if (selectedStore.is_k8s()){
+    if (column.label == 'Namespace'){
+      return parseK8sObjUnique(cellValue)[0]
+    }
+    else{
+      return parseK8sObjUnique(cellValue)[1]
+    }
+  }
+  else {
+    if (column.label == 'Namespace'){
+      return cellValue
+    }
+    else{
+      return ''
+    }
   }
 }
 
@@ -191,18 +212,13 @@ const deleteFilter = (index: number) => {
       </el-card>
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
-        <el-table-column prop="name" label="Name" width="180" />
+        <el-table-column prop="name" label="Name"  width="180" />
+        <el-table-column prop="namespace" label="Namespace"  v-if="selectedStore.is_k8s()" />
         <el-table-column :label="t('service.listener')">
           <el-table-column prop="ip" label="ip" :formatter="formatStrings" />
           <el-table-column prop="hostname" label="hostname" :formatter="formatStrings" />
           <el-table-column prop="port" label="port" :formatter="formatPort" width="180" />
         </el-table-column>
-        <!-- <el-table-column prop="filters" :label="t('service.plugin')">
-          {{ filters }}
-          <el-tag v-for="item in currentRow.data.filters" class="mx-1" round>
-            {{ item }}
-          </el-tag>
-        </el-table-column> -->
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
@@ -216,9 +232,23 @@ const deleteFilter = (index: number) => {
       class="sp-service-drawer" :before-close="closeDialog">
       <div class="sp-service-drawer__content">
         <el-form :inline="true" :model="opDialog.data">
-          <el-form-item label="Name">
+          <el-row>
+            <el-col :span="18">
+          <el-form-item label="Name" :rules="[
+                { required: true, message: 'name is required', trigger: 'blur' },
+              ]">
             <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
+          </el-col>
+        </el-row>
+          <el-row><el-col>
+            <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
+                { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
+              ]">
+            <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
+          </el-form-item>
+          </el-col></el-row>
+        
           <el-row>
             <el-col :span="18">
               <el-form-item :label="'protocol:'" :rules="[
@@ -264,41 +294,7 @@ const deleteFilter = (index: number) => {
               { required: true, message: 'port is required', trigger: 'blur' },
               { type: 'number', message: 'port must be a number', trigger: 'blur' },
             ]
-              ">
-            </el-form-item>
-            <el-form-item>
-              <div class="el-input el-input-group el-input-group--prepend">
-                <div class="el-input-group__prepend">disable_tls</div>
-                <el-select name="tls" v-model="listener.tls" value-key="key">
-                  <el-option v-for="item in tls_options" :key="item.id" :label="item.label" :value="item.data" />
-                </el-select>
-              </div>
-            </el-form-item>
-
-            <div v-if="listener.tls">
-              <el-form-item>
-                <el-input v-model="listener.tls.mode">
-                  <template #prepend>
-                    tls.mode
-                  </template>
-                </el-input>
-              </el-form-item>
-              <el-form-item>
-                <el-input v-model="listener.tls.key" type="password">
-                  <template #prepend>
-                    tls.key
-                  </template>
-                </el-input>
-              </el-form-item>
-              <el-form-item>
-                <el-input v-model="listener.tls.cert" type="password">
-                  <template #prepend>
-                    tls.cert
-                  </template>
-                </el-input>
-              </el-form-item>
-            </div>
-            <el-button class="mt-2" @click.prevent="deleteListener(index)">Delete</el-button> -->
+              ">-->
               </el-form-item>
             </el-col>
             <el-col :span="4">
