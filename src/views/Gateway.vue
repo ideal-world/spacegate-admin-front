@@ -3,15 +3,16 @@ import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 import { useI18n } from '../i18n/usei18n'
-import { deleteInstanceApi, getInstanceListApi } from '../requset/api/instance';
+import { addInstanceListApi, updateInstanceListApi, deleteInstanceApi, getInstanceListApi } from '../requset/api/instance';
 import { GetInstanceParams } from '../requset/api/instance/type';
-import { InstConfigType, InstConfig, getInstName, InstConfigVO, convertInstanceToVO } from '../types/instance';
+import { InstConfigType, InstConfig, getInstName, InstConfigVO, convertInstanceToVO, convertVOToInstance } from '../types/instance';
 
 const t = await useI18n()
 
 const currentRow = reactive({ data: [] as InstConfigVO[] })
 const searchDto = reactive<GetInstanceParams>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { type_: InstConfigType.RedisConfig } as InstConfigVO })
+const initInstConfigVO = () => { return { name: '', type_: InstConfigType.RedisConfig, redis_url: '', k8s_cluster_config: { server_url: '', username: '', token: '' } } }
+const opDialog = reactive({ isOpen: false, isEdit: false, data: initInstConfigVO() })
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -48,18 +49,21 @@ const handleDelete = async (_index: number, row: InstConfigVO) => {
 
 
 
-const onSumbit = () => {
-  console.log(JSON.stringify(opDialog.data))
+const onSumbit = async () => {
+  let data = convertVOToInstance(opDialog.data)
+  let result = opDialog.isEdit ? await updateInstanceListApi(data) : await addInstanceListApi(data)
+  if (result) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
+  }
   closeDialog()
 }
+
 const closeDialog = () => {
-  opDialog.data = { type_: InstConfigType.RedisConfig } as InstConfigVO
+  opDialog.data = initInstConfigVO()
   opDialog.isOpen = false
 }
 
-const formatName = (_row: any, _column: any, row: InstConfig) => {
-  return getInstName(row)
-}
 </script>
 <template>
   <div class="sp-view-header">
@@ -96,11 +100,13 @@ const formatName = (_row: any, _column: any, row: InstConfig) => {
             <el-tag>{{ scope.row.type_ == "K8sClusterConfig" ? "Kubernetes" : "Redis" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="redis_config" label="RedisConfig"></el-table-column>
-        <el-table-column prop="k8s_cluster_config" label="KubeConfig"></el-table-column>
+        <el-table-column prop="redis_url" label="RedisConfig"></el-table-column>
+        <el-table-column label="KubeConfig">
+          <el-table-column prop="server_url" label="Url" />
+          <el-table-column prop="username" label="Username" />
+        </el-table-column>
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
             <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
               t('common.operation.delete') }}</el-button>
           </template>
@@ -132,18 +138,35 @@ const formatName = (_row: any, _column: any, row: InstConfig) => {
           <el-row v-if="opDialog.data.type_ == 'RedisConfig'">
             <el-col :span="18">
               <el-form-item label="URL">
-                <el-input v-model="opDialog.data.redis_config.url"></el-input>
+                <el-input v-model="opDialog.data.redis_url"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
 
-          <el-collapse accordion v-if="opDialog.data.type_ == 'K8sClusterConfig'">
-            <el-collapse-item>
-              <template #title>
-                {{ t('common.advanced') }}<el-icon class="header-icon">
-                </el-icon>
-              </template>
-            </el-collapse-item></el-collapse>
+          <el-row v-if="opDialog.data.type_ == 'K8sClusterConfig'">
+            <el-col :span="18">
+              <el-form-item label="URL">
+                <el-input v-model="opDialog.data.k8s_cluster_config.server_url"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row v-if="opDialog.data.type_ == 'K8sClusterConfig'">
+            <el-col :span="18">
+              <el-form-item label="Username">
+                <el-input v-model="opDialog.data.k8s_cluster_config.username"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row v-if="opDialog.data.type_ == 'K8sClusterConfig'">
+            <el-col :span="18">
+              <el-form-item label="Token">
+                <el-input v-model="opDialog.data.k8s_cluster_config.token"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
         </el-form>
       </div>
       <template #footer>

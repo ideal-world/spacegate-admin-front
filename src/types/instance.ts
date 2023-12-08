@@ -9,16 +9,27 @@ export interface InstConfig {
   redis_config?: RedisConfig | null;
 }
 
-export interface InstConfigVO extends InstConfig {
+export interface InstConfigVO {
   name: string
+  type_: InstConfigType;
+  k8s_cluster_config: K8sClusterConfigVO;
+  redis_url: string;
 }
 export function convertInstanceToVO(config: InstConfig): InstConfigVO {
   let name = getInstName(config);
   return {
     name: name ? name : '',
     type_: config.type_,
-    k8s_cluster_config: config.k8s_cluster_config,
-    redis_config: config.redis_config
+    k8s_cluster_config: convertK8sClusterToVO(config.k8s_cluster_config),
+    redis_url: config.redis_config ? config.redis_config.url : '',
+  }
+}
+
+export function convertVOToInstance(vo: InstConfigVO): InstConfig {
+  return {
+    type_: vo.type_,
+    k8s_cluster_config: vo.type_ == InstConfigType.K8sClusterConfig ? convertVOToK8sCluster(vo.name, vo.k8s_cluster_config) : null,
+    redis_config: vo.type_ == InstConfigType.RedisConfig ? { name: vo.name, url: vo.redis_url } : null
   }
 }
 
@@ -84,4 +95,49 @@ export interface AuthInfo {
 export interface RedisConfig {
   name: string;
   url: string;
+}
+
+export interface K8sClusterConfigVO {
+  server_url: string;
+  username: string;
+  token: string;
+}
+function convertK8sClusterToVO(k8s_config: K8sClusterConfig | null | undefined): K8sClusterConfigVO {
+  if (!k8s_config) {
+    return { server_url: '', username: '', token: '' }
+  }
+  if (!k8s_config.config.clusters.cluster) {
+    return { server_url: '', username: '', token: '' }
+  }
+  if (!k8s_config.config.users.auth_info) {
+    return { server_url: k8s_config.config.clusters.cluster.server ? k8s_config.config.clusters.cluster.server : '', username: '', token: '' }
+  }
+  return {
+    server_url: k8s_config.config.clusters.cluster.server ? k8s_config.config.clusters.cluster.server : '',
+    username: k8s_config.config.users.auth_info.username ? k8s_config.config.users.auth_info.username : '',
+    token: k8s_config.config.users.auth_info.token ? k8s_config.config.users.auth_info.token : '',
+  }
+}
+function convertVOToK8sCluster(name: string, vo: K8sClusterConfigVO): K8sClusterConfig | null {
+  if (!vo || name == '' || vo.server_url == '' || vo.username == '' || vo.token == '') {
+    return null
+  }
+  return {
+    name: name,
+    config: {
+      clusters: {
+        name: name,
+        cluster: vo.server_url == '' ? null : {
+          server: vo.server_url
+        }
+      },
+      users: {
+        name: name,
+        auth_info: vo.username == '' && vo.token == '' ? null : {
+          username: vo.username,
+          token: vo.token
+        }
+      }
+    }
+  }
 }

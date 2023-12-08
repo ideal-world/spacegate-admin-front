@@ -341,37 +341,22 @@ const deleteFilter = (index: number) => {
               </el-icon>
             </template>
             <div>
-              <el-form-item label="parameters">
-                <el-form-item>
-                  <div class="el-input el-input-group el-input-group--prepend">
-                    <div class="el-input-group__prepend">disable_tls</div>
-                    <el-select name="tls" v-model="opDialog.data.parameters.ignore_tls_verification">
-                      <el-option label="disable" :value="false" />
-                      <el-option label="able" :value="true" />
-                    </el-select>
-                  </div>
-                </el-form-item>
+              <el-form-item label="disable_tls">
+                <div>
+                  <el-select name="tls" v-model="opDialog.data.parameters.ignore_tls_verification">
+                    <el-option label="disable" :value="false" />
+                    <el-option label="able" :value="true" />
+                  </el-select>
+                </div>
               </el-form-item>
-              <el-form-item>
-                <el-input v-model="opDialog.data.parameters.lang">
-                  <template #prepend>
-                    lang
-                  </template>
-                </el-input>
+              <el-form-item label="lang">
+                <el-input v-model="opDialog.data.parameters.lang" />
               </el-form-item>
-              <el-form-item>
-                <el-input v-model="opDialog.data.parameters.log_level">
-                  <template #prepend>
-                    log_level
-                  </template>
-                </el-input>
+              <el-form-item label="log_level">
+                <el-input v-model="opDialog.data.parameters.log_level" />
               </el-form-item>
-              <el-form-item>
-                <el-input v-model="opDialog.data.parameters.redis_url">
-                  <template #prepend>
-                    redis_url
-                  </template>
-                </el-input>
+              <el-form-item label="redis_url">
+                <el-input v-model="opDialog.data.parameters.redis_url" />
               </el-form-item>
             </div>
           </el-collapse-item>

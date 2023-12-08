@@ -58,8 +58,9 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.ip && vo.hostname) {
         for (let ip of vo.ip) {
           for (let hostname of vo.hostname) {
+            let name = vo.name + 'listener-' + port + '-' + protocol + '-' + ip + '-' + hostname
             listeners.push({
-              name: vo.name + 'listener-' + port + '-' + protocol + '-' + ip + '-' + hostname,
+              name: name.toLowerCase(),
               port: port,
               protocol: protocol,
               ip: ip,
@@ -72,7 +73,7 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.ip && (!vo.hostname || vo.hostname.length == 0)) {
         for (let ip of vo.ip) {
           listeners.push({
-            name: vo.name + 'listener-' + port + '-' + protocol + '-' + ip,
+            name: (vo.name + 'listener-' + port + '-' + protocol + '-' + ip).toLowerCase(),
             port: port,
             protocol: protocol,
             ip: ip,
@@ -83,7 +84,7 @@ export function converVOToService(vo: ServiceVO): Service {
       if (vo.hostname && (!vo.ip || vo.ip.length == 0)) {
         for (let hostname of vo.hostname) {
           listeners.push({
-            name: vo.name + 'listener-' + port + '-' + protocol + '-' + hostname,
+            name: (vo.name + 'listener-' + port + '-' + protocol + '-' + hostname).toLowerCase(),
             port: port,
             protocol: protocol,
             hostname: hostname,
@@ -93,7 +94,7 @@ export function converVOToService(vo: ServiceVO): Service {
       }
       if ((!vo.ip || vo.ip.length == 0) && (!vo.hostname || vo.hostname.length == 0)) {
         listeners.push({
-          name: vo.name + 'listener-' + port + '-' + protocol,
+          name: (vo.name + 'listener-' + port + '-' + protocol).toLowerCase(),
           port: port,
           protocol: protocol,
           tls: vo.tls,

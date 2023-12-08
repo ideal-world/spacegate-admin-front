@@ -18,6 +18,14 @@ export const getInstanceListApi = (params?: GetInstanceParams): Promise<IRespons
   return request.get({ url: '/spacegate/manage', params })
 }
 
+export const addInstanceListApi = (data: InstConfig): Promise<IResponse<InstConfig>> => {
+  return request.post({ url: '/spacegate/manage', data })
+}
+
+export const updateInstanceListApi = (data: InstConfig): Promise<IResponse<InstConfig>> => {
+  return request.put({ url: '/spacegate/manage', data })
+}
+
 export const deleteInstanceApi = (paramName: string): Promise<IResponse<void>> => {
   return request.delete({ url: '/gateway' + '/' + paramName })
 }
