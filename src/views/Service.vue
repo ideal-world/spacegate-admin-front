@@ -5,9 +5,10 @@ import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } 
 import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
 
 import { useI18n } from '../i18n/usei18n'
-import { GetGatewayParams, GetGatewayParamsVO } from 'requset/api/service/type';
+import {  GetGatewayParamsVO } from 'requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { parseK8sObjUnique } from '../types/common';
+import {PluginArraySelect} from '../components/index';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
@@ -39,25 +40,7 @@ const onSearch = async () => {
   }
 }
 
-const formatName = (_row: any, column: any, cellValue: string) => {
-  console.log('column============'+JSON.stringify(cellValue),)
-   if (selectedStore.is_k8s()){
-    if (column.label == 'Namespace'){
-      return parseK8sObjUnique(cellValue)[0]
-    }
-    else{
-      return parseK8sObjUnique(cellValue)[1]
-    }
-  }
-  else {
-    if (column.label == 'Namespace'){
-      return cellValue
-    }
-    else{
-      return ''
-    }
-  }
-}
+const pluginArraySelect=ref()
 
 const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
   let result = ''
@@ -108,6 +91,7 @@ const handleDelete = async (_index: number, row: ServiceVO) => {
 
 
 const onSumbit = async () => {
+  opDialog.data.filters=pluginArraySelect.value.selectedValues
   let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)) :
     await addGatewaysApi(converVOToService(opDialog.data))
 
@@ -315,18 +299,10 @@ const deleteFilter = (index: number) => {
             </el-col>
           </el-row>
           <el-row>
-            <el-col :span="18">
+            <el-col>
               <el-form-item :label="'filter:'">
-                <div v-for="( filter, index ) in    opDialog.data.filters  " :key="index">
-                  <!-- <el-select v-model="filter.value">
-                    <el-option label="todo:value from api" value="todo" />
-                  </el-select> -->
-                  <el-button class="ml-2" @click.prevent="deleteFilter(index)">-</el-button>
-                </div>
+                  <PluginArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters"/>
               </el-form-item>
-            </el-col>
-            <el-col :span="4">
-              <el-button @click="addFilter">+</el-button>
             </el-col>
           </el-row>
         </el-form>

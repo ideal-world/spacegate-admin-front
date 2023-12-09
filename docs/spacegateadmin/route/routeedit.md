@@ -2,9 +2,9 @@
 aside: false
 ---
 <script setup>
-import RouteEdit from 'spacegate-admin/views/route/RouteEdit.vue'
+import ArraySelect from 'spacegate-admin/components/PluginArraySelect.vue'
 </script>
 
 <DemoContainer>
-  <RouteEdit/>
+  <ArraySelect :selectedValues="[]"/>
 </DemoContainer>
