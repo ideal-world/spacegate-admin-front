@@ -1,11 +1,9 @@
 import { SgHttpRoute } from 'types/route';
 import request, { IResponse } from '../../index'
-import { GetHttpRouteParams } from './type';
+import { GetHttpRouteParamsVO, converVOToGetHttpRouteParams } from './type';
 
-export const getHttpRouteApi = (params?: GetHttpRouteParams): Promise<IResponse<SgHttpRoute[]>> => {
-  if (params) {
-    params.names = params.names || undefined
-  }
+export const getHttpRouteApi = (paramsVo?: GetHttpRouteParamsVO): Promise<IResponse<SgHttpRoute[]>> => {
+  let params = converVOToGetHttpRouteParams(paramsVo)
   return request.get({ url: '/httproute', params })
 }
 

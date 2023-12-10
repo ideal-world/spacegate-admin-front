@@ -4,16 +4,19 @@ import { onMounted, reactive, ref } from 'vue'
 
 import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
 import { useI18n } from '../i18n/usei18n';
-import { Backend, Protocol } from '../types/backend';
+import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
 
-const currentRow = reactive({ data: [] as Backend[] })
+const currentRow = reactive({ data: [] as BackendVO[] })
 const searchDto = reactive<GetBackendParams>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { id: "", name_or_host: '', host: '', port: 0, protocol: Protocol.Http } as Backend })
+const initBackendVO = (): BackendVO => {
+  return convertBackendToVO({ id: "", name_or_host: '', port: 0, protocol: Protocol.Http })
+}
+const opDialog = reactive({ isOpen: false, isEdit: false, data: initBackendVO() })
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -28,17 +31,17 @@ const onSearch = async () => {
     })
 
   if (res) {
-    currentRow.data = res.data
+    currentRow.data = res.data.map((item: Backend) => convertBackendToVO(item))
   }
 }
 
-const handleEdit = (_index: number, row: Backend) => {
+const handleEdit = (_index: number, row: BackendVO) => {
   opDialog.isOpen = true;
   opDialog.isEdit = true;
   opDialog.data = row;
 }
 
-const handleDelete = async (_index: number, row: Backend) => {
+const handleDelete = async (_index: number, row: BackendVO) => {
   let result = await deleteBackendApi(row.id,)
   if (result) {
     ElMessage.success(t('common.status.success'))
@@ -64,7 +67,7 @@ const onSumbit = async () => {
 }
 
 const closeDialog = () => {
-  opDialog.data = { id: "", name_or_host: '', port: 0, protocol: Protocol.Http } as Backend
+  opDialog.data = initBackendVO()
   opDialog.isOpen = false
 }
 </script>

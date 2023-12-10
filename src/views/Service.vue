@@ -5,23 +5,19 @@ import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } 
 import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
 
 import { useI18n } from '../i18n/usei18n'
-import {  GetGatewayParamsVO } from 'requset/api/service/type';
+import { GetGatewayParamsVO } from 'requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { parseK8sObjUnique } from '../types/common';
-import {PluginArraySelect} from '../components/index';
+import { PluginArraySelect } from '../components/index';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as ServiceVO[] })
 const searchDto = reactive<GetGatewayParamsVO>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { parameters: {} } as ServiceVO })
+const initServiceVO = (): ServiceVO => { return { name: '', namespace: '', ip: [], port: [], protocol: [], hostname: [], tls: '', filters: [], parameters: {} } }
+const opDialog = reactive({ isOpen: false, isEdit: false, data: initServiceVO() })
 const tableLoading = ref(false)
-
-const tls_options = ref([
-  { id: 1, label: 'disable', data: '' },
-  { id: 2, label: 'able', data: { mode: '', key: '', cert: '' } },
-])
 
 onMounted(async () => {
   await onSearch()
@@ -40,7 +36,6 @@ const onSearch = async () => {
   }
 }
 
-const pluginArraySelect=ref()
 
 const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
   let result = ''
@@ -89,9 +84,9 @@ const handleDelete = async (_index: number, row: ServiceVO) => {
 }
 
 
-
+const pluginArraySelect = ref()
 const onSumbit = async () => {
-  opDialog.data.filters=pluginArraySelect.value.selectedValues
+  opDialog.data.filters = pluginArraySelect.value.selectedValues
   let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)) :
     await addGatewaysApi(converVOToService(opDialog.data))
 
@@ -103,7 +98,7 @@ const onSumbit = async () => {
 }
 
 const closeDialog = () => {
-  opDialog.data = { parameters: {} } as ServiceVO
+  opDialog.data = initServiceVO()
   opDialog.isOpen = false
 }
 
@@ -196,8 +191,8 @@ const deleteFilter = (index: number) => {
       </el-card>
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
-        <el-table-column prop="name" label="Name"  width="180" />
-        <el-table-column prop="namespace" label="Namespace"  v-if="selectedStore.is_k8s()" />
+        <el-table-column prop="name" label="Name" width="180" />
+        <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
         <el-table-column :label="t('service.listener')">
           <el-table-column prop="ip" label="ip" :formatter="formatStrings" />
           <el-table-column prop="hostname" label="hostname" :formatter="formatStrings" />
@@ -218,21 +213,21 @@ const deleteFilter = (index: number) => {
         <el-form :inline="true" :model="opDialog.data">
           <el-row>
             <el-col :span="18">
-          <el-form-item label="Name" :rules="[
+              <el-form-item label="Name" :rules="[
                 { required: true, message: 'name is required', trigger: 'blur' },
               ]">
-            <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
-          </el-form-item>
-          </el-col>
-        </el-row>
+                <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-row><el-col>
-            <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
+              <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
                 { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
               ]">
-            <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
-          </el-form-item>
-          </el-col></el-row>
-        
+                <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
+              </el-form-item>
+            </el-col></el-row>
+
           <el-row>
             <el-col :span="18">
               <el-form-item :label="'protocol:'" :rules="[
@@ -301,7 +296,7 @@ const deleteFilter = (index: number) => {
           <el-row>
             <el-col>
               <el-form-item :label="'filter:'">
-                  <PluginArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters"/>
+                <PluginArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
               </el-form-item>
             </el-col>
           </el-row>

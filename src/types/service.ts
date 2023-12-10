@@ -34,16 +34,17 @@ export interface ServiceVO {
   name: string;
   namespace: string;
   parameters: Parameters;
-  ip?: string[];
+  ip: string[];
   port: number[];
   protocol: string[];
-  hostname?: string[];
-  tls?: string;
+  hostname: string[];
+  tls: string;
   filters: string[];
 }
 
 export function convertServiceToVO(gateway: Service): ServiceVO {
   const selectedStore = useSelectedInstanceStore()
+  let tls_s=gateway.listeners.map((listener) => listener.tls).filter((value)=>value !== undefined&&value!='') as string[];
   return {
     name: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[1]: gateway.name,
     namespace: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[0]: '',
@@ -52,7 +53,7 @@ export function convertServiceToVO(gateway: Service): ServiceVO {
     port: gateway.listeners.map((listener) => listener.port).filter((value, index, self) => self.indexOf(value) === index),
     protocol: gateway.listeners.map((listener) => listener.protocol).filter((value, index, self) => self.indexOf(value) === index),
     hostname: gateway.listeners.map((listener) => listener.hostname).filter((value): value is string => typeof value === "string").filter((value, index, self) => self.indexOf(value) === index),
-    tls: gateway.listeners.filter((listener) => listener.tls)[0],
+    tls: tls_s.length > 0 ? tls_s[0] : '',
     filters: gateway.filters,
   };
 }

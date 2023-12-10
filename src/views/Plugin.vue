@@ -11,7 +11,15 @@ const t = await useI18n()
 
 const currentRow = reactive({ data: [] as SgPlugin[] })
 const searchDto = reactive<GetPluginParams>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { name: '' } as SgPlugin })
+const initPluginVO = (): SgPlugin => {
+  return {
+    id: '',
+    name: '',
+    code: '',
+    spec: '',
+  }
+}
+const opDialog = reactive({ isOpen: false, isEdit: false, data: initPluginVO() })
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -57,7 +65,7 @@ const onSumbit = async () => {
   closeDialog()
 }
 const closeDialog = () => {
-  opDialog.data = {} as SgPlugin
+  opDialog.data = initPluginVO()
   opDialog.isOpen = false
 }
 </script>

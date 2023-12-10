@@ -11,7 +11,14 @@ const t = await useI18n()
 
 const currentRow = reactive({ data: [] as TlsCert[] })
 const searchDto = reactive<GetTlsCertParams>({})
-const opDialog = reactive({ isOpen: false, isEdit: false, data: { name: '' } as TlsCert })
+const initTlsCert = (): TlsCert => {
+  return {
+    name: '',
+    cert: '',
+    key: '',
+  }
+}
+const opDialog = reactive({ isOpen: false, isEdit: false, data: initTlsCert() })
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -70,7 +77,7 @@ const onSumbit = async () => {
 }
 
 const closeDialog = () => {
-  opDialog.data = { name: '' } as TlsCert
+  opDialog.data = initTlsCert()
   opDialog.isOpen = false
 }
 
