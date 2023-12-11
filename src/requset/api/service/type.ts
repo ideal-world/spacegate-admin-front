@@ -15,7 +15,10 @@ export interface GetGatewayParams {
   hostname?: string
 }
 
-export function converVOToGetGatewayParams(params: GetGatewayParamsVO): GetGatewayParams {
+export function converVOToGetGatewayParams(params?: GetGatewayParamsVO): GetGatewayParams {
+  if (!params) {
+    return {}
+  }
   const selectedStore = useSelectedInstanceStore()
   let hostname = params.hostname || undefined;
   let port = params.port || undefined;

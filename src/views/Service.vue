@@ -8,7 +8,7 @@ import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParamsVO } from 'requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { parseK8sObjUnique } from '../types/common';
-import { PluginArraySelect } from '../components/index';
+import { ArraySelect } from '../components/index';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
@@ -296,7 +296,7 @@ const deleteFilter = (index: number) => {
           <el-row>
             <el-col>
               <el-form-item :label="'filter:'">
-                <PluginArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
+                <ArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
               </el-form-item>
             </el-col>
           </el-row>

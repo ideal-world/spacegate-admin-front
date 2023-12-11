@@ -7,6 +7,7 @@ import { useI18n } from '../i18n/usei18n';
 import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
+import { ArraySelect } from '../components/index';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
@@ -49,7 +50,9 @@ const handleDelete = async (_index: number, row: BackendVO) => {
   await onSearch()
 }
 
+const upstreamArraySelect = ref()
 const onSumbit = async () => {
+  opDialog.data.filters = upstreamArraySelect.value.selectedValues
   if (opDialog.isEdit) {
     let updateResult = await updateBackendApi(opDialog.data)
     if (updateResult) {
@@ -93,7 +96,11 @@ const closeDialog = () => {
           <el-form-item :label="t('route.name')">
             <el-input placeholder="name of upstream" v-model="searchDto.names" />
           </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
+          <el-form-item :label="t('upstream.namespace')" v-if="selectedStore.is_k8s()">
+            <el-input placeholder="namespace of upstream" v-model="searchDto.namespace" />
+          </el-form-item>
+          <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
+            t('common.operation.add')
           }}</el-button>
             <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
 
@@ -102,13 +109,13 @@ const closeDialog = () => {
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
         <el-table-column prop="id" label="Name" width="180" />
+        <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
         <el-table-column prop="protocol" label="Protocol">
           <template #default="scope">
             <el-tag>{{ scope.row.protocol }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="name_or_host" :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'" />
-        <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
         <el-table-column prop="port" label="Port" />
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
@@ -185,7 +192,7 @@ const closeDialog = () => {
                 <el-row>
                   <el-col :span="18">
                     <el-form-item label="Filters">
-                      <!-- <el-input v-model="opDialog.data.filters" /> -->
+                      <ArraySelect ref="upstreamArraySelect" :selectedValues="opDialog.data.filters" />
                     </el-form-item>
                   </el-col>
                 </el-row>

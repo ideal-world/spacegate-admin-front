@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    ArraySelect: typeof import('./src/components/ArraySelect.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -30,7 +31,6 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
-    PluginArraySelect: typeof import('./src/components/PluginArraySelect.vue')['default']
     SelectInstance: typeof import('./src/components/SelectInstance.vue')['default']
   }
   export interface ComponentCustomProperties {

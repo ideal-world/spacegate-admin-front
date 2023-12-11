@@ -1,27 +1,34 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { Ref, onMounted, reactive, ref } from 'vue'
 import { Search, Edit } from '@element-plus/icons-vue'
 
 import { useI18n } from '../i18n/usei18n'
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
-import { SgHttpRouteVO, convertServiceToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToService } from '../types/route'
+import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute } from '../types/route'
 import { addHttpRouteApi, deleteHttpRouteApi, getHttpRouteApi, updateHttpRouteApi } from '../requset/api/route'
 import { ElMessage } from 'element-plus'
 import { useSelectedInstanceStore } from '../stores/select_instance'
 import { getBackendApi } from '../requset/api/backend'
-import { Backend } from '../types/backend'
+import { Backend, BackendVO, convertBackendToVO } from '../types/backend'
+import { getGatewaysApi } from '../requset/api/service'
+import { Service, ServiceVO, convertServiceToVO } from '../types/service'
+import { ArraySelect } from '../components/index';
 
 const t = await useI18n()
 const selectedStore = useSelectedInstanceStore()
 const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
 const searchDto = reactive<GetHttpRouteParamsVO>({})
 const initRouteVO = (): SgHttpRouteVO => {
-  return convertServiceToVO({ name: selectedStore.is_k8s() ? '.' : '', gateway_name: '', priority: 0, filters: [], rules: [] })
+  return convertRouteToVO({ name: selectedStore.is_k8s() ? '.' : '', gateway_name: '', priority: 0, filters: [], rules: [] })
 }
 const opDialog = reactive({ isOpen: false, isEdit: false, data: initRouteVO() })
 const tableLoading = ref(false)
 
+const gatewayList: Ref<Service[]> = ref([])
+
 onMounted(async () => {
+  await getGatewayList()
+  await getBackendMap()
   await onSearch()
 })
 
@@ -33,7 +40,23 @@ const onSearch = async () => {
     })
 
   if (res) {
-    currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
+    currentRow.data = res.data.map((resData) => convertRouteToVO(resData))
+  }
+}
+const banckendMap: Map<string, BackendVO> = new Map()
+const getBackendMap = async () => {
+  let res = await getBackendApi()
+  if (res) {
+    res.data.map((item: Backend) => {
+      return convertBackendToVO(item)
+    }).forEach((item: BackendVO) => banckendMap.set(item.id, item))
+  }
+}
+
+const getGatewayList = async () => {
+  let res = await getGatewaysApi()
+  if (res) {
+    res.data.forEach((item: Service) => gatewayList.value.push(item))
   }
 }
 
@@ -56,8 +79,8 @@ const backendArraySelect = ref()
 const onSumbit = async () => {
   opDialog.data.backends = backendArraySelect.value.selectedValues
   opDialog.data.filters = pluginArraySelect.value.selectedValues
-  let res=opDialog.isEdit ? await updateHttpRouteApi(convertVOToService(opDialog.data)) :await addHttpRouteApi(convertVOToService(opDialog.data))
-  if(res){
+  let res = opDialog.isEdit ? await updateHttpRouteApi(convertVOToRoute(opDialog.data)) : await addHttpRouteApi(convertVOToRoute(opDialog.data))
+  if (res) {
     ElMessage.success(t('common.status.success'))
     onSearch()
   }
@@ -68,14 +91,23 @@ const closeDialog = () => {
   opDialog.isOpen = false
 }
 
-const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
-  let res=await getBackendApi({names:beckends.join(',')})
-  if(res){
-    return res.data.map((item:Backend)=>{
-      item.name_or_host
-    }).join(',')
+const getBackendInfo = (_row: any, _column: any, beckends: string[]) => {
+  let result = beckends.map((item: string) => { let backend = banckendMap.get(item); if (backend) return backend.name_or_host }
+  ).join(',')
+  return result
+}
+
+const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
+  let result = ''
+  if (cellValue) {
+    cellValue.forEach((item) => {
+      if (item != null && item != undefined) {
+        result = result + item + ','
+      }
+    }
+    )
   }
-  return
+  return result.length > 0 ? result.substring(0, result.length - 1) : '-'
 }
 </script>
 <template>
@@ -114,6 +146,8 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
         style="width: 100% ">
         <el-table-column prop="name" label="Name" width="180" />
         <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
+        <el-table-column prop="gateway_name" label="GatewayName" />
+        <el-table-column prop=" hostname" label="hostname" :formatter="formatStrings" />
         <el-table-column prop="backends" label="Backend" :formatter="getBackendInfo" />
 
         <el-table-column :label="t('common.operations')">
@@ -131,11 +165,21 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
         <el-form :inline="true" :model="opDialog.data">
           <el-row>
             <el-col>
+              <h4>Common</h4>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-divider class="mt-1" />
+          </el-row>
+
+          <el-row>
+            <el-col>
               <el-form-item label="Name">
                 <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
             </el-col>
           </el-row>
+
           <el-row><el-col>
               <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
                 { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
@@ -143,6 +187,18 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
                 <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
             </el-col></el-row>
+
+          <el-row><el-col>
+              <el-form-item label="GatewayName" :rules="[
+                { required: true, message: 'gatewayName is required', trigger: 'blur' },
+              ]">
+                <!-- <el-input v-model="opDialog.data.gateway_name" :disabled="opDialog.isEdit" /> -->
+                <el-select v-model="opDialog.data.gateway_name" placeholder="Select gateway">
+                  <el-option v-for="item in gatewayList" :key="item.name" :label="item.name" :value="item.name" />
+                </el-select>
+              </el-form-item>
+            </el-col></el-row>
+
           <el-row>
             <el-col :span="18">
               <el-form-item :label="'Hostnames:'">
@@ -159,7 +215,7 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
 
           <el-row>
             <el-col>
-              <h3>Match</h3>
+              <h4>Match</h4>
             </el-col>
           </el-row>
           <el-row>
@@ -203,7 +259,7 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
                   <el-row v-for="( _, index2 ) in opDialog.data.matches[index].query">
                     <div class="flex items-center">
                       <el-select v-model="opDialog.data.matches[index].query![index2].kind" placeholder="Select Kind">
-                        <el-option v-for="option in Object.values(SgHttpPathMatchType)" :key="option" :label="option"
+                        <el-option v-for="option in Object.values(SgHttpQueryMatchType)" :key="option" :label="option"
                           :value="option"></el-option>
                       </el-select>
                       <el-input v-model="opDialog.data.matches[index].query![index2].name" placeholder="Name"></el-input>
@@ -242,7 +298,7 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
 
           <el-row>
             <el-col>
-              <h3>Other</h3>
+              <h4>Other</h4>
             </el-col>
           </el-row>
           <el-row>
@@ -252,7 +308,7 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
           <el-row>
             <el-col>
               <el-form-item :label="'backend:'">
-                <PluginArraySelect ref="backendArraySelect" :selectedValues="opDialog.data.backends" apiType="backend" />
+                <ArraySelect ref="backendArraySelect" :selectedValues="opDialog.data.backends" apiType="backend" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -260,7 +316,7 @@ const getBackendInfo=async (_row: any, _column: any, beckends: string[]) => {
           <el-row>
             <el-col>
               <el-form-item :label="'filter:'">
-                <PluginArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
+                <ArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
               </el-form-item>
             </el-col>
           </el-row>

@@ -22,9 +22,6 @@ onMounted(async () => {
 
 const getInstances = async () => {
   let res = await getInstanceListApi()
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-    })
   if (res) {
     res.data.map((item) => {
       let name = getInstName(item);

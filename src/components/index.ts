@@ -1,7 +1,7 @@
 import SelectInstance from './SelectInstance.vue'
-import PluginArraySelect from './PluginArraySelect.vue'
+import ArraySelect from './ArraySelect.vue'
 
 export {
-    SelectInstance,
-    PluginArraySelect,
+  SelectInstance,
+  ArraySelect,
 }

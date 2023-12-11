@@ -2,7 +2,7 @@ import { Service } from 'types/service'
 import request, { IResponse } from '../../index'
 import { AddGateway, GetGatewayParams, GetGatewayParamsVO, converVOToGetGatewayParams } from './type'
 
-export const getGatewaysApi = (paramsVo: GetGatewayParamsVO): Promise<IResponse<Service[]>> => {
+export const getGatewaysApi = (paramsVo?: GetGatewayParamsVO): Promise<IResponse<Service[]>> => {
   let params = converVOToGetGatewayParams(paramsVo)
   return request.get({ url: '/gateway', params })
 }
