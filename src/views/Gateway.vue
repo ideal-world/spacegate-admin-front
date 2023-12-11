@@ -22,14 +22,11 @@ onMounted(async () => {
 const onSearch = async () => {
   tableLoading.value = true
   let res = await getInstanceListApi(searchDto)
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-      tableLoading.value = false
-    })
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertInstanceToVO(resData))
   }
+  tableLoading.value = false
 }
 
 const handleEdit = (_index: number, row: InstConfigVO) => {
@@ -39,12 +36,11 @@ const handleEdit = (_index: number, row: InstConfigVO) => {
 }
 
 const handleDelete = async (_index: number, row: InstConfigVO) => {
-  await deleteInstanceApi(row.name,)
-    .then(() => { ElMessage.success(t('common.status.success')) })
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(async () => {
-      await onSearch()
-    })
+  let res = await deleteInstanceApi(row.name,)
+  if (res) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
+  }
 }
 
 

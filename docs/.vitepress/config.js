@@ -1,4 +1,5 @@
-const path = require('path')
+// const path = require('path')
+import  path from "path";
 
 export default {
   title: 'spacegate admin',

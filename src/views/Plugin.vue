@@ -29,14 +29,11 @@ onMounted(async () => {
 const onSearch = async () => {
   tableLoading.value = true
   let res = await getPluginApi(searchDto)
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-      tableLoading.value = false
-    })
 
   if (res) {
     currentRow.data = res.data
   }
+  tableLoading.value = false
 }
 
 const handleEdit = (_index: number, row: SgPlugin) => {
@@ -46,12 +43,11 @@ const handleEdit = (_index: number, row: SgPlugin) => {
 }
 
 const handleDelete = async (_index: number, row: SgPlugin) => {
-  await deletePluginApi(row.id,)
-    .then(() => { ElMessage.success(t('common.status.success')) })
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(async () => {
-      await onSearch()
-    })
+  let res = await deletePluginApi(row.id,)
+  if (res) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
+  }
 }
 
 

@@ -26,14 +26,11 @@ onMounted(async () => {
 const onSearch = async () => {
   tableLoading.value = true
   let res = await getGatewaysApi(searchDto)
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-      tableLoading.value = false
-    })
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
   }
+  tableLoading.value = false
 }
 
 

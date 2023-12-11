@@ -55,7 +55,7 @@ export default defineConfig({
       fileName: (format) => `spacegate-admin.${format}.js`
     },
     rollupOptions: {
-      external: ['vue', /element-plus\/.+/],
+      external: ['vue', 'pinia', /element-plus\/.+/],
       output: {
         exports: 'named',
         globals: {

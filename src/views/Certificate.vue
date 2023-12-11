@@ -28,14 +28,11 @@ onMounted(async () => {
 const onSearch = async () => {
   tableLoading.value = true
   let res = await getTlsCertApi(searchDto)
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-      tableLoading.value = false
-    })
 
   if (res) {
     currentRow.data = res.data
   }
+  tableLoading.value = false
 }
 
 const handleEdit = (_index: number, row: TlsCert) => {
@@ -45,32 +42,20 @@ const handleEdit = (_index: number, row: TlsCert) => {
 }
 
 const handleDelete = async (_index: number, row: TlsCert) => {
-  await deleteTlsCertApi(row.name,)
-    .then(() => { ElMessage.success(t('common.status.success')) })
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(async () => {
-      await onSearch()
-    })
+  let res = await deleteTlsCertApi(row.name)
+  if (res) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
+  }
 }
 
 
 
 const onSumbit = async () => {
-  if (opDialog.isEdit) {
-    await updateTlsCertApi(opDialog.data,)
-      .then(() => { ElMessage.success(t('common.status.success')) })
-      .catch((a) => { console.log('catch=====' + a) })
-      .finally(async () => {
-        await onSearch()
-      })
-
-  } else {
-    await addTlsCertApi(opDialog.data,)
-      .then(() => { ElMessage.success(t('common.status.success')) })
-      .catch((a) => { console.log('catch=====' + a) })
-      .finally(async () => {
-        await onSearch()
-      })
+  let res = opDialog.isEdit ? await updateTlsCertApi(opDialog.data) : await addTlsCertApi(opDialog.data)
+  if (res) {
+    ElMessage.success(t('common.status.success'))
+    await onSearch()
   }
 
   closeDialog()

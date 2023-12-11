@@ -34,10 +34,6 @@ const getInstances = async () => {
 
 const selectedChange = async (value: string) => {
   let res = await selectInstanceApi(value)
-    .catch((a) => { console.log('catch=====' + a) })
-    .finally(() => {
-    })
-  console.log('value=====' + value)
 }
 </script>
 <template>
