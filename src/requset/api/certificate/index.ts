@@ -1,4 +1,4 @@
-import { TlsCert } from 'types/certificate';
+import { TlsCert } from '../../../types/certificate';
 import request, { IResponse } from '../../index'
 import { GetTlsCertParams } from './type';
 

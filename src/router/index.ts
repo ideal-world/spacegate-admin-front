@@ -1,4 +1,4 @@
-import { useI18n } from "i18n/usei18n"
+import { useI18n } from "../i18n/usei18n"
 
 const t = await useI18n()
 

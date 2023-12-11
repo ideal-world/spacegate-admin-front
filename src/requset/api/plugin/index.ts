@@ -1,4 +1,4 @@
-import { SgPlugin } from 'types/plugin';
+import { SgPlugin } from '../../../types/plugin';
 import request, { IResponse } from '../../index'
 import { GetPluginParams } from './type';
 

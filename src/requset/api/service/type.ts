@@ -1,6 +1,6 @@
 import { useSelectedInstanceStore } from "../../../stores/select_instance"
 import { formatK8sObjUnique } from "../../../types/common"
-import { Service } from "types/service"
+import { Service } from "../../../types/service"
 
 export interface GetGatewayParamsVO {
   names?: string

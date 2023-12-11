@@ -1,4 +1,4 @@
-import { InstConfig, SelectedInstance } from 'types/instance'
+import { InstConfig, SelectedInstance } from '../../../types/instance'
 import request, { IResponse } from '../../index'
 import { GetInstanceParams } from './type'
 

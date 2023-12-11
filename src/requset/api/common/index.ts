@@ -1,4 +1,4 @@
-import { Statistics } from 'types/common'
+import { Statistics } from '../../../types/common'
 import request, { IResponse } from '../../index'
 
 export const getStatisticsApi = (): Promise<IResponse<Statistics>> => {

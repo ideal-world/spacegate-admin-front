@@ -5,7 +5,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
 import { useI18n } from '../i18n/usei18n';
 import { GetPluginParams } from '../requset/api/plugin/type';
-import { SgPlugin } from 'types/plugin';
+import { SgPlugin } from '../types/plugin';
 
 const t = await useI18n()
 

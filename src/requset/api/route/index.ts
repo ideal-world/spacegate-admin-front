@@ -1,4 +1,4 @@
-import { SgHttpRoute } from 'types/route';
+import { SgHttpRoute } from '../../../types/route';
 import request, { IResponse } from '../../index'
 import { GetHttpRouteParamsVO, converVOToGetHttpRouteParams } from './type';
 

@@ -1,4 +1,4 @@
-import { Backend } from 'types/backend';
+import { Backend } from '../../../types/backend';
 import request, { IResponse } from '../../index'
 import { GetBackendParams } from './type';
 
