@@ -82,7 +82,8 @@ const closeDialog = () => {
           <el-form-item :label="t('route.name')">
             <el-input placeholder="name of service" v-model="searchDto.names" />
           </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
+          <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
+            t('common.operation.add')
           }}</el-button>
             <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
 

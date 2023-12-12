@@ -20,6 +20,7 @@ import './assets/main.scss'
 export default { install }
 
 export { setupI18n } from './i18n/usei18n'
+export { setApiClient } from './requset'
 export * from './components'
 export * from './constants'
 export * from './utils'

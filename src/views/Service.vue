@@ -7,7 +7,6 @@ import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../t
 import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParamsVO } from '../requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
-import { parseK8sObjUnique } from '../types/common';
 import { ArraySelect } from '../components/index';
 
 const t = await useI18n()

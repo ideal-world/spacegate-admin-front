@@ -5,13 +5,13 @@ import { onMounted, reactive, ref } from 'vue'
 import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
 import { useI18n } from '../i18n/usei18n';
 import { GetPluginParams } from '../requset/api/plugin/type';
-import { SgPlugin } from '../types/plugin';
+import { SgPlugin, SgPluginVO, convertPluginToVO, convertVOToPlugin } from '../types/plugin';
 
 const t = await useI18n()
 
-const currentRow = reactive({ data: [] as SgPlugin[] })
+const currentRow = reactive({ data: [] as SgPluginVO[] })
 const searchDto = reactive<GetPluginParams>({})
-const initPluginVO = (): SgPlugin => {
+const initPluginVO = (): SgPluginVO => {
   return {
     id: '',
     name: '',
@@ -31,7 +31,7 @@ const onSearch = async () => {
   let res = await getPluginApi(searchDto)
 
   if (res) {
-    currentRow.data = res.data
+    currentRow.data = res.data.map((resData) => convertPluginToVO(resData))
   }
   tableLoading.value = false
 }
@@ -53,7 +53,7 @@ const handleDelete = async (_index: number, row: SgPlugin) => {
 
 
 const onSumbit = async () => {
-  let result = opDialog.isEdit ? await updatePluginApi(opDialog.data) : await addPluginApi(opDialog.data)
+  let result = opDialog.isEdit ? await updatePluginApi(convertVOToPlugin(opDialog.data)) : await addPluginApi(convertVOToPlugin(opDialog.data))
   if (result) {
     ElMessage.success(t('common.status.success'))
     await onSearch()
@@ -85,9 +85,10 @@ const closeDialog = () => {
       <el-card shadow="never" class=" justify-center">
         <el-form :inline="true" :model="searchDto">
           <el-form-item :label="t('plugin.id')">
-            <el-input placeholder="name of service" v-model="searchDto.names" />
+            <el-input placeholder="name of service" v-model="searchDto.ids" />
           </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
+          <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
+            t('common.operation.add')
           }}</el-button>
             <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
 
@@ -96,12 +97,12 @@ const closeDialog = () => {
       <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
         style="width: 100% ">
         <el-table-column prop="id" label="Id" width="180" />
+        <el-table-column prop="name" label="Name" />
         <el-table-column prop="code" label="Code">
           <template #default="scope">
             <el-tag>{{ scope.row.code }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="Name" />
         <el-table-column :label="t('common.operations')">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
@@ -118,7 +119,7 @@ const closeDialog = () => {
           <el-row>
             <el-col>
               <el-form-item label="Id">
-                <el-input v-model="opDialog.data.id" autocomplete="off" :disabled="opDialog.isEdit" />
+                <el-input v-model="opDialog.data.id" autocomplete="off" disabled />
               </el-form-item>
             </el-col>
           </el-row>

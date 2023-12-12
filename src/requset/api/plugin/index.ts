@@ -4,7 +4,7 @@ import { GetPluginParams } from './type';
 
 export const getPluginApi = (params?: GetPluginParams): Promise<IResponse<SgPlugin[]>> => {
   if (params) {
-    params.names = params.names || undefined
+    params.ids = params.ids || undefined
   }
   return request.get({ url: '/plugin', params })
 }
@@ -18,5 +18,5 @@ export const updatePluginApi = (data: SgPlugin): Promise<IResponse<SgPlugin>> =>
 }
 
 export const deletePluginApi = (paramName: string): Promise<IResponse<void>> => {
-  return request.delete({ url: '/backend' + '/' + paramName })
+  return request.delete({ url: '/plugin' + '/' + paramName })
 }

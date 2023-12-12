@@ -136,7 +136,8 @@ const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
               <el-form-item label="namespace">
                 <el-input placeholder="namespace of service" v-model="searchDto.namespace" />
               </el-form-item></el-col>
-            <el-form-item class="float-right"><el-button @click="opDialog.isOpen = true">{{ t('common.operation.add')
+            <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
+              t('common.operation.add')
             }}</el-button>
               <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
           </el-row>
