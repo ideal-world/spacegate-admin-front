@@ -3,11 +3,12 @@ import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 import { addTlsCertApi, deleteTlsCertApi, getTlsCertApi, updateTlsCertApi } from '../requset/api/certificate';
-import { useI18n } from '../i18n/usei18n';
+
 import { TlsCert } from '../types/certificate';
 import { GetTlsCertParams } from '../requset/api/certificate/type';
+import { useI18n } from 'vue-i18n';
 
-const t = await useI18n()
+const { t } = useI18n()
 
 const currentRow = reactive({ data: [] as TlsCert[] })
 const searchDto = reactive<GetTlsCertParams>({})
@@ -118,30 +119,16 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
     <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
       class="sp-service-drawer" :before-close="closeDialog">
       <div class="sp-service-drawer__content">
-        <el-form :inline="true" :model="opDialog.data">
-          <el-row>
-            <el-col>
-              <el-form-item label="Name">
-                <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
-              <el-form-item label="Key">
-                <el-input type="password" v-model="opDialog.data.key" :show-password="opDialog.isEdit ? false : true" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row>
-            <el-col :span="18">
-              <el-form-item label="Cert">
-                <el-input type="password" v-model="opDialog.data.cert" :show-password="opDialog.isEdit ? false : true" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
+        <el-form :inline="false" :model="opDialog.data" label-position="left" label-width="auto">
+          <el-form-item label="Name">
+            <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
+          </el-form-item>
+          <el-form-item label="Key">
+            <el-input type="password" v-model="opDialog.data.key" :show-password="opDialog.isEdit ? false : true" />
+          </el-form-item>
+          <el-form-item label="Cert">
+            <el-input type="password" v-model="opDialog.data.cert" :show-password="opDialog.isEdit ? false : true" />
+          </el-form-item>
         </el-form>
       </div>
       <template #footer>

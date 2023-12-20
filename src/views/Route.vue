@@ -2,7 +2,6 @@
 import { Ref, onMounted, reactive, ref } from 'vue'
 import { Search, Edit } from '@element-plus/icons-vue'
 
-import { useI18n } from '../i18n/usei18n'
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
 import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute } from '../types/route'
 import { addHttpRouteApi, deleteHttpRouteApi, getHttpRouteApi, updateHttpRouteApi } from '../requset/api/route'
@@ -13,8 +12,10 @@ import { Backend, BackendVO, convertBackendToVO } from '../types/backend'
 import { getGatewaysApi } from '../requset/api/service'
 import { Service, ServiceVO, convertServiceToVO } from '../types/service'
 import { ArraySelect } from '../components/index';
+import { useI18n } from 'vue-i18n';
 
-const t = await useI18n()
+const { t }= useI18n()
+
 const selectedStore = useSelectedInstanceStore()
 const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
 const searchDto = reactive<GetHttpRouteParamsVO>({})

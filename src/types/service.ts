@@ -1,6 +1,5 @@
 import { useSelectedInstanceStore } from "../stores/select_instance";
 import { formatK8sObjUnique, parseK8sObjUnique } from "./common";
-
 export interface Parameters {
   redis_url?: string;
   log_level?: string;

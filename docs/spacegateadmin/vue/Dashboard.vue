@@ -2,7 +2,5 @@
 import Dashboard from 'spacegate-admin/views/Dashboard.vue'
 </script>
 <template>
-  <Suspense>
-    <Dashboard />
-  </Suspense>
+  <Dashboard />
 </template>

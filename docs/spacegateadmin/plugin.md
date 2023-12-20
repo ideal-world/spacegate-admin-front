@@ -6,7 +6,5 @@ import Plugin from 'spacegate-admin/views/Plugin.vue'
 </script>
 
 <DemoContainer>
- <Suspense>
-    <Plugin/>
- </Suspense>
+   <Plugin/>
 </DemoContainer>

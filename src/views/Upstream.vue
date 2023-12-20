@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { ComponentPublicInstance, onMounted, reactive, ref } from 'vue'
 
 import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
-import { useI18n } from '../i18n/usei18n';
 import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ArraySelect } from '../components/index';
+import { ExtractPropType } from 'element-plus/es/utils';
 
-const t = await useI18n()
+import { useI18n } from 'vue-i18n';
+
+const { t }= useI18n()
+
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as BackendVO[] })
@@ -73,6 +76,14 @@ const closeDialog = () => {
   opDialog.data = initBackendVO()
   opDialog.isOpen = false
 }
+
+const colSizeAttr = {
+  xs: 24,
+  sm: 24,
+  md: 12,
+  lg: 8,
+  xl: 6
+}
 </script>
 <template>
   <div class="sp-view-header">
@@ -129,45 +140,36 @@ const closeDialog = () => {
     <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
       class="sp-service-drawer" :before-close="closeDialog">
       <div class="sp-service-drawer__content">
-        <el-form :inline="true" :model="opDialog.data">
-          <el-row>
-            <el-col>
+        <el-form :inline="false" :model="opDialog.data" label-width="auto">
+          <el-row :gutter="8">
+            <el-col v-bind="colSizeAttr">
               <el-form-item label="Name">
                 <el-input v-model="opDialog.data.id" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
+            <el-col v-bind="colSizeAttr">
               <el-form-item label="Protocol">
                 <el-select v-model="opDialog.data.protocol">
                   <el-option v-for="item in Protocol" :key="item" :label="item" :value="item" />
                 </el-select>
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
+            <el-col v-bind="colSizeAttr">
               <el-form-item :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'">
                 <el-input v-model="opDialog.data.name_or_host" />
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row v-if="selectedStore.is_k8s()">
-            <el-col :span="18">
+            <el-col v-bind="colSizeAttr">
               <el-form-item label="Namespace">
                 <el-input v-model="opDialog.data.namespace" />
               </el-form-item>
             </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="18">
-              <el-form-item label="Port">
-                <el-input-number v-model="opDialog.data.port" :controls="false" />
+            <el-col v-bind="colSizeAttr">
+              <el-form-item label="Port" max="">
+                <el-input-number v-model="opDialog.data.port" :controls="false" :max="65536" :min="0"/>
               </el-form-item>
             </el-col>
           </el-row>
-
           <el-collapse accordion>
             <el-collapse-item>
               <template #title>

@@ -4,12 +4,14 @@ import { onMounted, reactive, ref } from 'vue'
 import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } from '../requset/api/service'
 import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
 
-import { useI18n } from '../i18n/usei18n'
 import { GetGatewayParamsVO } from '../requset/api/service/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ArraySelect } from '../components/index';
 
-const t = await useI18n()
+import { useI18n } from 'vue-i18n';
+
+const { t }= useI18n()
+
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as ServiceVO[] })

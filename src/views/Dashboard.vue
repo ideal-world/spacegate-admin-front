@@ -4,11 +4,10 @@ import { Edit, Promotion } from '@element-plus/icons-vue'
 import { Statistics } from '../types/common';
 import { onMounted, reactive, ref } from 'vue'
 
-import { useI18n } from '../i18n/usei18n';
 import { getStatisticsApi } from '../requset/api/common';
+import { useI18n } from 'vue-i18n';
 
-const t = await useI18n()
-
+const { t }= useI18n()
 const currentDashbord = reactive({ data: {} as Statistics })
 
 onMounted(async () => {

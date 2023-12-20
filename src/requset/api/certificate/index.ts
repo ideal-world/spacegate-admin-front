@@ -20,3 +20,4 @@ export const updateTlsCertApi = (data: TlsCert): Promise<IResponse<TlsCert>> => 
 export const deleteTlsCertApi = (paramName: string): Promise<IResponse<void>> => {
   return request.delete({ url: '/tls' + '/' + paramName })
 }
+

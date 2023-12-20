@@ -2,12 +2,13 @@
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
-import { useI18n } from '../i18n/usei18n'
 import { addInstanceListApi, updateInstanceListApi, deleteInstanceApi, getInstanceListApi } from '../requset/api/instance';
 import { GetInstanceParams } from '../requset/api/instance/type';
 import { InstConfigType, InstConfig, getInstName, InstConfigVO, convertInstanceToVO, convertVOToInstance } from '../types/instance';
+import { useI18n } from 'vue-i18n';
 
-const t = await useI18n()
+const { t } = useI18n()
+
 
 const currentRow = reactive({ data: [] as InstConfigVO[] })
 const searchDto = reactive<GetInstanceParams>({})

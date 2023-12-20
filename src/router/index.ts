@@ -1,11 +1,12 @@
-import { useI18n } from "../i18n/usei18n"
+import { useI18n } from 'vue-i18n';
 
-const t = await useI18n()
+
+const { t }= useI18n()
 
 export const constantRouterMap: any = {
   Route: {
     meta: {
-      title: t('router.meu.title'),
+      // title: i18n.t('router.meu.title'),
       noCache: true,
       affix: true
     },

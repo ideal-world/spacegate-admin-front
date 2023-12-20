@@ -6,7 +6,5 @@ import Gateway from 'spacegate-admin/views/Gateway.vue'
 </script>
 
 <DemoContainer>
- <Suspense>
-    <Gateway/>
- </Suspense>
+   <Gateway/>
 </DemoContainer>

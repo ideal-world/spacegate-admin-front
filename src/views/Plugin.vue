@@ -3,11 +3,13 @@ import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
-import { useI18n } from '../i18n/usei18n';
 import { GetPluginParams } from '../requset/api/plugin/type';
 import { SgPlugin, SgPluginVO, convertPluginToVO, convertVOToPlugin } from '../types/plugin';
 
-const t = await useI18n()
+import { useI18n } from 'vue-i18n';
+
+const { t }= useI18n()
+
 
 const currentRow = reactive({ data: [] as SgPluginVO[] })
 const searchDto = reactive<GetPluginParams>({})

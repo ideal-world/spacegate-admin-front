@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { getInstName } from '../types/instance'
 import { onMounted, reactive, ref } from 'vue'
-import { useI18n } from '../i18n/usei18n'
+import { useI18n } from 'vue-i18n';
+
+
 import { getInstanceListApi, getSelectedInstanceApi, selectInstanceApi } from '../requset/api/instance'
 import { useSelectedInstanceStore } from '../stores/select_instance';
 
-const t = await useI18n()
+const { t }= useI18n()
+
 const selectedStore = useSelectedInstanceStore()
 
 const selectInstance = ref("")

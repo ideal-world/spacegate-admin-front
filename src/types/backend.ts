@@ -19,12 +19,12 @@ export enum Protocol {
 export interface BackendVO {
   id: string;
   name_or_host: string;
-  namespace: string ;
+  namespace: string;
   port: number;
-  timeout_ms: number ;
+  timeout_ms: number;
   protocol: Protocol;
-  weight: number ;
-  filters: string[] ;
+  weight: number;
+  filters: string[];
 }
 
 export function convertBackendToVO(backend: Backend): BackendVO {
@@ -44,11 +44,11 @@ export function convertVOToBackend(vo: BackendVO): Backend {
   return {
     id: vo.id,
     name_or_host: vo.name_or_host,
-    namespace: vo.namespace==''?null:vo.namespace,
+    namespace: vo.namespace == '' ? null : vo.namespace,
     port: vo.port,
-    timeout_ms: vo.timeout_ms==0||vo.timeout_ms==5000?null:vo.timeout_ms,
+    timeout_ms: vo.timeout_ms == 0 || vo.timeout_ms == 5000 ? null : vo.timeout_ms,
     protocol: vo.protocol,
-    weight: vo.weight==0||vo.weight==1?null:vo.weight,
+    weight: vo.weight == 0 || vo.weight == 1 ? null : vo.weight,
     filters: vo.filters.length == 0 ? null : vo.filters,
   };
 }
