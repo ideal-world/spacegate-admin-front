@@ -182,3 +182,4 @@ In [tsconfig.json](tsconfig.js), set the following to address [Issue #32](https:
   ]
 }
 ```
+
