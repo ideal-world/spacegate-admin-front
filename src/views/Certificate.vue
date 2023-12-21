@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-
-import { addTlsCertApi, deleteTlsCertApi, getTlsCertApi, updateTlsCertApi } from '../requset/api/certificate';
-
 import { TlsCert } from '../types/certificate';
 import { GetTlsCertParams } from '../requset/api/certificate/type';
 import { useI18n } from 'vue-i18n';
-
+import { useSpacegateService } from '../service';
 const { t } = useI18n()
+const { certificate } = useSpacegateService();
 
 const currentRow = reactive({ data: [] as TlsCert[] })
 const searchDto = reactive<GetTlsCertParams>({})
@@ -19,6 +17,7 @@ const initTlsCert = (): TlsCert => {
     key: '',
   }
 }
+
 const opDialog = reactive({ isOpen: false, isEdit: false, data: initTlsCert() })
 const tableLoading = ref(false)
 
@@ -28,7 +27,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getTlsCertApi(searchDto)
+  let res = await certificate.getTlsCert(searchDto)
 
   if (res) {
     currentRow.data = res.data
@@ -43,7 +42,7 @@ const handleEdit = (_index: number, row: TlsCert) => {
 }
 
 const handleDelete = async (_index: number, row: TlsCert) => {
-  let res = await deleteTlsCertApi(row.name)
+  let res = await certificate.deleteTlsCert(row.name)
   if (res) {
     ElMessage.success(t('common.status.success'))
     await onSearch()
@@ -53,7 +52,7 @@ const handleDelete = async (_index: number, row: TlsCert) => {
 
 
 const onSumbit = async () => {
-  let res = opDialog.isEdit ? await updateTlsCertApi(opDialog.data) : await addTlsCertApi(opDialog.data)
+  let res = opDialog.isEdit ? await certificate.updateTlsCert(opDialog.data) : await certificate.addTlsCert(opDialog.data)
   if (res) {
     ElMessage.success(t('common.status.success'))
     await onSearch()

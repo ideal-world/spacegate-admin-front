@@ -169,3 +169,4 @@ export default {
     return service.cancelAllRequest()
   }
 }
+

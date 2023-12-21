@@ -2,13 +2,13 @@
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
-import { addInstanceListApi, updateInstanceListApi, deleteInstanceApi, getInstanceListApi } from '../requset/api/instance';
 import { GetInstanceParams } from '../requset/api/instance/type';
 import { InstConfigType, InstConfig, getInstName, InstConfigVO, convertInstanceToVO, convertVOToInstance } from '../types/instance';
 import { useI18n } from 'vue-i18n';
+import { useSpacegateService } from '../service';
 
 const { t } = useI18n()
-
+const { instance } = useSpacegateService()
 
 const currentRow = reactive({ data: [] as InstConfigVO[] })
 const searchDto = reactive<GetInstanceParams>({})
@@ -22,7 +22,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getInstanceListApi(searchDto)
+  let res = await instance.getInstanceList(searchDto)
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertInstanceToVO(resData))
@@ -37,7 +37,7 @@ const handleEdit = (_index: number, row: InstConfigVO) => {
 }
 
 const handleDelete = async (_index: number, row: InstConfigVO) => {
-  let res = await deleteInstanceApi(row.name,)
+  let res = await instance.deleteInstance(row.name,)
   if (res) {
     ElMessage.success(t('common.status.success'))
     await onSearch()
@@ -48,7 +48,7 @@ const handleDelete = async (_index: number, row: InstConfigVO) => {
 
 const onSumbit = async () => {
   let data = convertVOToInstance(opDialog.data)
-  let result = opDialog.isEdit ? await updateInstanceListApi(data) : await addInstanceListApi(data)
+  let result = opDialog.isEdit ? await instance.updateInstanceList(data) : await instance.addInstanceList(data)
   if (result) {
     ElMessage.success(t('common.status.success'))
     await onSearch()

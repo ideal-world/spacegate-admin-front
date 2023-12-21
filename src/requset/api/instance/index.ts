@@ -1,3 +1,4 @@
+import { SgInstanceService } from '../../../service'
 import { InstConfig, SelectedInstance } from '../../../types/instance'
 import request, { IResponse } from '../../index'
 import { GetInstanceParams } from './type'
@@ -28,4 +29,26 @@ export const updateInstanceListApi = (data: InstConfig): Promise<IResponse<InstC
 
 export const deleteInstanceApi = (paramName: string): Promise<IResponse<void>> => {
   return request.delete({ url: '/gateway' + '/' + paramName })
+}
+
+export class DefaultInstanceService implements SgInstanceService {
+  getSelectedInstance(): Promise<IResponse<SelectedInstance>> {
+    return getSelectedInstanceApi()
+  }
+  selectInstance(name: string): Promise<IResponse<string>> {
+    return selectInstanceApi(name)
+  }
+  getInstanceList(params?: GetInstanceParams): Promise<IResponse<InstConfig[]>> {
+    return getInstanceListApi(params)
+  }
+  addInstanceList(data: InstConfig): Promise<IResponse<InstConfig>> {
+    return addInstanceListApi(data)
+  }
+  updateInstanceList(data: InstConfig): Promise<IResponse<InstConfig>> {
+    return updateInstanceListApi(data)
+  }
+  deleteInstance(paramName: string): Promise<IResponse<void>> {
+    return deleteInstanceApi(paramName)
+  }
+
 }

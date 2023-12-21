@@ -1,3 +1,4 @@
+import { SgRouteService } from '../../../service';
 import { SgHttpRoute } from '../../../types/route';
 import request, { IResponse } from '../../index'
 import { GetHttpRouteParamsVO, converVOToGetHttpRouteParams } from './type';
@@ -17,4 +18,19 @@ export const updateHttpRouteApi = (data: SgHttpRoute): Promise<IResponse<SgHttpR
 
 export const deleteHttpRouteApi = (paramName: string): Promise<IResponse<void>> => {
   return request.delete({ url: '/httproute' + '/' + paramName })
+}
+
+export class DefaultRouteService implements SgRouteService {
+  getHttpRoute(params?: GetHttpRouteParamsVO): Promise<IResponse<SgHttpRoute[]>> {
+    return getHttpRouteApi(params)
+  }
+  addHttpRoute(data: SgHttpRoute): Promise<IResponse<SgHttpRoute>> {
+    return addHttpRouteApi(data)
+  }
+  updateHttpRoute(data: SgHttpRoute): Promise<IResponse<SgHttpRoute>> {
+    return updateHttpRouteApi(data)
+  }
+  deleteHttpRoute(paramName: string): Promise<IResponse<void>> {
+    return deleteHttpRouteApi(paramName)
+  }
 }

@@ -18,7 +18,7 @@ function install(app: App) {
 import './assets/main.scss'
 
 export default { install }
-
+export { SpacegateService } from './service'
 export { setApiClient } from './requset'
 export * from './components'
 export * from './constants'

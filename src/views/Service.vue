@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { addGatewaysApi, deleteGatewaysApi, getGatewaysApi, updateGatewaysApi } from '../requset/api/service'
 import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
 
 import { GetGatewayParamsVO } from '../requset/api/service/type';
@@ -9,6 +8,8 @@ import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ArraySelect } from '../components/index';
 
 import { useI18n } from 'vue-i18n';
+import { useSpacegateService } from '../service';
+const { service } = useSpacegateService()
 
 const { t }= useI18n()
 
@@ -26,7 +27,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getGatewaysApi(searchDto)
+  let res = await service.getGateways(searchDto)
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertServiceToVO(resData))
@@ -74,7 +75,7 @@ const handleEdit = (_index: number, row: ServiceVO) => {
 }
 
 const handleDelete = async (_index: number, row: ServiceVO) => {
-  let a = await deleteGatewaysApi(row.name)
+  let a = await service.deleteGateways(row.name)
   if (a) {
     ElMessage.success(t('common.status.success'))
   }
@@ -85,8 +86,8 @@ const handleDelete = async (_index: number, row: ServiceVO) => {
 const pluginArraySelect = ref()
 const onSumbit = async () => {
   opDialog.data.filters = pluginArraySelect.value.selectedValues
-  let res = opDialog.isEdit ? await updateGatewaysApi(converVOToService(opDialog.data)) :
-    await addGatewaysApi(converVOToService(opDialog.data))
+  let res = opDialog.isEdit ? await service.updateGateways(converVOToService(opDialog.data)) :
+    await service.addGateways(converVOToService(opDialog.data))
 
   if (res) {
     ElMessage.success(t('common.status.success'))

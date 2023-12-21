@@ -2,16 +2,17 @@
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { ComponentPublicInstance, onMounted, reactive, ref } from 'vue'
 
-import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
+// import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
 import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ArraySelect } from '../components/index';
 import { ExtractPropType } from 'element-plus/es/utils';
+import { useSpacegateService } from '../service';
 
 import { useI18n } from 'vue-i18n';
-
-const { t }= useI18n()
+const { backend } = useSpacegateService()
+const { t } = useI18n()
 
 const selectedStore = useSelectedInstanceStore()
 
@@ -29,7 +30,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getBackendApi(searchDto)
+  let res = await backend.getBackend(searchDto)
     .finally(() => {
       tableLoading.value = false
     })
@@ -46,7 +47,7 @@ const handleEdit = (_index: number, row: BackendVO) => {
 }
 
 const handleDelete = async (_index: number, row: BackendVO) => {
-  let result = await deleteBackendApi(row.id,)
+  let result = await backend.deleteBackend(row.id,)
   if (result) {
     ElMessage.success(t('common.status.success'))
   }
@@ -57,13 +58,13 @@ const upstreamArraySelect = ref()
 const onSumbit = async () => {
   opDialog.data.filters = upstreamArraySelect.value.selectedValues
   if (opDialog.isEdit) {
-    let updateResult = await updateBackendApi(opDialog.data)
+    let updateResult = await backend.updateBackend(opDialog.data)
     if (updateResult) {
       ElMessage.success(t('common.status.success'))
       await onSearch()
     }
   } else {
-    let addResult = await addBackendApi(opDialog.data)
+    let addResult = await backend.addBackend(opDialog.data)
     if (addResult) {
       ElMessage.success(t('common.status.success'))
       await onSearch()
@@ -166,7 +167,7 @@ const colSizeAttr = {
             </el-col>
             <el-col v-bind="colSizeAttr">
               <el-form-item label="Port" max="">
-                <el-input-number v-model="opDialog.data.port" :controls="false" :max="65536" :min="0"/>
+                <el-input-number v-model="opDialog.data.port" :controls="false" :max="65536" :min="0" />
               </el-form-item>
             </el-col>
           </el-row>

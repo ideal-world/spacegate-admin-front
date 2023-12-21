@@ -4,10 +4,11 @@ import { Edit, Promotion } from '@element-plus/icons-vue'
 import { Statistics } from '../types/common';
 import { onMounted, reactive, ref } from 'vue'
 
-import { getStatisticsApi } from '../requset/api/common';
+import { useSpacegateService } from '../service';
 import { useI18n } from 'vue-i18n';
 
 const { t }= useI18n()
+const { common } = useSpacegateService();
 const currentDashbord = reactive({ data: {} as Statistics })
 
 onMounted(async () => {
@@ -15,7 +16,7 @@ onMounted(async () => {
 })
 
 const onSearch = async () => {
-  let res = await getStatisticsApi()
+  let res = await common.getStatistics()
 
   if (res) {
     currentDashbord.data = res.data

@@ -2,12 +2,13 @@
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
-import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
+// import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
 import { GetPluginParams } from '../requset/api/plugin/type';
 import { SgPlugin, SgPluginVO, convertPluginToVO, convertVOToPlugin } from '../types/plugin';
 
 import { useI18n } from 'vue-i18n';
-
+import { useSpacegateService } from '../service';
+const { plugin } = useSpacegateService();
 const { t }= useI18n()
 
 
@@ -30,7 +31,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getPluginApi(searchDto)
+  let res = await plugin.getPlugin(searchDto)
 
   if (res) {
     currentRow.data = res.data.map((resData) => convertPluginToVO(resData))
@@ -45,7 +46,7 @@ const handleEdit = (_index: number, row: SgPlugin) => {
 }
 
 const handleDelete = async (_index: number, row: SgPlugin) => {
-  let res = await deletePluginApi(row.id,)
+  let res = await plugin.deletePlugin(row.id,)
   if (res) {
     ElMessage.success(t('common.status.success'))
     await onSearch()
@@ -55,7 +56,7 @@ const handleDelete = async (_index: number, row: SgPlugin) => {
 
 
 const onSumbit = async () => {
-  let result = opDialog.isEdit ? await updatePluginApi(convertVOToPlugin(opDialog.data)) : await addPluginApi(convertVOToPlugin(opDialog.data))
+  let result = opDialog.isEdit ? await plugin.updatePlugin(convertVOToPlugin(opDialog.data)) : await plugin.addPlugin(convertVOToPlugin(opDialog.data))
   if (result) {
     ElMessage.success(t('common.status.success'))
     await onSearch()

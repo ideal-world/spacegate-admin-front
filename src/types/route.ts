@@ -41,7 +41,7 @@ export function convertVOToRoute(vo: SgHttpRouteVO): SgHttpRoute {
     rules,
   }
 }
-
+export type SgHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'TRACE' | 'CONNECT';
 export interface SgHttpRoute {
   name: string;
   gateway_name: string;
@@ -62,7 +62,7 @@ export interface SgHttpRouteMatch {
   path?: SgHttpPathMatch | null;
   header?: SgHttpHeaderMatch[] | null;
   query?: SgHttpQueryMatch[] | null;
-  method?: string[] | null;
+  method?: SgHttpMethod[] | null;
 }
 
 export interface SgHttpPathMatch {

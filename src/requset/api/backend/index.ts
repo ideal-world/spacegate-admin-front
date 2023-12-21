@@ -1,3 +1,4 @@
+import { SgBackendService } from '../../../service';
 import { Backend } from '../../../types/backend';
 import request, { IResponse } from '../../index'
 import { GetBackendParams } from './type';
@@ -21,3 +22,19 @@ export const updateBackendApi = (data: Backend): Promise<IResponse<Backend>> => 
 export const deleteBackendApi = (paramName: string): Promise<IResponse<void>> => {
   return request.delete({ url: '/backend' + '/' + paramName })
 }
+
+export class DefaultBackendService implements SgBackendService {
+  getBackend(params?: GetBackendParams): Promise<IResponse<Backend[]>> {
+    return getBackendApi(params)
+  }
+  addBackend(data: Backend): Promise<IResponse<Backend>> {
+    return addBackendApi(data)
+  }
+  updateBackend(data: Backend): Promise<IResponse<Backend>> {
+    return updateBackendApi(data)
+  }
+  deleteBackend(paramName: string): Promise<IResponse<void>> {
+    return deleteBackendApi(paramName)
+  }
+}
+// 
