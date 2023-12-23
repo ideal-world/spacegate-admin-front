@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Ref, onMounted, reactive, ref } from 'vue'
-import { Search, Edit, Plus, Minus } from '@element-plus/icons-vue'
+import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
-import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute } from '../types/route'
+import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute, SG_HTTP_METHODS, SgHttpHeaderMatch, SgHttpQueryMatch } from '../types/route'
 import { addHttpRouteApi, deleteHttpRouteApi, getHttpRouteApi, updateHttpRouteApi } from '../requset/api/route'
 import { ElMessage } from 'element-plus'
 import { useSelectedInstanceStore } from '../stores/select_instance'
@@ -13,8 +13,11 @@ import { Service, ServiceVO, convertServiceToVO } from '../types/service'
 import { ArraySelect } from '../components/index';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service'
+import { useOptions } from '../hooks'
 const { t } = useI18n()
 const { service, backend } = useSpacegateService()
+const { options: pluginOptions, update: updatePluginOptions } = useOptions('plugin');
+const { options: backendOptions, update: updateBackendOptions } = useOptions('backend');
 const selectedStore = useSelectedInstanceStore()
 const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
 const searchDto = reactive<GetHttpRouteParamsVO>({})
@@ -25,6 +28,7 @@ const opDialog = reactive({ isOpen: false, isEdit: false, data: initRouteVO() })
 const tableLoading = ref(false)
 
 const gatewayList: Ref<Service[]> = ref([])
+
 
 onMounted(async () => {
   await getGatewayList()
@@ -117,6 +121,7 @@ const colSizeAttr = {
   lg: 12,
   xl: 12
 }
+
 </script>
 <template>
   <div class="sp-view-header">
@@ -175,8 +180,10 @@ const colSizeAttr = {
     </el-table-column>
   </el-table>
   <!-- </el-space> -->
-  <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit route' : 'add route'" class="sp-service-drawer"
-    :before-close="closeDialog">
+  <el-dialog v-model="opDialog.isOpen" class="sp-service-drawer" :before-close="closeDialog">
+    <template #header>
+      <span>{{ opDialog.isEdit ? 'edit route' : 'add route' }}</span>
+    </template>
     <el-form :inline="false" :model="opDialog.data" label-width="auto">
       <h4>Common</h4>
       <el-divider class="mt-1" />
@@ -216,7 +223,7 @@ const colSizeAttr = {
             </el-input>
           </el-col>
           <el-col :span="24" class="flex justify-end">
-            <el-button type="primary" @click="opDialog.data.hostnames.push('')" :icon="Plus"></el-button>
+            <el-button type="primary" @click="opDialog.data.hostnames.push('')" text :icon="Plus"></el-button>
           </el-col>
         </el-form-item>
       </el-row>
@@ -230,77 +237,101 @@ const colSizeAttr = {
         <el-divider class="mt-1" />
       </el-row>
       <el-row>
-        <el-col>
-          <div v-for="( _, index ) in opDialog.data.matches  " :key="index">
-            <el-card>
-              <el-form-item :label="'Method:'" v-if="opDialog.data.matches[index].method">
-                <el-row v-if="opDialog.data.matches[index].method">
-                  <el-input class=" inline" v-for="( _, index2 ) in opDialog.data.matches[index].method"
-                    v-model="opDialog.data.matches[index].method![index2]" />
-                </el-row>
-              </el-form-item>
-              <el-form-item :label="'Header:'" v-if="opDialog.data.matches[index].header">
-                <el-row v-for="( _, index2 ) in opDialog.data.matches[index].header">
-                  <div class="flex items-center">
-                    <el-select v-model="opDialog.data.matches[index].header![index2].kind" placeholder="Select Kind">
+        <el-col v-for="( match, index ) in opDialog.data.matches" :key="index" class="mb-4">
+          <div class="match-item-header flex">
+            <el-button circle text :icon="match.collapsed ? ArrowRight : ArrowDown" @click="() => {
+              match.collapsed = !match.collapsed
+            }">
+            </el-button>
+            <el-button-group class="flex-grow mb-2 ml-2">
+              <el-button :type="match.path ? 'primary' : undefined" :plain="!match.path"
+                @click.prevent="match.path ? match.path = undefined : match.path = { kind: SgHttpPathMatchType.Exact, value: '' }">path</el-button>
+              <el-button :type="match.method ? 'primary' : undefined" :plain="!match.method"
+                @click.prevent="match.method ? match.method = undefined : match.method = []">method</el-button>
+              <el-button :type="match.header ? 'primary' : undefined" :plain="!match.header"
+                @click.prevent="match.header ? match.header = undefined : match.header = [{ kind: SgHttpHeaderMatchType.Exact, name: '', value: '' }]">header</el-button>
+              <el-button :type="match.query ? 'primary' : undefined" :plain="!match.query"
+                @click.prevent="match.query ? match.query = undefined : match.query = [{ kind: SgHttpQueryMatchType.Exact, name: '', value: '' }]">query</el-button>
+            </el-button-group>
+            <el-button text :icon="Minus" @click.prevent="opDialog.data.matches.splice(index, 1)">
+            </el-button>
+          </div>
+          <el-collapse-transition>
+            <el-card shadow="hover" v-show="!match.collapsed">
+              <el-row v-if="!match.path && !match.header && !match.query && !match.method" :image="undefined">
+                <el-button disabled type="text" class="flex-grow">No Rule</el-button>
+              </el-row>
+              <el-row>
+                <el-form-item :label="'Path'" v-if="match.path" class="flex-grow">
+                  <el-input v-model="match.path!.value" placeholder="Value" class="flex-grow">
+                    <template #prepend>
+                      <el-select v-model="match.path!.kind" placeholder="Select Kind">
+                        <el-option v-for="option in Object.values(SgHttpPathMatchType)" :key="option" :label="option"
+                          :value="option"></el-option>
+                      </el-select>
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </el-row>
+              <el-row>
+                <el-form-item :label="'Method'" v-if="match.method" class="flex-grow">
+                  <el-select v-model="(match.method as string[])" multiple placeholder="Http Methods" class="flex-grow">
+                    <el-option v-for="M in SG_HTTP_METHODS" :key="M" :label="M" :value="M" />
+                  </el-select>
+                </el-form-item>
+              </el-row>
+              <el-row>
+                <el-form-item :label="'Header'" v-if="match.header" class="flex-grow">
+                  <el-col v-for="( header, _ ) in match.header" class="flex">
+                    <el-select v-model="header.kind" placeholder="Select Kind">
                       <el-option v-for="option in Object.values(SgHttpHeaderMatchType)" :key="option" :label="option"
                         :value="option"></el-option>
                     </el-select>
-                    <el-input v-model="opDialog.data.matches[index].header![index2].name" placeholder="Name"></el-input>
-                    <el-input v-model="opDialog.data.matches[index].header![index2].value" placeholder="Value"></el-input>
-                  </div>
-                </el-row>
-              </el-form-item>
-              <el-form-item :label="'Path:'" v-if="opDialog.data.matches[index].path">
-                <el-row>
-                  <div class="flex items-center">
-                    <el-select v-model="opDialog.data.matches[index].path!.kind" placeholder="Select Kind">
-                      <el-option v-for="option in Object.values(SgHttpPathMatchType)" :key="option" :label="option"
+                    <el-input v-model="header.name" placeholder="Name">
+                    </el-input>
+                    <el-input v-model="header.value" placeholder="Value"></el-input>
+                    <el-button text class="ml-2" @click.prevent="match.header?.splice(index, 1)" :icon="Minus">
+                    </el-button>
+                  </el-col>
+                  <el-col class="flex justify-end">
+                    <el-button text type="primary" @click="match.header?.push(<SgHttpHeaderMatch>{
+                      kind: SgHttpHeaderMatchType.Exact,
+                      name: '',
+                      value: ''
+                    })" :icon="Plus"></el-button>
+                  </el-col>
+                </el-form-item>
+              </el-row>
+              <el-row>
+                <el-form-item :label="'Query:'" v-if="match.query" class="flex-grow">
+                  <el-col v-for="( query, _ ) in match.query" class="flex">
+                    <el-select v-model="query.kind" placeholder="Select Kind">
+                      <el-option text v-for="option in Object.values(SgHttpQueryMatchType)" :key="option" :label="option"
                         :value="option"></el-option>
                     </el-select>
-                    <el-input v-model="opDialog.data.matches[index].path!.value" placeholder="Value"></el-input>
-                  </div>
-                </el-row>
-              </el-form-item>
-              <el-form-item :label="'Query:'" v-if="opDialog.data.matches[index].query">
-                <el-row v-for="( _, index2 ) in opDialog.data.matches[index].query">
-                  <div class="flex items-center">
-                    <el-select v-model="opDialog.data.matches[index].query![index2].kind" placeholder="Select Kind">
-                      <el-option v-for="option in Object.values(SgHttpQueryMatchType)" :key="option" :label="option"
-                        :value="option"></el-option>
-                    </el-select>
-                    <el-input v-model="opDialog.data.matches[index].query![index2].name" placeholder="Name"></el-input>
-                    <el-input v-model="opDialog.data.matches[index].query![index2].value" placeholder="Value"></el-input>
-                  </div>
-                </el-row>
-              </el-form-item>
+                    <el-input v-model="query.name" placeholder="Name">
+                    </el-input>
+                    <el-input v-model="query.value" placeholder="Value"></el-input>
+                    <el-button text class="ml-2" @click.prevent="match.query?.splice(index, 1)" :icon="Minus">
+                    </el-button>
+                  </el-col>
+                  <el-col class="flex justify-end">
+                    <el-button type="primary" @click="match.query?.push(<SgHttpQueryMatch>{
+                      kind: SgHttpQueryMatchType.Exact,
+                      name: '',
+                      value: ''
+                    })" text :icon="Plus"></el-button>
+                  </el-col>
+                </el-form-item>
+              </el-row>
             </el-card>
-            <!-- <el-input class=" inline" v-model="opDialog.data.matches[index]" /> -->
-            <el-row>
-              <el-col :span="18">
-                <el-button-group>
-                  <el-button :type="opDialog.data.matches[index].method ? 'primary' : undefined"
-                    :plain="!opDialog.data.matches[index].method" class="ml-2"
-                    @click.prevent="opDialog.data.matches[index].method ? opDialog.data.matches[index].method = undefined : opDialog.data.matches[index].method = ['']">method</el-button>
-                  <el-button :type="opDialog.data.matches[index].header ? 'primary' : undefined"
-                    :plain="!opDialog.data.matches[index].header" class="ml-2"
-                    @click.prevent="opDialog.data.matches[index].header ? opDialog.data.matches[index].header = undefined : opDialog.data.matches[index].header = [{ kind: SgHttpHeaderMatchType.Exact, name: '', value: '' }]">header</el-button>
-                  <el-button :type="opDialog.data.matches[index].path ? 'primary' : undefined"
-                    :plain="!opDialog.data.matches[index].path" class="ml-2"
-                    @click.prevent="opDialog.data.matches[index].path ? opDialog.data.matches[index].path = undefined : opDialog.data.matches[index].path = { kind: SgHttpPathMatchType.Exact, value: '' }">path</el-button>
-                  <el-button :type="opDialog.data.matches[index].query ? 'primary' : undefined"
-                    :plain="!opDialog.data.matches[index].query" class="ml-2"
-                    @click.prevent="opDialog.data.matches[index].query ? opDialog.data.matches[index].query = undefined : opDialog.data.matches[index].query = [{ kind: SgHttpQueryMatchType.Exact, name: '', value: '' }]">query</el-button>
-                </el-button-group>
-              </el-col>
-              <el-col :span="4">
-                <el-button class="ml-2" @click.prevent="opDialog.data.matches.splice(index, 1)">-</el-button>
-              </el-col>
-            </el-row>
-          </div>
+          </el-collapse-transition>
         </el-col>
-        <el-col :span="4">
-          <el-button @click="opDialog.data.matches.push({})">+</el-button>
+
+        <el-col class="flex justify-end">
+          <el-button @click="opDialog.data.matches.push({
+            collapsed: false,
+          })" text :icon="Plus" type="primary"></el-button>
         </el-col>
       </el-row>
 
@@ -314,22 +345,21 @@ const colSizeAttr = {
       </el-row>
 
       <el-row>
-        <el-table :data="opDialog.data.backends" style="width: 100%">
-
-        </el-table>
-        <el-col>
-          <el-form-item :label="'backend:'">
-            <ArraySelect ref="backendArraySelect" :selectedValues="opDialog.data.backends" apiType="backend" />
-          </el-form-item>
-        </el-col>
+        <el-form-item :label="'Backend'" class="flex flex-grow">
+          <el-select v-model="opDialog.data.backends" placeholder="backends" multiple class="flex-grow">
+            <el-option v-for="option in backendOptions" v-bind="option"><span class="mr-1">{{ option.label
+            }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag></el-option>
+          </el-select>
+        </el-form-item>
       </el-row>
 
       <el-row>
-        <el-col>
-          <el-form-item :label="'filter:'">
-            <ArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
-          </el-form-item>
-        </el-col>
+        <el-form-item :label="'Filter'" class="flex flex-grow">
+          <el-select v-model="opDialog.data.filters" placeholder="Filters" multiple class="flex-grow">
+            <el-option v-for="option in pluginOptions" v-bind="option"><span class="mr-1">{{ option.label
+            }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag></el-option>
+          </el-select>
+        </el-form-item>
       </el-row>
 
       <!-- <el-collapse accordion>
@@ -360,6 +390,4 @@ const colSizeAttr = {
     </template>
   </el-dialog>
 </template>
-<style lang="scss" scoped>
-:deep() {}
-</style>
+<style lang="scss" scoped></style>

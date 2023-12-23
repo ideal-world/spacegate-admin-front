@@ -8,7 +8,9 @@ export interface SgHttpRouteVO {
   priority: number;
   hostnames: string[];
   filters: string[];
-  matches: SgHttpRouteMatch[];
+  matches: (SgHttpRouteMatch & {
+    collapsed: boolean;
+  })[];
   backends: string[];
   timeout_ms: number;
 }
@@ -23,7 +25,12 @@ export function convertRouteToVO(route: SgHttpRoute): SgHttpRouteVO {
     priority: route.priority,
     hostnames: route.hostnames ? route.hostnames : [],
     filters: route.filters,
-    matches: route.rules.map((rule) => rule.matches).filter((value): value is SgHttpRouteMatch[] => typeof value === "object").filter((value, index, self) => self.indexOf(value) === index && value && value.length > 0).flat(),
+    matches: route.rules.map((rule) => rule.matches).filter((value): value is (SgHttpRouteMatch & {
+      collapsed: boolean;
+    })[] => typeof value === "object").filter((value, index, self) => self.indexOf(value) === index && value && value.length > 0).flat().map((v) => {
+      v.collapsed = true;
+      return v
+    }),
     backends: route.rules.map((rule) => rule.backends).filter((value, index, self) => self.indexOf(value) === index).flat(),
     timeout_ms: timeout_ms_s.length > 0 ? timeout_ms_s[0] : 50000
   }
@@ -41,7 +48,21 @@ export function convertVOToRoute(vo: SgHttpRouteVO): SgHttpRoute {
     rules,
   }
 }
-export type SgHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'TRACE' | 'CONNECT';
+
+export const SG_HTTP_METHODS = [
+  'GET',
+  'POST',
+  'PUT',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+  'PATCH',
+  'TRACE',
+  'CONNECT',
+] as const;
+
+export type SgHttpMethod = (typeof SG_HTTP_METHODS)[number];
+
 export interface SgHttpRoute {
   name: string;
   gateway_name: string;

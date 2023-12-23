@@ -13,8 +13,8 @@ import { DefaultRouteService } from "../requset/api/route";
 import { DefaultServiceService } from "../requset/api/service";
 import { DefaultInstanceService } from "../requset/api/instance";
 type Request<I = undefined, O = void> =
-    I extends undefined ?
-    () => Promise<IResponse<O>>
+    undefined extends I ?
+    (param?: I) => Promise<IResponse<O>>
     :
     (params: I) => Promise<IResponse<O>>;
 
@@ -144,3 +144,5 @@ export const useSpacegateService = (): SgService => {
     }
     return $sg_service
 }
+
+export * from './options'

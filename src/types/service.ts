@@ -29,13 +29,25 @@ export interface Service {
   filters: string[];
 }
 
+export const SERVICE_PROTOCOLS = ['Http', 'Https'] as const
+export function isServiceProtocol(s: string): s is ServiceProtocol {
+  if ((SERVICE_PROTOCOLS as unknown as string[]).includes(s)) {
+    return true
+  } else {
+    return false
+  }
+}
+
+
+export type ServiceProtocol = (typeof SERVICE_PROTOCOLS)[number]
+
 export interface ServiceVO {
   name: string;
   namespace: string;
   parameters: Parameters;
   ip: string[];
   port: number[];
-  protocol: string[];
+  protocol: ServiceProtocol[];
   hostname: string[];
   tls: string;
   filters: string[];
@@ -43,14 +55,14 @@ export interface ServiceVO {
 
 export function convertServiceToVO(gateway: Service): ServiceVO {
   const selectedStore = useSelectedInstanceStore()
-  let tls_s=gateway.listeners.map((listener) => listener.tls).filter((value)=>value !== undefined&&value!='') as string[];
+  let tls_s = gateway.listeners.map((listener) => listener.tls).filter((value) => value !== undefined && value != '') as string[];
   return {
-    name: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[1]: gateway.name,
-    namespace: selectedStore.is_k8s()? parseK8sObjUnique(gateway.name)[0]: '',
+    name: selectedStore.is_k8s() ? parseK8sObjUnique(gateway.name)[1] : gateway.name,
+    namespace: selectedStore.is_k8s() ? parseK8sObjUnique(gateway.name)[0] : '',
     parameters: gateway.parameters,
     ip: gateway.listeners.map((listener) => listener.ip).filter((value): value is string => typeof value === "string").filter((value, index, self) => self.indexOf(value) === index),
     port: gateway.listeners.map((listener) => listener.port).filter((value, index, self) => self.indexOf(value) === index),
-    protocol: gateway.listeners.map((listener) => listener.protocol).filter((value, index, self) => self.indexOf(value) === index),
+    protocol: gateway.listeners.map((listener) => listener.protocol).filter(isServiceProtocol).filter((value, index, self) => self.indexOf(value) === index),
     hostname: gateway.listeners.map((listener) => listener.hostname).filter((value): value is string => typeof value === "string").filter((value, index, self) => self.indexOf(value) === index),
     tls: tls_s.length > 0 ? tls_s[0] : '',
     filters: gateway.filters,
@@ -109,9 +121,9 @@ export function converVOToService(vo: ServiceVO): Service {
     }
   })
   const selectedStore = useSelectedInstanceStore()
-  console.log('selectedStore.is_k8s()'+selectedStore.is_k8s())
+  console.log('selectedStore.is_k8s()' + selectedStore.is_k8s())
   return {
-    name: selectedStore.is_k8s()?formatK8sObjUnique(vo.namespace,vo.name):vo.name,
+    name: selectedStore.is_k8s() ? formatK8sObjUnique(vo.namespace, vo.name) : vo.name,
     parameters: vo.parameters,
     listeners: listeners,
     filters: vo.filters ? vo.filters : [],

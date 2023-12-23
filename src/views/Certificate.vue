@@ -51,7 +51,7 @@ const handleDelete = async (_index: number, row: TlsCert) => {
 
 
 
-const onSumbit = async () => {
+const onSubmit = async () => {
   let res = opDialog.isEdit ? await certificate.updateTlsCert(opDialog.data) : await certificate.addTlsCert(opDialog.data)
   if (res) {
     ElMessage.success(t('common.status.success'))
@@ -133,7 +133,7 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-          <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+          <el-button type="primary" :loading="tableLoading" @click="onSubmit">{{
             tableLoading ? t('common.status.submitting') : t('common.operation.submit')
           }}</el-button>
         </span>

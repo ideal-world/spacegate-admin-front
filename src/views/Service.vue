@@ -2,16 +2,22 @@
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { convertServiceToVO, converVOToService, ServiceVO, Listener } from '../types/service';
-
-import { GetGatewayParamsVO } from '../requset/api/service/type';
+import { PORT_MAX, PORT_MIN } from '../constants';
+import {
+  GetGatewayParamsVO,
+} from '../requset/api/service/type';
+import {
+  SERVICE_PROTOCOLS,
+  ServiceProtocol
+} from '../types/service';
 import { useSelectedInstanceStore } from '../stores/select_instance';
-import { ArraySelect } from '../components/index';
-
+import { ArraySelect, PluginSelector } from '../components/index';
+import { Plus } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 const { service } = useSpacegateService()
 
-const { t }= useI18n()
+const { t } = useI18n()
 
 const selectedStore = useSelectedInstanceStore()
 
@@ -21,9 +27,12 @@ const initServiceVO = (): ServiceVO => { return { name: '', namespace: '', ip: [
 const opDialog = reactive({ isOpen: false, isEdit: false, data: initServiceVO() })
 const tableLoading = ref(false)
 
+const portAdding = ref(false)
+const portInput = ref(<number | undefined>undefined)
 onMounted(async () => {
   await onSearch()
 })
+
 
 const onSearch = async () => {
   tableLoading.value = true
@@ -111,8 +120,14 @@ const deleteIp = (index: number) => {
   }
 }
 const addPort = () => {
+  if (!portAdding.value) {
+    return
+  }
   if (!opDialog.data.port) { opDialog.data.port = [] }
-  opDialog.data.port.push(0)
+  if (portInput.value !== undefined) {
+    opDialog.data.port.push(portInput.value)
+  }
+  portAdding.value = false
 }
 const deletePort = (index: number) => {
   opDialog.data.port.splice(index, 1)
@@ -210,8 +225,8 @@ const deleteFilter = (index: number) => {
       class="sp-service-drawer" :before-close="closeDialog">
       <div class="sp-service-drawer__content">
         <el-form :inline="true" :model="opDialog.data">
-          <el-row>
-            <el-col :span="18">
+          <el-row class="flex-grow">
+            <el-col>
               <el-form-item label="Name" :rules="[
                 { required: true, message: 'name is required', trigger: 'blur' },
               ]">
@@ -219,46 +234,46 @@ const deleteFilter = (index: number) => {
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row><el-col>
+          <el-row>
+            <el-col>
               <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
                 { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
               ]">
                 <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
               </el-form-item>
-            </el-col></el-row>
+            </el-col>
+          </el-row>
 
           <el-row>
-            <el-col :span="18">
+            <el-col>
               <el-form-item :label="'protocol:'" :rules="[
                 { required: true, message: 'protocol is required', trigger: 'blur' },
               ]">
-                <div v-for="( _, index ) in    opDialog.data.protocol  " :key="index">
-                  <el-select name="protocol" v-model="opDialog.data.protocol[index]">
-                    <el-option label="HTTP" value="Http" />
-                    <el-option label="HTTPS" value="Https" />
-                  </el-select>
-                  <el-button class="ml-2" v-if="index > 0" @click.prevent="deleteProtocol(index)">-</el-button>
-                </div>
+                <el-select multiple v-model="opDialog.data.protocol">
+                  <el-option v-for="(protocol, index) in SERVICE_PROTOCOLS" :label="protocol" :value="protocol" />
+                </el-select>
               </el-form-item>
-            </el-col>
-            <el-col :span="4">
-              <el-button @click="addProtocol">+</el-button>
             </el-col>
           </el-row>
           <el-row>
             <el-col :span="18">
-              <el-form-item :label="'port:'" :rules="[
+              <el-form-item :label="'port'" :rules="[
                 { required: true, message: 'port is required', trigger: 'blur' },
                 { type: 'number', message: 'port must be a number', trigger: 'blur' },
               ]">
-                <div v-for=" ( _, index ) in opDialog.data.port " :key="index">
-                  <el-input-number class=" inline" :controls="false" v-model="opDialog.data.port[index]" />
-                  <el-button class="ml-2" v-if="index > 0" @click.prevent="deletePort(index)">-</el-button>
-                </div>
+                <el-tag v-for="(port, index) in opDialog.data.port" :key="port" class="mx-1" effect="plain" closable
+                  :disable-transitions="false" @close="opDialog.data.port.splice(index, 1)">
+                  {{ port }}
+                </el-tag>
+                <el-input-number class="ml-1 w-20" v-if="portAdding" size="small" :controls="false" :max="PORT_MAX"
+                  :min="PORT_MIN" v-model="portInput" @keyup.enter="addPort" @blur="addPort">
+
+                </el-input-number>
+                <el-button class="button-new-tag ml-1" size="small" v-if="!portAdding" @click="() => portAdding = true"
+                  :icon="Plus"></el-button>
               </el-form-item>
             </el-col>
             <el-col :span="4">
-              <el-button @click="addPort">+</el-button>
             </el-col>
           </el-row>
           <el-row>
@@ -295,7 +310,7 @@ const deleteFilter = (index: number) => {
           <el-row>
             <el-col>
               <el-form-item :label="'filter:'">
-                <ArraySelect ref="pluginArraySelect" :selectedValues="opDialog.data.filters" />
+                <PluginSelector v-model="opDialog.data.filters"></PluginSelector>
               </el-form-item>
             </el-col>
           </el-row>

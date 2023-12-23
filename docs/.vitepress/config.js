@@ -4,6 +4,7 @@ import  path from "path";
 export default {
   title: 'spacegate admin',
   description: 'A relatively complete formula editor',
+  ignoreDeadLinks: true,
   themeConfig: {
     repo: 'https://github.com/idealworld/spacegate-admin',
     sidebar: [
