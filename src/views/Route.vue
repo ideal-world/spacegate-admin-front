@@ -9,7 +9,7 @@ import { ElMessage } from 'element-plus'
 import { useSelectedInstanceStore } from '../stores/select_instance'
 
 import { Backend, BackendVO, convertBackendToVO } from '../types/backend'
-import { Service, ServiceVO, convertServiceToVO } from '../types/service'
+import { Service, ServiceVO, } from '../types/service'
 import { ArraySelect } from '../components/index';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service'

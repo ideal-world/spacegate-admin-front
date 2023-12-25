@@ -5,3 +5,8 @@ export * from './common';
 export * from './route';
 export * from './instance';
 export * from './plugin';
+
+export interface ApiObject {
+    serialize(this: this): Object
+    deserialize(this: Object): this
+}

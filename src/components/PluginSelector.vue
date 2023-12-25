@@ -1,5 +1,5 @@
 <template >
-    <el-select v-bind="$attrs" v-on="$emit" placeholder="backends" multiple class="flex-grow" >
+    <el-select v-bind="$attrs" v-on="$emit" placeholder="backends" multiple class="flex-grow">
         <el-option v-for="option in options" v-bind="option">
             <span class="mr-1">
                 {{ option.label }}
@@ -13,7 +13,6 @@
 import { useOptions } from '../hooks';
 const props = defineProps<{
     modelValue: string[];
-    title?: string
 }>();
 const emits = defineEmits(['update:modelValue']);
 const { options, update } = useOptions('plugin');
