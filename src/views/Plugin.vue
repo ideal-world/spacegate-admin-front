@@ -104,30 +104,24 @@ const closeDialog = () => {
   <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit plugin' : 'add plugin'" class="sp-service-drawer"
     :before-close="closeDialog">
     <div class="sp-service-drawer__content">
-      <el-form :inline="true" :model="opDialog.data">
+      <el-form :inline="false" :model="opDialog.data" label-width="auto" label-suffix=":">
         <el-row>
           <el-col>
             <el-form-item label="Id">
               <el-input v-model="opDialog.data.id" autocomplete="off" disabled />
             </el-form-item>
           </el-col>
-        </el-row>
 
-        <el-row>
           <el-col>
             <el-form-item label="Code">
               <el-input v-model="opDialog.data.code" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row>
           <el-col>
             <el-form-item label="Name">
               <el-input v-model="opDialog.data.name" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row>
           <el-col>
             <el-form-item label="PluginConfig">
               <el-input autosize type="textarea" v-model="opDialog.data.spec" />
