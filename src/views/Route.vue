@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import { Ref, onMounted, reactive, ref } from 'vue'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
+import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
 
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
 import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute, SG_HTTP_METHODS, SgHttpHeaderMatch, SgHttpQueryMatch } from '../types/route'
 import { addHttpRouteApi, deleteHttpRouteApi, getHttpRouteApi, updateHttpRouteApi } from '../requset/api/route'
 import { ElMessage } from 'element-plus'
 import { useSelectedInstanceStore } from '../stores/select_instance'
-
 import { Backend, BackendVO, convertBackendToVO } from '../types/backend'
 import { Service, ServiceVO, } from '../types/service'
-import { ArraySelect } from '../components/index';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service'
 import { useOptions } from '../hooks'
+import { useDialogForm } from '../types/forms'
+
+import { ConfigPanel } from '../components'
 const { t } = useI18n()
 const { service, backend } = useSpacegateService()
 const { options: pluginOptions, update: updatePluginOptions } = useOptions('plugin');
 const { options: backendOptions, update: updateBackendOptions } = useOptions('backend');
 const selectedStore = useSelectedInstanceStore()
 const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
-const searchDto = reactive<GetHttpRouteParamsVO>({})
 const initRouteVO = (): SgHttpRouteVO => {
   return convertRouteToVO({ name: selectedStore.is_k8s() ? '.' : '', gateway_name: '', priority: 0, filters: [], rules: [] })
 }
@@ -29,7 +29,7 @@ const tableLoading = ref(false)
 
 const gatewayList: Ref<Service[]> = ref([])
 
-
+const { dialogForm: searchDialogForm, open: openSearchDialog, close: closeSearchDialog } = useDialogForm<GetHttpRouteParamsVO, 'edit' | 'add'>({})
 onMounted(async () => {
   await getGatewayList()
   await getBackendMap()
@@ -38,7 +38,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getHttpRouteApi(searchDto)
+  let res = await getHttpRouteApi(searchDialogForm.data)
     .finally(() => {
       tableLoading.value = false
     })
@@ -78,11 +78,7 @@ const handleDelete = async (_index: number, row: SgHttpRouteVO) => {
   await onSearch()
 }
 
-const pluginArraySelect = ref()
-const backendArraySelect = ref()
 const onSumbit = async () => {
-  opDialog.data.backends = backendArraySelect.value.selectedValues
-  opDialog.data.filters = pluginArraySelect.value.selectedValues
   let res = opDialog.isEdit ? await updateHttpRouteApi(convertVOToRoute(opDialog.data)) : await addHttpRouteApi(convertVOToRoute(opDialog.data))
   if (res) {
     ElMessage.success(t('common.status.success'))
@@ -124,62 +120,42 @@ const colSizeAttr = {
 
 </script>
 <template>
-  <div class="sp-view-header">
-  </div>
-  <el-row>
-    <el-col :span="23">
-      <h1>Route</h1>
-    </el-col>
-  </el-row>
-  <el-row>
-    <el-divider style="margin-top: 24px;margin-bottom: 10px;" />
-  </el-row>
-  <el-row>
-    <el-col :span="23"><span class="sp-view-header__sub-title">Set you route</span></el-col>
-  </el-row>
-  <!-- <el-space fill direction="vertical"> -->
-  <el-card shadow="never" class="mb-4">
-    <el-form :model="searchDto" class="flex-grow">
-      <el-row :gutter="24">
-        <el-col :span="12">
-          <el-form-item :label="t('route.name')">
-            <el-input placeholder="name of service" v-model="searchDto.names" />
-          </el-form-item>
-        </el-col>
-        <el-col v-if="selectedStore.is_k8s()" :span="12">
-          <el-form-item label="namespace">
-            <el-input placeholder="namespace of service" v-model="searchDto.namespace" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col>
-          <el-form-item class="float-right">
-            <el-button type="primary" @click="onSearch" :icon="Search">{{ t('common.operation.search') }}</el-button>
-            <el-button type="primary" @click="opDialog.isEdit = false; opDialog.isOpen = true" :icon="Plus">{{
-              t('common.operation.add')
-            }}</el-button>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
-  </el-card>
-  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250">
-    <el-table-column fixed prop="name" label="Name" />
-    <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
-    <el-table-column prop="gateway_name" label="GatewayName" />
-    <el-table-column prop=" hostname" label="hostname" :formatter="formatStrings" />
-    <el-table-column prop="backends" label="Backend" :formatter="getBackendInfo" />
+  <ConfigPanel>
+    <template #search>
+      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('common.placeholder.name')">
+        <template #append>
+          <el-button-group>
+            <el-button text @click="() => openSearchDialog()" :icon="Filter" type="primary"></el-button>
+            <el-button text @click="onSearch" :icon="Search" type="primary"></el-button>
+          </el-button-group>
+        </template>
+      </el-input>
+    </template>
+    <template #operation>
+      <el-button-group class="flex justify-end">
+        <el-button text @click="opDialog.isEdit = false; opDialog.isOpen = true" :icon="Plus" type="primary">
+          {{ t('common.operation.add')
+          }}
+        </el-button>
+      </el-button-group>
+    </template>
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250">
+      <el-table-column fixed prop="name" label="Name" />
+      <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
+      <el-table-column prop="gateway_name" label="GatewayName" />
+      <el-table-column prop=" hostname" label="hostname" :formatter="formatStrings" />
+      <el-table-column prop="backends" label="Backend" :formatter="getBackendInfo" />
 
-    <el-table-column fixed="right" :label="t('common.operations')">
-      <template #default="scope">
-        <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-        <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-          t('common.operation.delete') }}</el-button>
-      </template>
-    </el-table-column>
-  </el-table>
-  <!-- </el-space> -->
+      <el-table-column fixed="right" :label="t('common.operations')">
+        <template #default="scope">
+          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+            t('common.operation.delete') }}</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </ConfigPanel>
+
   <el-dialog v-model="opDialog.isOpen" class="sp-service-drawer" :before-close="closeDialog">
     <template #header>
       <span>{{ opDialog.isEdit ? 'edit route' : 'add route' }}</span>
@@ -361,24 +337,6 @@ const colSizeAttr = {
           </el-select>
         </el-form-item>
       </el-row>
-
-      <!-- <el-collapse accordion>
-            <el-collapse-item>
-              <template #title>
-                {{ t('common.advanced') }}<el-icon class="header-icon">
-                </el-icon>
-              </template>
-              <div>
-                <el-row>
-                  <el-col :span="18">
-                    <el-form-item label="TimeoutMs">
-                      <el-input v-model="opDialog.data.timeout_ms"></el-input>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </div>
-            </el-collapse-item>
-          </el-collapse> -->
     </el-form>
     <template #footer>
       <span class="dialog-footer">
@@ -387,6 +345,29 @@ const colSizeAttr = {
           tableLoading ? t('common.status.submitting') : t('common.operation.submit')
         }}</el-button>
       </span>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="searchDialogForm.isOpen">
+    <el-form v-if="searchDialogForm.data !== undefined" :model="searchDialogForm.data" class="flex-grow">
+      <el-row :gutter="24">
+        <el-col :span="12">
+          <el-form-item :label="t('route.name')">
+            <el-input placeholder="name of service" v-model="searchDialogForm.data.names" />
+          </el-form-item>
+        </el-col>
+        <el-col v-if="selectedStore.is_k8s()" :span="12">
+          <el-form-item label="namespace">
+            <el-input placeholder="namespace of service" v-model="searchDialogForm.data.namespace" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+    </el-form>
+    <template #footer>
+      <el-button @click="closeSearchDialog">{{ t('common.operation.cancel') }}</el-button>
+      <el-button type="primary" :loading="tableLoading" @click="onSearch">{{
+        tableLoading ? t('common.status.searching') : t('common.operation.search')
+      }}</el-button>
     </template>
   </el-dialog>
 </template>

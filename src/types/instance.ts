@@ -3,10 +3,12 @@ export interface SelectedInstance {
   type_: InstConfigType
 }
 
-export interface InstConfig {
-  type_: InstConfigType;
-  k8s_cluster_config?: K8sClusterConfig | null;
-  redis_config?: RedisConfig | null;
+export type InstConfig = {
+  type_: InstConfigType.K8sClusterConfig;
+  k8s_cluster_config: K8sClusterConfig;
+} | {
+  type_: InstConfigType.RedisConfig;
+  redis_config: RedisConfig
 }
 
 export interface InstConfigVO {
@@ -15,23 +17,23 @@ export interface InstConfigVO {
   k8s_cluster_config: K8sClusterConfigVO;
   redis_url: string;
 }
-export function convertInstanceToVO(config: InstConfig): InstConfigVO {
-  let name = getInstName(config);
-  return {
-    name: name ? name : '',
-    type_: config.type_,
-    k8s_cluster_config: convertK8sClusterToVO(config.k8s_cluster_config),
-    redis_url: config.redis_config ? config.redis_config.url : '',
-  }
-}
+// export function convertInstanceToVO(config: InstConfig): InstConfigVO {
+//   let name = getInstName(config);
+//   return {
+//     name: name ? name : '',
+//     type_: config.type_,
+//     k8s_cluster_config: convertK8sClusterToVO(config.k8s_cluster_config),
+//     redis_url: config.redis_config ? config.redis_config.url : '',
+//   }
+// }
 
-export function convertVOToInstance(vo: InstConfigVO): InstConfig {
-  return {
-    type_: vo.type_,
-    k8s_cluster_config: vo.type_ == InstConfigType.K8sClusterConfig ? convertVOToK8sCluster(vo.name, vo.k8s_cluster_config) : null,
-    redis_config: vo.type_ == InstConfigType.RedisConfig ? { name: vo.name, url: vo.redis_url } : null
-  }
-}
+// export function convertVOToInstance(vo: InstConfigVO): InstConfig {
+//   return {
+//     type_: vo.type_,
+//     k8s_cluster_config: vo.type_ == InstConfigType.K8sClusterConfig ? convertVOToK8sCluster(vo.name, vo.k8s_cluster_config) : null,
+//     redis_config: vo.type_ == InstConfigType.RedisConfig ? { name: vo.name, url: vo.redis_url } : null
+//   }
+// }
 
 export function getInstName(config: InstConfig): string | undefined {
   if (config.type_ == InstConfigType.K8sClusterConfig) {
@@ -77,7 +79,7 @@ export interface Cluster {
 }
 
 export interface NamedAuthInfo {
-  name: String,
+  name: string,
   auth_info?: AuthInfo | null,
 }
 

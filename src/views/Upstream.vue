@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { ComponentPublicInstance, onMounted, reactive, ref } from 'vue'
+import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
 
 // import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
 import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
@@ -11,17 +12,18 @@ import { ExtractPropType } from 'element-plus/es/utils';
 import { useSpacegateService } from '../service';
 
 import { useI18n } from 'vue-i18n';
+import { BackendForm, useDialogForm } from '../types/forms';
 const { backend } = useSpacegateService()
 const { t } = useI18n()
 
 const selectedStore = useSelectedInstanceStore()
 
-const currentRow = reactive({ data: [] as BackendVO[] })
+const currentRow = reactive({ data: [] as BackendForm[] })
 const searchDto = reactive<GetBackendParams>({})
-const initBackendVO = (): BackendVO => {
-  return convertBackendToVO({ id: "", name_or_host: '', port: 0, protocol: Protocol.Http })
-}
-const opDialog = reactive({ isOpen: false, isEdit: false, data: initBackendVO() })
+
+const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(new BackendForm())
+const { dialogForm: searchForm, open: openSearchForm, close: closeSearchForm } = useDialogForm<GetBackendParams>({})
+
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -36,17 +38,11 @@ const onSearch = async () => {
     })
 
   if (res) {
-    currentRow.data = res.data.map((item: Backend) => convertBackendToVO(item))
+    currentRow.data = res.data.map(BackendForm.fromBackend)
   }
 }
 
-const handleEdit = (_index: number, row: BackendVO) => {
-  opDialog.isOpen = true;
-  opDialog.isEdit = true;
-  opDialog.data = row;
-}
-
-const handleDelete = async (_index: number, row: BackendVO) => {
+const handleDelete = async (_index: number, row: BackendForm) => {
   let result = await backend.deleteBackend(row.id,)
   if (result) {
     ElMessage.success(t('common.status.success'))
@@ -54,28 +50,24 @@ const handleDelete = async (_index: number, row: BackendVO) => {
   await onSearch()
 }
 
-const upstreamArraySelect = ref()
 const onSumbit = async () => {
-  opDialog.data.filters = upstreamArraySelect.value.selectedValues
-  if (opDialog.isEdit) {
-    let updateResult = await backend.updateBackend(opDialog.data)
+  if (backendForm.data === undefined) {
+    return
+  }
+  if (backendForm.mode === 'edit') {
+    let updateResult = await backend.updateBackend(backendForm.data)
     if (updateResult) {
       ElMessage.success(t('common.status.success'))
       await onSearch()
     }
   } else {
-    let addResult = await backend.addBackend(opDialog.data)
+    let addResult = await backend.addBackend(backendForm.data)
     if (addResult) {
       ElMessage.success(t('common.status.success'))
       await onSearch()
     }
   }
-  closeDialog()
-}
-
-const closeDialog = () => {
-  opDialog.data = initBackendVO()
-  opDialog.isOpen = false
+  backendForm.close()
 }
 
 const colSizeAttr = {
@@ -87,134 +79,136 @@ const colSizeAttr = {
 }
 </script>
 <template>
-  <div class="sp-view-header">
-    <el-row>
-      <el-col :span="23">
-        <h1>Upstream</h1>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-divider style="margin-top: 24px;margin-bottom: 10px;" />
-    </el-row>
-    <el-row>
-      <el-col :span="23"><span class="sp-view-header__sub-title">Set you upstream</span></el-col>
-    </el-row>
-  </div>
-
-  <div class="pt-4">
-    <el-space fill direction="vertical" style="width: 100%">
-      <el-card shadow="never" class=" justify-center">
-        <el-form :inline="true" :model="searchDto">
-          <el-form-item :label="t('route.name')">
-            <el-input placeholder="name of upstream" v-model="searchDto.names" />
-          </el-form-item>
-          <el-form-item :label="t('upstream.namespace')" v-if="selectedStore.is_k8s()">
-            <el-input placeholder="namespace of upstream" v-model="searchDto.namespace" />
-          </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
-            t('common.operation.add')
-          }}</el-button>
-            <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
-
-        </el-form>
-      </el-card>
-      <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
-        style="width: 100% ">
-        <el-table-column prop="id" label="Name" width="180" />
-        <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
-        <el-table-column prop="protocol" label="Protocol">
-          <template #default="scope">
-            <el-tag>{{ scope.row.protocol }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="name_or_host" :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'" />
-        <el-table-column prop="port" label="Port" />
-        <el-table-column :label="t('common.operations')">
-          <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-              t('common.operation.delete') }}</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-space>
-    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
-      class="sp-service-drawer" :before-close="closeDialog">
-      <div class="sp-service-drawer__content">
-        <el-form :inline="false" :model="opDialog.data" label-width="auto">
-          <el-row :gutter="8">
-            <el-col v-bind="colSizeAttr">
-              <el-form-item label="Name">
-                <el-input v-model="opDialog.data.id" autocomplete="off" :disabled="opDialog.isEdit" />
-              </el-form-item>
-            </el-col>
-            <el-col v-bind="colSizeAttr">
-              <el-form-item label="Protocol">
-                <el-select v-model="opDialog.data.protocol">
-                  <el-option v-for="item in Protocol" :key="item" :label="item" :value="item" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col v-bind="colSizeAttr">
-              <el-form-item :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'">
-                <el-input v-model="opDialog.data.name_or_host" />
-              </el-form-item>
-            </el-col>
-            <el-col v-bind="colSizeAttr">
-              <el-form-item label="Namespace">
-                <el-input v-model="opDialog.data.namespace" />
-              </el-form-item>
-            </el-col>
-            <el-col v-bind="colSizeAttr">
-              <el-form-item label="Port" max="">
-                <el-input-number v-model="opDialog.data.port" :controls="false" :max="65536" :min="0" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-collapse accordion>
-            <el-collapse-item>
-              <template #title>
-                {{ t('common.advanced') }}<el-icon class="header-icon">
-                </el-icon>
-              </template>
-              <div>
-                <el-row>
-                  <el-col :span="18">
-                    <el-form-item label="TimeoutMs">
-                      <el-input-number :controls="false" v-model="opDialog.data.timeout_ms" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="18">
-                    <el-form-item label="Weight">
-                      <el-input-number :controls="false" v-model="opDialog.data.weight" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="18">
-                    <el-form-item label="Filters">
-                      <ArraySelect ref="upstreamArraySelect" :selectedValues="opDialog.data.filters" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
-        </el-form>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-          <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
-            tableLoading ? t('common.status.submitting') : t('common.operation.submit')
-          }}</el-button>
-        </span>
+  <div class="flex space-x-4 mb-2">
+    <el-input v-model="searchForm.data!.names" :placeholder="t('common.placeholder.name')">
+      <template #append>
+        <el-button-group>
+          <el-button text @click="() => openSearchForm()" :icon="Filter" type="primary"></el-button>
+          <el-button text @click="onSearch" :icon="Search" type="primary"></el-button>
+        </el-button-group>
       </template>
-    </el-dialog>
+    </el-input>
+    <el-button-group class="flex justify-end">
+      <el-button text @click="() => openBackendForm(new BackendForm(), 'add')" :icon="Plus" type="primary">
+        {{ t('common.operation.add')
+        }}
+      </el-button>
+    </el-button-group>
   </div>
+  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+    style="width: 100% ">
+    <el-table-column prop="id" label="Name" width="180" />
+    <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
+    <el-table-column prop="protocol" label="Protocol">
+      <template #default="scope">
+        <el-tag>{{ scope.row.protocol }}</el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column prop="name_or_host" :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'" />
+    <el-table-column prop="port" label="Port" />
+    <el-table-column :label="t('common.operations')">
+      <template #default="scope">
+        <el-button size="small" @click="openBackendForm(scope.row, 'edit')">Edit</el-button>
+        <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+          t('common.operation.delete') }}</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+  <el-dialog v-model="backendForm.isOpen" :title="backendForm.mode === 'edit' ? 'edit instance' : 'add instance'"
+    class="sp-service-drawer" :before-close="closeBackendForm">
+    <div class="sp-service-drawer__content">
+      <el-form :inline="false" v-if="backendForm.data !== undefined" :model="backendForm.data" label-width="auto">
+        <el-row :gutter="8">
+          <el-col v-bind="colSizeAttr">
+            <el-form-item label="Name">
+              <el-input v-model="backendForm.data.id" autocomplete="off" :disabled="backendForm.mode === 'edit'" />
+            </el-form-item>
+          </el-col>
+          <el-col v-bind="colSizeAttr">
+            <el-form-item label="Protocol">
+              <el-select v-model="backendForm.data.protocol">
+                <el-option v-for="item in Protocol" :key="item" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col v-bind="colSizeAttr">
+            <el-form-item :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'">
+              <el-input v-model="backendForm.data.name_or_host" />
+            </el-form-item>
+          </el-col>
+          <el-col v-bind="colSizeAttr">
+            <el-form-item label="Namespace">
+              <el-input v-model="backendForm.data.namespace" />
+            </el-form-item>
+          </el-col>
+          <el-col v-bind="colSizeAttr">
+            <el-form-item label="Port" max="">
+              <el-input-number v-model="backendForm.data.port" :controls="false" :max="65536" :min="0" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-collapse accordion>
+          <el-collapse-item>
+            <template #title>
+              {{ t('common.advanced') }}<el-icon class="header-icon">
+              </el-icon>
+            </template>
+            <div>
+              <el-row>
+                <el-col :span="18">
+                  <el-form-item label="TimeoutMs">
+                    <el-input-number :controls="false" v-model="backendForm.data.timeout_ms" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="18">
+                  <el-form-item label="Weight">
+                    <el-input-number :controls="false" v-model="backendForm.data.weight" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="18">
+                  <el-form-item label="Filters">
+                    <ArraySelect ref="upstreamArraySelect" :selectedValues="backendForm.data.filters" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </el-form>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="closeBackendForm">{{ t('common.operation.cancel') }}</el-button>
+        <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+          tableLoading ? t('common.status.submitting') : t('common.operation.submit')
+        }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <el-dialog v-model="searchForm.isOpen" :title="t('common.operation.search')">
+    <el-form v-if="searchForm.data !== undefined" :model="searchForm.data" class="flex-grow">
+      <el-row :gutter="24">
+        <el-col :span="12">
+          <el-form-item :label="t('route.name')">
+            <el-input placeholder="name of service" v-model="searchForm.data.names" />
+          </el-form-item>
+        </el-col>
+        <el-col v-if="selectedStore.is_k8s()" :span="12">
+          <el-form-item label="namespace">
+            <el-input placeholder="namespace of service" v-model="searchForm.data.namespace" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+    </el-form>
+    <template #footer>
+      <el-button @click="closeSearchForm">{{ t('common.operation.cancel') }}</el-button>
+      <el-button type="primary" :loading="tableLoading" @click="onSearch">{{
+        tableLoading ? t('common.status.searching') : t('common.operation.search')
+      }}</el-button>
+    </template>
+  </el-dialog>
 </template>
-<style lang="scss" scoped>
-:deep() {}
-</style>

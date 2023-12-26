@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ElDrawer, ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
+import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
 
-// import { addPluginApi, deletePluginApi, getPluginApi, updatePluginApi } from '../requset/api/plugin';
 import { GetPluginParams } from '../requset/api/plugin/type';
 import { SgPlugin, SgPluginVO, convertPluginToVO, convertVOToPlugin } from '../types/plugin';
+import { ConfigPanel } from '../components'
 
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 const { plugin } = useSpacegateService();
-const { t }= useI18n()
+const { t } = useI18n()
 
 
 const currentRow = reactive({ data: [] as SgPluginVO[] })
@@ -69,97 +70,81 @@ const closeDialog = () => {
 }
 </script>
 <template>
-  <div class="sp-view-header">
-    <el-row>
-      <el-col :span="23">
-        <h1>Plugin</h1>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-divider style="margin-top: 24px;margin-bottom: 10px;" />
-    </el-row>
-    <el-row>
-      <el-col :span="23"><span class="sp-view-header__sub-title">Set you plugin</span></el-col>
-    </el-row>
-  </div>
+  <ConfigPanel>
+    <template #search>
+      <el-input placeholder="name of service" v-model="searchDto.ids">
+        <template #append>
+          <el-button @click="onSearch" :icon="Search">{{ t('common.operation.search') }}</el-button>
+        </template>
+      </el-input>
+    </template>
+    <template #operation>
+      <el-button text type="primary" @click="opDialog.isEdit = false; opDialog.isOpen = true" :icon="Plus">{{
+        t('common.operation.add')
+      }}</el-button>
+    </template>
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+      style="width: 100% ">
+      <el-table-column prop="id" label="Id" width="180" />
+      <el-table-column prop="name" label="Name" />
+      <el-table-column prop="code" label="Code">
+        <template #default="scope">
+          <el-tag>{{ scope.row.code }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('common.operations')">
+        <template #default="scope">
+          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+            t('common.operation.delete') }}</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </ConfigPanel>
+  <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit plugin' : 'add plugin'" class="sp-service-drawer"
+    :before-close="closeDialog">
+    <div class="sp-service-drawer__content">
+      <el-form :inline="true" :model="opDialog.data">
+        <el-row>
+          <el-col>
+            <el-form-item label="Id">
+              <el-input v-model="opDialog.data.id" autocomplete="off" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-  <div class="pt-4">
-    <el-space fill direction="vertical" style="width: 100%">
-      <el-card shadow="never" class=" justify-center">
-        <el-form :inline="true" :model="searchDto">
-          <el-form-item :label="t('plugin.id')">
-            <el-input placeholder="name of service" v-model="searchDto.ids" />
-          </el-form-item>
-          <el-form-item class="float-right"><el-button @click="opDialog.isEdit = false; opDialog.isOpen = true">{{
-            t('common.operation.add')
-          }}</el-button>
-            <el-button @click="onSearch">{{ t('common.operation.search') }}</el-button></el-form-item>
-
-        </el-form>
-      </el-card>
-      <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
-        style="width: 100% ">
-        <el-table-column prop="id" label="Id" width="180" />
-        <el-table-column prop="name" label="Name" />
-        <el-table-column prop="code" label="Code">
-          <template #default="scope">
-            <el-tag>{{ scope.row.code }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="t('common.operations')">
-          <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-              t('common.operation.delete') }}</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-space>
-    <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit plugin' : 'add plugin'" class="sp-service-drawer"
-      :before-close="closeDialog">
-      <div class="sp-service-drawer__content">
-        <el-form :inline="true" :model="opDialog.data">
-          <el-row>
-            <el-col>
-              <el-form-item label="Id">
-                <el-input v-model="opDialog.data.id" autocomplete="off" disabled />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-row>
-            <el-col>
-              <el-form-item label="Code">
-                <el-input v-model="opDialog.data.code" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col>
-              <el-form-item label="Name">
-                <el-input v-model="opDialog.data.name" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col>
-              <el-form-item label="PluginConfig">
-                <el-input autosize type="textarea" v-model="opDialog.data.spec" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-          <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
-            tableLoading ? t('common.status.submitting') : t('common.operation.submit')
-          }}</el-button>
-        </span>
-      </template>
-    </el-dialog>
-  </div>
+        <el-row>
+          <el-col>
+            <el-form-item label="Code">
+              <el-input v-model="opDialog.data.code" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="Name">
+              <el-input v-model="opDialog.data.name" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="PluginConfig">
+              <el-input autosize type="textarea" v-model="opDialog.data.spec" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
+        <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+          tableLoading ? t('common.status.submitting') : t('common.operation.submit')
+        }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 <style lang="scss" scoped>
 :deep() {}

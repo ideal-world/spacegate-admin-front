@@ -3,7 +3,7 @@ import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { Service, Listener } from '../types/service';
 import { ServiceForm, ListenerForm, DialogForm, useDialogForm } from '../types/forms';
-import { PORT_MAX, PORT_MIN } from '../constants';
+import { PORT_MAX, PORT_MIN, PORT_INPUT_ATTR } from '../constants';
 import {
   GetGatewayParamsVO,
 } from '../requset/api/service/type';
@@ -12,8 +12,8 @@ import {
   ServiceProtocol
 } from '../types/service';
 import { useSelectedInstanceStore } from '../stores/select_instance';
-import { ArraySelect, PluginSelector } from '../components/index';
-import { Minus, Plus, ArrowRight, ArrowDown, Search } from '@element-plus/icons-vue';
+import { ConfigPanel } from '../components'
+import { Minus, Plus, ArrowRight, ArrowDown, Search, Filter } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 import { useOptions } from '../hooks';
@@ -24,7 +24,6 @@ const { t } = useI18n()
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as ServiceForm[] })
-const searchDto = reactive<GetGatewayParamsVO>({})
 
 const listenerColSize = {
   xs: 24,
@@ -44,7 +43,7 @@ const searchColSize = {
 
 
 const { dialogForm, open: openDialog, close: closeDialog } = useDialogForm<ServiceForm, 'add' | 'edit'>()
-const { dialogForm: searchDialogForm, open: openSearchDialog, close: closeSearchDialog } = useDialogForm<GetGatewayParamsVO>()
+const { dialogForm: searchDialogForm, open: openSearchDialog, close: closeSearchDialog } = useDialogForm<GetGatewayParamsVO>({})
 
 const tableLoading = ref(false)
 
@@ -54,7 +53,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await service.getGateways(searchDto)
+  let res = await service.getGateways(searchDialogForm.data)
 
   if (res) {
     currentRow.data = res.data.map(ServiceForm.fromService)
@@ -98,12 +97,10 @@ const handleDelete = async (_index: number, row: ServiceForm) => {
 }
 
 
-const pluginArraySelect = ref()
 const onSumbit = async () => {
   if (dialogForm.data === undefined) {
     return
   }
-  dialogForm.data.filters = pluginArraySelect.value.selectedValues
   let res = dialogForm.mode === 'edit' ?
     await service.updateGateways(dialogForm.data.intoService()) :
     await service.addGateways(dialogForm.data.intoService())
@@ -116,21 +113,25 @@ const onSumbit = async () => {
 }
 </script>
 <template>
-  <el-card shadow="never" :body-style="{ padding: '0px' }">
-    <template #header>
-      <div class="flex ">
-        <span class="flex-grow">
-          Service Config
-        </span>
-        <el-button @click="() => openDialog(new ServiceForm(), 'add')" :icon="Plus" type="primary">
+  <ConfigPanel>
+    <template #search>
+      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('common.placeholder.name')">
+        <template #append>
+          <el-button-group>
+            <el-button text @click="() => openSearchDialog()" :icon="Filter" type="primary"></el-button>
+            <el-button text @click="onSearch" :icon="Search" type="primary"></el-button>
+          </el-button-group>
+        </template>
+      </el-input>
+    </template>
+    <template #operation>
+      <el-button-group class="flex justify-end">
+        <el-button text @click="() => openDialog(new ServiceForm(), 'add')" :icon="Plus" type="primary">
           {{ t('common.operation.add')
           }}
         </el-button>
-        <el-button @click="() => openSearchDialog({})" :icon="Search" type="primary">{{ t('common.operation.search')
-        }}</el-button>
-      </div>
+      </el-button-group>
     </template>
-
     <el-table v-loading="tableLoading" :data="currentRow.data">
       <el-table-column prop="name" label="Name" width="180" />
       <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
@@ -139,16 +140,17 @@ const onSumbit = async () => {
         <el-table-column prop="hostname" label="hostname" :formatter="formatStrings" />
         <el-table-column prop="port" label="port" :formatter="formatPort" width="180" />
       </el-table-column>
-      <el-table-column :label="t('common.operations')">
+      <el-table-column :label="t('common.operations')" min-width="96em">
         <template #default="scope">
-          <el-button size="small" @click="() => openDialog(scope.row, 'edit')">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-            t('common.operation.delete') }}</el-button>
+          <el-button-group size="small">
+            <el-button size="small" @click="() => openDialog(scope.row, 'edit')">Edit</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+              t('common.operation.delete') }}</el-button>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>
-  </el-card>
-
+  </ConfigPanel>
 
   <el-dialog v-model="dialogForm.isOpen" :title="dialogForm.mode + ' service'" class="sp-service-drawer"
     :before-close="closeDialog">
@@ -196,7 +198,7 @@ const onSumbit = async () => {
           </div>
           <el-collapse-transition>
             <el-card shadow="hover" v-show="!listener.collapsed" class="flex-grow">
-              <el-form label-width="auto" >
+              <el-form label-width="auto">
                 <el-row :gutter="24">
                   <el-col class="mb-2" v-bind="listenerColSize">
                     <el-form-item label="name" required>
@@ -213,7 +215,7 @@ const onSumbit = async () => {
                   </el-col>
                   <el-col class="mb-2" v-bind="listenerColSize">
                     <el-form-item label="port" required>
-                      <el-input-number v-model="listener.port" :max="PORT_MAX" :min="PORT_MIN" />
+                      <el-input-number v-model="listener.port" v-bind="PORT_INPUT_ATTR" />
                     </el-form-item>
                   </el-col>
                   <el-col class="mb-2" v-bind="listenerColSize">
@@ -291,26 +293,27 @@ const onSumbit = async () => {
   </el-dialog>
 
   <el-dialog v-model="searchDialogForm.isOpen" title="Search">
-    <el-form v-if="searchDialogForm.data !== undefined" v-model="searchDialogForm.data"  label-width="auto">
+    <el-form v-if="searchDialogForm.data !== undefined" v-model="searchDialogForm.data" label-width="auto">
       <el-row :gutter="24">
         <el-col :v-bind="searchColSize">
           <el-form-item :label="t('route.name')">
-            <el-input placeholder="name of service" v-model="searchDto.names" />
+            <el-input placeholder="name of service" v-model="searchDialogForm.data.names" />
           </el-form-item>
         </el-col>
         <el-col v-if="selectedStore.is_k8s()" :v-bind="searchColSize">
           <el-form-item label="namespace">
-            <el-input placeholder="namespace of service" v-model="searchDto.namespace" />
+            <el-input placeholder="namespace of service" v-model="searchDialogForm.data.namespace" />
           </el-form-item>
         </el-col>
         <el-col :v-bind="searchColSize">
           <el-form-item label="port">
-            <el-input-number placeholder="port of service" v-model="searchDto.port" :max="PORT_MAX" :min="PORT_MIN" />
+            <el-input-number placeholder="port of service" v-model="searchDialogForm.data.port"
+              v-bind="PORT_INPUT_ATTR" />
           </el-form-item>
         </el-col>
         <el-col :v-bind="searchColSize">
           <el-form-item label="hostname">
-            <el-input placeholder="namespace of service" v-model="searchDto.hostname" />
+            <el-input placeholder="namespace of service" v-model="searchDialogForm.data.hostname" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -318,8 +321,8 @@ const onSumbit = async () => {
     </el-form>
     <template #footer>
       <el-button @click="closeSearchDialog">{{ t('common.operation.cancel') }}</el-button>
-      <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
-        tableLoading ? t('common.status.submitting') : t('common.operation.submit')
+      <el-button type="primary" :loading="tableLoading" @click="onSearch">{{
+        tableLoading ? t('common.status.searching') : t('common.operation.search')
       }}</el-button>
     </template>
   </el-dialog>
