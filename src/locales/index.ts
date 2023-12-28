@@ -1,5 +1,5 @@
-import * as zhCn from './zhCn'
-import * as en from './en'
+import zhCn from './zh-CN'
+import en from './en'
 
 export const MESSAGES = {
     'zh-CN': zhCn,

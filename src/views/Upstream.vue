@@ -80,7 +80,7 @@ const colSizeAttr = {
 </script>
 <template>
   <div class="flex space-x-4 mb-2">
-    <el-input v-model="searchForm.data!.names" :placeholder="t('common.placeholder.name')">
+    <el-input v-model="searchForm.data!.names" :placeholder="t('upstream.name')">
       <template #append>
         <el-button-group>
           <el-button text @click="() => openSearchForm()" :icon="Filter" type="primary"></el-button>
@@ -101,16 +101,18 @@ const colSizeAttr = {
     <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
     <el-table-column prop="protocol" label="Protocol">
       <template #default="scope">
-        <el-tag>{{ scope.row.protocol }}</el-tag>
+        <el-tag v-if="scope.row.protocol">{{ scope.row.protocol }}</el-tag>
       </template>
     </el-table-column>
     <el-table-column prop="name_or_host" :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'" />
     <el-table-column prop="port" label="Port" />
     <el-table-column :label="t('common.operations')">
       <template #default="scope">
-        <el-button size="small" @click="openBackendForm(scope.row, 'edit')">Edit</el-button>
-        <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-          t('common.operation.delete') }}</el-button>
+        <el-button-group>
+          <el-button size="small" @click="openBackendForm(scope.row, 'edit')">{{ t('common.operation.edit') }}</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+            t('common.operation.delete') }}</el-button>
+        </el-button-group>
       </template>
     </el-table-column>
   </el-table>

@@ -84,7 +84,7 @@ const onSumbit = async () => {
 <template>
   <ConfigPanel>
     <template #search>
-      <el-input v-model="searchDto.names" :placeholder="t('common.placeholder.name')">
+      <el-input v-model="searchDto.names" :placeholder="t('gateway.name')">
         <template #append>
           <el-button-group>
             <el-button text @click="onSearch" :icon="Search" type="primary"></el-button>
@@ -103,8 +103,8 @@ const onSumbit = async () => {
     </template>
     <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
       style="width: 100% ">
-      <el-table-column prop="name" label="Name" width="180" />
-      <el-table-column prop="type_" label="Type">
+      <el-table-column prop="name" :label="t('gateway.name')" width="180" />
+      <el-table-column prop="type_" :label="t('gateway.type')">
         <template #default="scope">
           <el-tag>{{ scope.row.type_ == "K8sClusterConfig" ? "Kubernetes" : "Redis" }}</el-tag>
         </template>
@@ -128,14 +128,14 @@ const onSumbit = async () => {
     <el-form v-if="instConfigForm.data !== undefined" :model="instConfigForm.data" label-width="auto" label-suffix=":">
       <el-row>
         <el-col>
-          <el-form-item label="Name">
+          <el-form-item :label="t('gateway.username')">
             <el-input v-model="instConfigForm.data.name" autocomplete="off" :disabled="instConfigForm.mode === 'edit'" />
           </el-form-item>
         </el-col>
       </el-row>
       <el-row>
         <el-col>
-          <el-form-item label="Type">
+          <el-form-item :label="t('gateway.type')">
             <el-select v-model="instConfigForm.data.type">
               <el-option label="Redis" value="RedisConfig" />
               <el-option label="Kubernetes" value="K8sClusterConfig" />
@@ -163,7 +163,7 @@ const onSumbit = async () => {
 
       <el-row v-if="instConfigForm.data.type == 'K8sClusterConfig'">
         <el-col>
-          <el-form-item label="Username">
+          <el-form-item :label="t('gateway.username')">
             <el-input v-model="(instConfigForm.data.config as K8sClusterConfig).config.users.name"></el-input>
           </el-form-item>
         </el-col>
@@ -188,6 +188,3 @@ const onSumbit = async () => {
     </template>
   </el-dialog>
 </template>
-<style lang="scss" scoped>
-:deep() {}
-</style>

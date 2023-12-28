@@ -115,7 +115,7 @@ const onSumbit = async () => {
 <template>
   <ConfigPanel>
     <template #search>
-      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('common.placeholder.name')">
+      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('service.name')">
         <template #append>
           <el-button-group>
             <el-button text @click="() => openSearchDialog()" :icon="Filter" type="primary"></el-button>
@@ -143,7 +143,8 @@ const onSumbit = async () => {
       <el-table-column :label="t('common.operations')" min-width="96em">
         <template #default="scope">
           <el-button-group size="small">
-            <el-button size="small" @click="() => openDialog(scope.row, 'edit')">Edit</el-button>
+            <el-button size="small" @click="() => openDialog(scope.row, 'edit')">{{ t('common.operation.edit')
+            }}</el-button>
             <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
               t('common.operation.delete') }}</el-button>
           </el-button-group>

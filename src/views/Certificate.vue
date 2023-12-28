@@ -90,28 +90,32 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
     </template>
     <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
       style="width: 100% ">
-      <el-table-column prop="name" label="Name" width="180" />
-      <el-table-column prop="key" label="Key" :formatter="formatKey" />
-      <el-table-column prop="cert" label="Cert" :formatter="formatKey" />
+      <el-table-column prop="name" :label="t('certificate.name')" width="180" />
+      <el-table-column prop="key" :label="t('certificate.key')" :formatter="formatKey" />
+      <el-table-column prop="cert" :label="t('certificate.cert')" :formatter="formatKey" />
       <el-table-column :label="t('common.operations')">
         <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-            t('common.operation.delete') }}</el-button>
+          <el-button-group>
+            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">{{
+              t('common.operation.edit') }}</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+              t('common.operation.delete') }}</el-button>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>
   </ConfigPanel>
-  <el-dialog v-model="opDialog.isOpen" :title="opDialog.isEdit ? 'edit instance' : 'add instance'"
+  <el-dialog v-model="opDialog.isOpen"
+    :title="opDialog.isEdit ? t('certificate.editCertificate') : t('certificate.addCertificate')"
     :before-close="closeDialog">
     <el-form :inline="false" :model="opDialog.data" label-position="left" label-width="auto" label-suffix=":">
-      <el-form-item label="Name">
+      <el-form-item :label="t('certificate.name')">
         <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
       </el-form-item>
-      <el-form-item label="Key">
+      <el-form-item :label="t('certificate.key')">
         <el-input type="password" v-model="opDialog.data.key" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
-      <el-form-item label="Cert">
+      <el-form-item :label="t('certificate.cert')">
         <el-input type="password" v-model="opDialog.data.cert" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
     </el-form>
@@ -125,6 +129,3 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
     </template>
   </el-dialog>
 </template>
-<style lang="scss" scoped>
-:deep() {}
-</style>

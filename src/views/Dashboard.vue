@@ -7,7 +7,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useSpacegateService } from '../service';
 import { useI18n } from 'vue-i18n';
 
-const { t }= useI18n()
+const { t } = useI18n()
 const { common } = useSpacegateService();
 const currentDashbord = reactive({ data: {} as Statistics })
 
@@ -37,19 +37,6 @@ const stepActive = () => {
 }
 </script>
 <template>
-  <div class="sp-view-header">
-    <el-row>
-      <el-col :span="23">
-        <h1>Dashboard</h1>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-divider style="margin-top: 24px;margin-bottom: 10px;" />
-    </el-row>
-    <el-row>
-      <el-col :span="23"><span class="sp-view-header__sub-title">Welcome back</span></el-col>
-    </el-row>
-  </div>
   <el-row>
     <el-col :span="24">
       <el-row>

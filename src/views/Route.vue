@@ -122,7 +122,7 @@ const colSizeAttr = {
 <template>
   <ConfigPanel>
     <template #search>
-      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('common.placeholder.name')">
+      <el-input v-model="searchDialogForm.data!.names" :placeholder="t('route.name')">
         <template #append>
           <el-button-group>
             <el-button text @click="() => openSearchDialog()" :icon="Filter" type="primary"></el-button>
@@ -134,50 +134,53 @@ const colSizeAttr = {
     <template #operation>
       <el-button-group class="flex justify-end">
         <el-button text @click="opDialog.isEdit = false; opDialog.isOpen = true" :icon="Plus" type="primary">
-          {{ t('common.operation.add')
-          }}
+          {{ t('common.operation.add') }}
         </el-button>
       </el-button-group>
     </template>
     <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250">
-      <el-table-column fixed prop="name" label="Name" />
-      <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
-      <el-table-column prop="gateway_name" label="GatewayName" />
-      <el-table-column prop=" hostname" label="hostname" :formatter="formatStrings" />
-      <el-table-column prop="backends" label="Backend" :formatter="getBackendInfo" />
+      <el-table-column fixed prop="name" :label="t('route.name')" />
+      <el-table-column prop="namespace" :label="t('route.namespace')" v-if="selectedStore.is_k8s()" />
+      <el-table-column prop="gateway_name" :label="t('route.gatewayName')" />
+      <el-table-column prop="hostname" :label="t('route.hostname')" :formatter="formatStrings" />
+      <el-table-column prop="backends" :label="t('route.backend')" :formatter="getBackendInfo" />
 
       <el-table-column fixed="right" :label="t('common.operations')">
         <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-            t('common.operation.delete') }}</el-button>
+          <el-button-group>
+            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">
+              {{ t('common.operation.edit') }}
+            </el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+              t('common.operation.delete') }}</el-button>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>
   </ConfigPanel>
 
-  <el-dialog v-model="opDialog.isOpen" class="sp-service-drawer" :before-close="closeDialog">
+  <el-dialog v-model="opDialog.isOpen" :before-close="closeDialog">
     <template #header>
-      <span>{{ opDialog.isEdit ? 'edit route' : 'add route' }}</span>
+      <span>{{ opDialog.isEdit ? t('route.editRoute') : t('route.addRoute') }}</span>
     </template>
     <el-form :inline="false" :model="opDialog.data" label-width="auto">
       <h4>Common</h4>
       <el-divider class="mt-1" />
       <el-row :gutter="24">
         <el-col v-bind="colSizeAttr">
-          <el-form-item label="Name">
+          <el-form-item :label="t('route.name')">
             <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
         </el-col>
         <el-col v-bind="colSizeAttr" v-if="selectedStore.is_k8s()">
-          <el-form-item label="Namespace" :rules="[
+          <el-form-item :label="t('route.namespace')" :rules="[
             { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
           ]">
             <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
         </el-col>
         <el-col v-bind="colSizeAttr">
-          <el-form-item label="GatewayName" :rules="[
+          <el-form-item :label="t('route.gatewayName')" :rules="[
             { required: true, message: 'gatewayName is required', trigger: 'blur' },
           ]">
             <!-- <el-input v-model="opDialog.data.gateway_name" :disabled="opDialog.isEdit" /> -->
@@ -189,7 +192,7 @@ const colSizeAttr = {
       </el-row>
 
       <el-row>
-        <el-form-item :label="'Hostnames:'" class="flex-grow">
+        <el-form-item :label="t('route.hostname')" class="flex-grow">
           <el-col v-for="(item, index) in opDialog.data.hostnames" :key="index" :span="24" class="mb-1">
             <el-input v-model="opDialog.data.hostnames[index]">
               <template #append>
@@ -238,7 +241,7 @@ const colSizeAttr = {
                 <el-button disabled type="text" class="flex-grow">No Rule</el-button>
               </el-row>
               <el-row>
-                <el-form-item :label="'Path'" v-if="match.path" class="flex-grow">
+                <el-form-item :label="t('route.path')" v-if="match.path" class="flex-grow">
                   <el-input v-model="match.path!.value" placeholder="Value" class="flex-grow">
                     <template #prepend>
                       <el-select v-model="match.path!.kind" placeholder="Select Kind">
@@ -250,14 +253,14 @@ const colSizeAttr = {
                 </el-form-item>
               </el-row>
               <el-row>
-                <el-form-item :label="'Method'" v-if="match.method" class="flex-grow">
+                <el-form-item :label="t('route.method')" v-if="match.method" class="flex-grow">
                   <el-select v-model="(match.method as string[])" multiple placeholder="Http Methods" class="flex-grow">
                     <el-option v-for="M in SG_HTTP_METHODS" :key="M" :label="M" :value="M" />
                   </el-select>
                 </el-form-item>
               </el-row>
               <el-row>
-                <el-form-item :label="'Header'" v-if="match.header" class="flex-grow">
+                <el-form-item :label="t('route.header')" v-if="match.header" class="flex-grow">
                   <el-col v-for="( header, _ ) in match.header" class="flex">
                     <el-select v-model="header.kind" placeholder="Select Kind">
                       <el-option v-for="option in Object.values(SgHttpHeaderMatchType)" :key="option" :label="option"
@@ -279,7 +282,7 @@ const colSizeAttr = {
                 </el-form-item>
               </el-row>
               <el-row>
-                <el-form-item :label="'Query:'" v-if="match.query" class="flex-grow">
+                <el-form-item :label="t('route.query')" v-if="match.query" class="flex-grow">
                   <el-col v-for="( query, _ ) in match.query" class="flex">
                     <el-select v-model="query.kind" placeholder="Select Kind">
                       <el-option text v-for="option in Object.values(SgHttpQueryMatchType)" :key="option" :label="option"
@@ -321,7 +324,7 @@ const colSizeAttr = {
       </el-row>
 
       <el-row>
-        <el-form-item :label="'Backend'" class="flex flex-grow">
+        <el-form-item :label="t('route.backend')" class="flex flex-grow">
           <el-select v-model="opDialog.data.backends" placeholder="backends" multiple class="flex-grow">
             <el-option v-for="option in backendOptions" v-bind="option"><span class="mr-1">{{ option.label
             }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag></el-option>
@@ -330,7 +333,7 @@ const colSizeAttr = {
       </el-row>
 
       <el-row>
-        <el-form-item :label="'Filter'" class="flex flex-grow">
+        <el-form-item :label="t('route.filter')" class="flex flex-grow">
           <el-select v-model="opDialog.data.filters" placeholder="Filters" multiple class="flex-grow">
             <el-option v-for="option in pluginOptions" v-bind="option"><span class="mr-1">{{ option.label
             }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag></el-option>
@@ -357,7 +360,7 @@ const colSizeAttr = {
           </el-form-item>
         </el-col>
         <el-col v-if="selectedStore.is_k8s()" :span="12">
-          <el-form-item label="namespace">
+          <el-form-item :label="t('route.namespace')">
             <el-input placeholder="namespace of service" v-model="searchDialogForm.data.namespace" />
           </el-form-item>
         </el-col>
@@ -371,4 +374,3 @@ const colSizeAttr = {
     </template>
   </el-dialog>
 </template>
-<style lang="scss" scoped></style>

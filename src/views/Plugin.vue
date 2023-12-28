@@ -94,9 +94,12 @@ const closeDialog = () => {
       </el-table-column>
       <el-table-column :label="t('common.operations')">
         <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
-            t('common.operation.delete') }}</el-button>
+          <el-button-group>
+            <el-button size="small" @click="handleEdit(scope.$index, scope.row)">{{ t('common.operation.edit')
+            }}</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
+              t('common.operation.delete') }}</el-button>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>
