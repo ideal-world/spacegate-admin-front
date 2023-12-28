@@ -1,5 +1,3 @@
-// const path = require('path')
-// import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -8,10 +6,6 @@ import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import vue from '@vitejs/plugin-vue'
 import * as path from "path";
-
-// const alias: Record<string, string> = {
-//   '@': resolve(__dirname, ".", "src")
-// }
 
 export default defineConfig({
   plugins: [

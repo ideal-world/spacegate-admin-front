@@ -1,4 +1,3 @@
-// const path = require('path')
 import  path from "path";
 
 export default {
@@ -6,18 +5,12 @@ export default {
   description: 'A relatively complete formula editor',
   ignoreDeadLinks: true,
   themeConfig: {
-    repo: 'https://github.com/idealworld/spacegate-admin',
+    repo: 'https://github.com/idealworld/spacegate-admin-front',
     sidebar: [
       {
         text: 'Introduction',
         items: [
           { text: 'Getting Started', link: '/guide/' }
-        ]
-      },
-      {
-        text: 'Components',
-        items: [
-          { text: 'placeholder', link: '/components/1' },
         ]
       },
       {
@@ -56,7 +49,6 @@ export default {
       port: 3000,
       proxy: {
         '/admin': {
-          // target: 'http://192.168.31.164:9080/',
           target: 'http://localhost:9081/',
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, '')
