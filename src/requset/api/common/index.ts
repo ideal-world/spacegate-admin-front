@@ -11,4 +11,3 @@ export class DefaultCommonService implements SgCommonService {
     return getStatisticsApi()
   }
 }
-  

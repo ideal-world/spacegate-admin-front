@@ -6,11 +6,11 @@ export const PORT_MIN = 1
 
 
 export const PORT_INPUT_ATTR = {
-    min: PORT_MIN,
-    max: PORT_MAX,
-    type: 'number',
-    step: 1,
-    "step-strictly": true,
-    controls: false,
+  min: PORT_MIN,
+  max: PORT_MAX,
+  type: 'number',
+  step: 1,
+  "step-strictly": true,
+  controls: false,
 
 } as const

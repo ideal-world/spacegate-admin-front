@@ -7,6 +7,6 @@ export * from './instance';
 export * from './plugin';
 
 export interface ApiObject {
-    serialize(this: this): Object
-    deserialize(this: Object): this
+  serialize(this: this): Object
+  deserialize(this: Object): this
 }

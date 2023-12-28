@@ -5,7 +5,7 @@ import { AddGateway, GetGatewayParams, GetGatewayParamsVO, converVOToGetGatewayP
 
 export const getGatewaysApi = (paramsVo?: GetGatewayParamsVO): Promise<IResponse<Service[]>> => {
   let params = converVOToGetGatewayParams(paramsVo)
-  
+
   return request.get({ url: '/gateway', params })
 }
 
