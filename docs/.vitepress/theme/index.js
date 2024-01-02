@@ -2,7 +2,7 @@ import DefaultTheme from 'vitepress/theme'
 import DemoContainer from '../components/DemoContainer.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import SpacegateAdmin, { SpacegateService, MESSAGES } from 'spacegate-admin'
+import SpacegateAdmin, { SpacegateService, MESSAGES } from '@component-config'
 import { createI18n } from 'vue-i18n'
 import './custom.css'
 export default {

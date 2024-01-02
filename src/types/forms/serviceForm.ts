@@ -10,6 +10,10 @@ export class ServiceForm {
   listeners: ListenerForm[] = [];
   filters: string[] = [];
 
+  constructor() {
+
+  }
+
   static fromService(service: Service): ServiceForm {
     const self = new ServiceForm();
     self.name = service.name;

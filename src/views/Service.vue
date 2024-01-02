@@ -9,7 +9,6 @@ import {
 } from '../requset/api/service/type';
 import {
   SERVICE_PROTOCOLS,
-  ServiceProtocol
 } from '../types/service';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ConfigPanel } from '../components'
@@ -41,8 +40,9 @@ const searchColSize = {
   xl: 6
 }
 
-
-const { dialogForm, open: openDialog, close: closeDialog } = useDialogForm<ServiceForm, 'add' | 'edit'>()
+const newServiceForm = () => new ServiceForm()
+const newListenerForm = () => new ListenerForm()
+const { dialogForm, open: openDialog, close: closeDialog } = useDialogForm<ServiceForm, 'add' | 'edit'>(newServiceForm())
 const { dialogForm: searchDialogForm, open: openSearchDialog, close: closeSearchDialog } = useDialogForm<GetGatewayParamsVO>({})
 
 const tableLoading = ref(false)
@@ -126,7 +126,7 @@ const onSumbit = async () => {
     </template>
     <template #operation>
       <el-button-group class="flex justify-end">
-        <el-button text @click="() => openDialog(new ServiceForm(), 'add')" :icon="Plus" type="primary">
+        <el-button text @click="() => openDialog(newServiceForm(), 'add')" :icon="Plus" type="primary">
           {{ t('common.operation.add')
           }}
         </el-button>
@@ -179,7 +179,7 @@ const onSumbit = async () => {
       <el-row>
         <el-col>
           <el-form-item label="Filters">
-            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow">
+            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow" multiple >
               <el-option v-for=" option  in  pluginOptions " v-bind="option" />
             </el-select>
           </el-form-item>
@@ -247,7 +247,7 @@ const onSumbit = async () => {
           </el-collapse-transition>
         </el-col>
         <el-col class="flex justify-end">
-          <el-button @click="() => dialogForm.data!.listeners.push(new ListenerForm())" :icon="Plus" type="primary" text>
+          <el-button @click="() => dialogForm.data!.listeners.push(newListenerForm())" :icon="Plus" type="primary" text>
           </el-button>
         </el-col>
       </el-form-item>

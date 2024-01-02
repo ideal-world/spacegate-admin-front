@@ -88,7 +88,7 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
       <el-button @click="() => { opDialog.isEdit = false; opDialog.isOpen = true }" text type="primary" :icon="Plus">{{
         t('common.operation.add') }}</el-button>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
       style="width: 100% ">
       <el-table-column prop="name" :label="t('certificate.name')" width="180" />
       <el-table-column prop="key" :label="t('certificate.key')" :formatter="formatKey" />

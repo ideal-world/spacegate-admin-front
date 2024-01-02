@@ -83,7 +83,7 @@ const closeDialog = () => {
         t('common.operation.add')
       }}</el-button>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
       style="width: 100% ">
       <el-table-column prop="id" label="Id" width="180" />
       <el-table-column prop="name" label="Name" />

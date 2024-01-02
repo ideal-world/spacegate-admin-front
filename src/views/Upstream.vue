@@ -20,8 +20,8 @@ const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as BackendForm[] })
 const searchDto = reactive<GetBackendParams>({})
-
-const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(new BackendForm())
+const newBackendForm = () => new BackendForm()
+const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(newBackendForm())
 const { dialogForm: searchForm, open: openSearchForm, close: closeSearchForm } = useDialogForm<GetBackendParams>({})
 
 const tableLoading = ref(false)
@@ -89,13 +89,13 @@ const colSizeAttr = {
       </template>
     </el-input>
     <el-button-group class="flex justify-end">
-      <el-button text @click="() => openBackendForm(new BackendForm(), 'add')" :icon="Plus" type="primary">
+      <el-button text @click="() => openBackendForm(newBackendForm(), 'add')" :icon="Plus" type="primary">
         {{ t('common.operation.add')
         }}
       </el-button>
     </el-button-group>
   </div>
-  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
     style="width: 100% ">
     <el-table-column prop="id" label="Name" width="180" />
     <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />

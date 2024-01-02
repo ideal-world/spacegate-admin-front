@@ -138,7 +138,7 @@ const colSizeAttr = {
         </el-button>
       </el-button-group>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250">
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe >
       <el-table-column fixed prop="name" :label="t('route.name')" />
       <el-table-column prop="namespace" :label="t('route.namespace')" v-if="selectedStore.is_k8s()" />
       <el-table-column prop="gateway_name" :label="t('route.gatewayName')" />

@@ -101,7 +101,7 @@ const onSumbit = async () => {
         </el-button>
       </el-button-group>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe height="250" max-height="250"
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
       style="width: 100% ">
       <el-table-column prop="name" :label="t('gateway.name')" width="180" />
       <el-table-column prop="type_" :label="t('gateway.type')">

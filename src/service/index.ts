@@ -12,6 +12,8 @@ import { DefaultPluginService } from "../requset/api/plugin";
 import { DefaultRouteService } from "../requset/api/route";
 import { DefaultServiceService } from "../requset/api/service";
 import { DefaultInstanceService } from "../requset/api/instance";
+import { getCurrentInstance } from 'vue'
+
 type Request<I = undefined, O = void> =
   undefined extends I ?
   (param?: I) => Promise<IResponse<O>>
@@ -128,17 +130,13 @@ export const SpacegateService: Plugin<SgServicePluginOptions> = {
     } else {
       throw new Error('Invalid backend option')
     }
-    setupSpacegateService($sg_service)
     app.config.globalProperties['$sg_service'] = $sg_service
+    console.warn('Spacegate service is initialized', $sg_service)
   }
 }
 
-let $sg_service: SgService | undefined = undefined;
-export const setupSpacegateService = (service: SgService) => {
-  $sg_service = service
-}
-
 export const useSpacegateService = (): SgService => {
+  let $sg_service = getCurrentInstance()?.appContext.config.globalProperties['$sg_service']
   if ($sg_service === undefined) {
     throw new Error('Spacegate service is not initialized')
   }
