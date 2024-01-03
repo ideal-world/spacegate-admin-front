@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ElDrawer, ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 import { GetInstanceParams } from '../requset/api/instance/type';
-import { InstConfigType, InstConfig, getInstName, RedisConfig, K8sConfig, K8sClusterConfig, } from '../types/instance';
+import { InstConfigType, InstConfig, RedisConfig, K8sClusterConfig, } from '../types/instance';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 import { useDialogForm } from '../types/forms'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 import { InstConfigForm } from '../types/forms';
 import { ConfigPanel } from '../components';
 const { t } = useI18n()
@@ -15,7 +15,6 @@ const { instance } = useSpacegateService()
 
 const currentRow = reactive({ data: [] as InstConfigForm[] })
 const searchDto = reactive<GetInstanceParams>({})
-const initInstConfigVO = () => { return { name: '', type_: InstConfigType.RedisConfig, redis_url: '', k8s_cluster_config: { server_url: '', username: '', token: '' } } }
 const tableLoading = ref(false)
 
 const newInstConfig = () => <InstConfig>{

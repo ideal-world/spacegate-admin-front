@@ -1,9 +1,7 @@
 import { IResponse } from "../requset";
 import { Backend } from "../types/backend";
 import { InstConfig, SelectedInstance, Service, SgHttpRoute, SgPlugin, Statistics, TlsCert } from "../types";
-import { GetInstanceParams } from "../requset/api/instance/type";
-import { GetHttpRouteParamsVO } from "../requset/api/route/type";
-import { AddGateway, GetGatewayParamsVO } from "../requset/api/service/type";
+import { AddGateway } from "../requset/api/service/type";
 import { App, Plugin } from "vue";
 import { DefaultBackendService } from "../requset/api/backend";
 import { DefaultCertificateService } from "../requset/api/certificate";

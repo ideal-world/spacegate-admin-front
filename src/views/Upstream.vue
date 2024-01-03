@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ElDrawer, ElInput, ElMessage } from 'element-plus'
-import { ComponentPublicInstance, onMounted, reactive, ref } from 'vue'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import { ElInput, ElMessage } from 'element-plus'
+import { onMounted, reactive, ref } from 'vue'
+import { Search, Plus, Filter } from '@element-plus/icons-vue'
 
 // import { addBackendApi, deleteBackendApi, getBackendApi, updateBackendApi } from '../requset/api/backend';
-import { Backend, BackendVO, Protocol, convertBackendToVO } from '../types/backend';
+import { Protocol } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
 import { ArraySelect } from '../components/index';
-import { ExtractPropType } from 'element-plus/es/utils';
 import { useSpacegateService } from '../service';
 
 import { useI18n } from 'vue-i18n';
@@ -95,8 +94,7 @@ const colSizeAttr = {
       </el-button>
     </el-button-group>
   </div>
-  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
-    style="width: 100% ">
+  <el-table v-loading="tableLoading" :data="currentRow.data" border stripe style="width: 100% ">
     <el-table-column prop="id" label="Name" width="180" />
     <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
     <el-table-column prop="protocol" label="Protocol">

@@ -1,4 +1,4 @@
-import { InstConfig, InstConfigType, K8sClusterConfig, RedisConfig, SelectedInstance } from "../instance";
+import { InstConfig, InstConfigType, K8sClusterConfig, RedisConfig, } from "../instance";
 
 export class InstConfigForm {
   type: InstConfigType;

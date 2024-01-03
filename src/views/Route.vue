@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Ref, onMounted, reactive, ref } from 'vue'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import { Search, Plus, Minus, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
 
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
 import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute, SG_HTTP_METHODS, SgHttpHeaderMatch, SgHttpQueryMatch } from '../types/route'
@@ -8,7 +8,7 @@ import { addHttpRouteApi, deleteHttpRouteApi, getHttpRouteApi, updateHttpRouteAp
 import { ElMessage } from 'element-plus'
 import { useSelectedInstanceStore } from '../stores/select_instance'
 import { Backend, BackendVO, convertBackendToVO } from '../types/backend'
-import { Service, ServiceVO, } from '../types/service'
+import { Service, } from '../types/service'
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service'
 import { useOptions } from '../hooks'
@@ -17,8 +17,8 @@ import { useDialogForm } from '../types/forms'
 import { ConfigPanel } from '../components'
 const { t } = useI18n()
 const { service, backend } = useSpacegateService()
-const { options: pluginOptions, update: updatePluginOptions } = useOptions('plugin');
-const { options: backendOptions, update: updateBackendOptions } = useOptions('backend');
+const { options: pluginOptions } = useOptions('plugin');
+const { options: backendOptions } = useOptions('backend');
 const selectedStore = useSelectedInstanceStore()
 const currentRow = reactive({ data: [] as SgHttpRouteVO[] })
 const initRouteVO = (): SgHttpRouteVO => {
@@ -193,7 +193,7 @@ const colSizeAttr = {
 
       <el-row>
         <el-form-item :label="t('route.hostname')" class="flex-grow">
-          <el-col v-for="(item, index) in opDialog.data.hostnames" :key="index" :span="24" class="mb-1">
+          <el-col v-for="(_item, index) in opDialog.data.hostnames" :key="index" :span="24" class="mb-1">
             <el-input v-model="opDialog.data.hostnames[index]">
               <template #append>
                 <el-button class="ml-2" @click.prevent="opDialog.data.hostnames.splice(index, 1)" :icon="Minus">

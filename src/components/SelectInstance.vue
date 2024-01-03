@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { getInstName } from '../types/instance'
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n';
 
 
-import { getInstanceListApi, getSelectedInstanceApi, selectInstanceApi } from '../requset/api/instance'
+import { getInstanceListApi, getSelectedInstanceApi } from '../requset/api/instance'
 import { useSelectedInstanceStore } from '../stores/select_instance';
 
 const { t } = useI18n()
@@ -35,8 +35,8 @@ const getInstances = async () => {
   }
 }
 
-const selectedChange = async (value: string) => {
-  let res = await selectInstanceApi(value)
+const selectedChange = async (_value: string) => {
+  // let _res = await selectInstanceApi(value)
 }
 </script>
 <template>

@@ -1,20 +1,10 @@
-
-import type {
-  InternalAxiosRequestConfig,
-  AxiosResponse,
-  AxiosRequestConfig,
-  AxiosInstance,
-  AxiosRequestHeaders,
-  AxiosError
-} from 'axios'
-
 declare type AxiosHeaders =
   | 'application/json'
   | 'application/x-www-form-urlencoded'
   | 'multipart/form-data'
 
 
-interface AxiosConfig<T = AxiosResponse> {
+interface AxiosConfig {
   code: number
   defaultHeaders: AxiosHeaders
   timeout: number

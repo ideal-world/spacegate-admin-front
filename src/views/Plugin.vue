@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ElDrawer, ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 
 import { GetPluginParams } from '../requset/api/plugin/type';
 import { SgPlugin, SgPluginVO, convertPluginToVO, convertVOToPlugin } from '../types/plugin';

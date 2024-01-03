@@ -1,12 +1,10 @@
 import { getBackendApi } from "../requset/api/backend";
-import { getPluginApi } from "../requset/api/plugin";
 import { useSpacegateService } from ".";
 
 export type ApiType = 'plugin' | 'backend';
 export type OptionItem = { label: string; value: string; tag?: string | undefined; };
 export async function getOptions(apiType: ApiType): Promise<OptionItem[]> {
   const service = useSpacegateService();
-  let res = apiType === 'plugin' ? await service.plugin.getPlugin() : await getBackendApi();
   if (apiType === 'plugin') {
     let plugins = await service.plugin.getPlugin();
     if (plugins.data !== undefined || plugins.data !== null) {

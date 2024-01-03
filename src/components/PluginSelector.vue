@@ -11,9 +11,6 @@
 
 <script setup lang="ts">
 import { useOptions } from '../hooks';
-const props = defineProps<{
-  modelValue: string[];
-}>();
 const emits = defineEmits(['update:modelValue']);
 const { options, update } = useOptions('plugin');
 update();

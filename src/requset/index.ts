@@ -27,7 +27,6 @@ let apiClient = axios.create({
   ...config,
   baseURL: import.meta.env.VITE_API_BASE_PATH
 })
-let useOutsideAxios = false;
 type SetAxiosFunc = () => AxiosInstance;
 /**
  * Sets the API client to be used for making API requests.
@@ -35,7 +34,7 @@ type SetAxiosFunc = () => AxiosInstance;
  * @param {SetAxiosFunc} getApiClient - A function that returns the API client.
  * @return {void}
  */
-export const setApiClient = (getApiClient: SetAxiosFunc) => { apiClient = getApiClient(); useOutsideAxios = true }
+export const setApiClient = (getApiClient: SetAxiosFunc) => { apiClient = getApiClient(); }
 
 apiClient.defaults.withCredentials = true
 

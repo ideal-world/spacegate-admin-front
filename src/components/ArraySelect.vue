@@ -79,7 +79,7 @@ defineExpose({ selectedValues })
     <el-row>
       <el-button v-if="selectedValues ? selectedValues.length === 0 : true" @click="addSelect">+</el-button>
     </el-row>
-    <el-row v-for="(item, index) in selectedValues" :key="index">
+    <el-row v-for="(_item, index) in selectedValues" :key="index">
       <el-select v-model="selectedValues[index]" placeholder="Select" @change="handleChange(index)">
         <el-option v-for="option in options" :key="option.value" :label="option.label" :value="option.value"
           :disabled="disabledOptions.includes(option.value)"><span class="mr-1">{{ option.label }}</span><el-tag

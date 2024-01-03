@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
-import { Service, Listener } from '../types/service';
-import { ServiceForm, ListenerForm, DialogForm, useDialogForm } from '../types/forms';
-import { PORT_MAX, PORT_MIN, PORT_INPUT_ATTR } from '../constants';
+import { ServiceForm, ListenerForm, useDialogForm } from '../types/forms';
+import { PORT_INPUT_ATTR } from '../constants';
 import {
   GetGatewayParamsVO,
 } from '../requset/api/service/type';

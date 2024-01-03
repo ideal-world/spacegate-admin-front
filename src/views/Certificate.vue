@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ElDrawer, ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { TlsCert } from '../types/certificate';
 import { GetTlsCertParams } from '../requset/api/certificate/type';
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 import { ConfigPanel } from '../components'
-import { Search, Edit, Plus, Minus, Check, Close, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 const { certificate } = useSpacegateService();
