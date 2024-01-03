@@ -1,6 +1,6 @@
-import BackendSelector from './BackendSelector.vue'
+import SelectInstance from './SelectInstance.vue'
 import ConfigPanel from './ConfigPanel.vue'
 export {
-  BackendSelector,
+  SelectInstance,
   ConfigPanel
 }

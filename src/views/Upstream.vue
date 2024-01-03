@@ -7,14 +7,14 @@ import { Search, Plus, Filter } from '@element-plus/icons-vue'
 import { Protocol } from '../types/backend';
 import { GetBackendParams } from '../requset/api/backend/type';
 import { useSelectedInstanceStore } from '../stores/select_instance';
-import { ArraySelect } from '../components/index';
 import { useSpacegateService } from '../service';
 
 import { useI18n } from 'vue-i18n';
 import { BackendForm, useDialogForm } from '../types/forms';
+import { useOptions } from '../hooks'
 const { backend } = useSpacegateService()
 const { t } = useI18n()
-
+const { options: pluginOptions } = useOptions('plugin')
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as BackendForm[] })
@@ -22,7 +22,6 @@ const searchDto = reactive<GetBackendParams>({})
 const newBackendForm = () => new BackendForm()
 const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(newBackendForm())
 const { dialogForm: searchForm, open: openSearchForm, close: closeSearchForm } = useDialogForm<GetBackendParams>({})
-
 const tableLoading = ref(false)
 
 onMounted(async () => {
@@ -171,7 +170,11 @@ const colSizeAttr = {
               <el-row>
                 <el-col :span="18">
                   <el-form-item label="Filters">
-                    <ArraySelect ref="upstreamArraySelect" :selectedValues="backendForm.data.filters" />
+                    <el-select v-model="backendForm.data.filters" placeholder="Filters" multiple class="flex-grow">
+                      <el-option v-for="option in pluginOptions" v-bind="option"><span class="mr-1">{{ option.label
+                      }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag>
+                      </el-option>
+                    </el-select>
                   </el-form-item>
                 </el-col>
               </el-row>
