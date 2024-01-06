@@ -30,7 +30,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await backend.getBackend(searchDto)
+  let res = await backend.getBackend(searchForm.data)
     .finally(() => {
       tableLoading.value = false
     })
@@ -113,7 +113,8 @@ const colSizeAttr = {
       </template>
     </el-table-column>
   </el-table>
-  <el-dialog v-model="backendForm.isOpen" :title="backendForm.mode === 'edit' ? 'edit instance' : 'add instance'"
+  <el-dialog v-model="backendForm.isOpen"
+    :title="backendForm.mode === 'edit' ? t('upstream.editUpstream') : t('upstream.addUpstream')"
     class="sp-service-drawer" :before-close="closeBackendForm">
     <div class="sp-service-drawer__content">
       <el-form :inline="false" v-if="backendForm.data !== undefined" :model="backendForm.data" label-width="auto">

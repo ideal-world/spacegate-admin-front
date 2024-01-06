@@ -70,7 +70,7 @@ const closeDialog = () => {
 }
 
 const formatKey = (_row: any, _column: any, cellValue: string) => {
-  const stars = "*".repeat(cellValue.length - 4);
+  const stars = "*".repeat(10);
   return cellValue.substring(0, 2) + stars + cellValue.substring(cellValue.length - 2, cellValue.length)
 }
 
@@ -88,8 +88,7 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
       <el-button @click="() => { opDialog.isEdit = false; opDialog.isOpen = true }" text type="primary" :icon="Plus">{{
         t('common.operation.add') }}</el-button>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe 
-      style="width: 100% ">
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe style="width: 100% ">
       <el-table-column prop="name" :label="t('certificate.name')" width="180" />
       <el-table-column prop="key" :label="t('certificate.key')" :formatter="formatKey" />
       <el-table-column prop="cert" :label="t('certificate.cert')" :formatter="formatKey" />
@@ -109,13 +108,22 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
     :title="opDialog.isEdit ? t('certificate.editCertificate') : t('certificate.addCertificate')"
     :before-close="closeDialog">
     <el-form :inline="false" :model="opDialog.data" label-position="left" label-width="auto" label-suffix=":">
-      <el-form-item :label="t('certificate.name')">
+      <el-form-item :label="t('certificate.name')" :rules="[
+        { required: true, message: 'name is required', trigger: 'blur' },
+        { min: 1, message: 'name must be at least 1 characters', trigger: 'blur' }
+      ]">
         <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
       </el-form-item>
-      <el-form-item :label="t('certificate.key')">
+      <el-form-item :label="t('certificate.key')" :rules="[
+        { required: true, message: 'key is required', trigger: 'blur' },
+        { min: 3, message: 'key must be at least 3 characters', trigger: 'blur' }
+      ]">
         <el-input type="password" v-model="opDialog.data.key" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
-      <el-form-item :label="t('certificate.cert')">
+      <el-form-item :label="t('certificate.cert')" :rules="[
+        { required: true, message: 'cert is required', trigger: 'blur' },
+        { min: 3, message: 'cert must be at least 3 characters', trigger: 'blur' }
+      ]">
         <el-input type="password" v-model="opDialog.data.cert" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
     </el-form>

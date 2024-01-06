@@ -15,6 +15,7 @@ import { Minus, Plus, ArrowRight, ArrowDown, Search, Filter } from '@element-plu
 import { useI18n } from 'vue-i18n';
 import { useSpacegateService } from '../service';
 import { useOptions } from '../hooks';
+import { getVOId } from '../types';
 const { service } = useSpacegateService()
 const { options: pluginOptions } = useOptions('plugin');
 const { t } = useI18n()
@@ -60,35 +61,21 @@ const onSearch = async () => {
   tableLoading.value = false
 }
 
-
-const formatStrings = (_row: any, _column: any, cellValue: string[]) => {
-  let result = ''
-  if (cellValue) {
-    cellValue.forEach((item) => {
-      if (item != null && item != undefined) {
-        result = result + item + ','
-      }
-    }
-    )
-  }
-  return result.length > 0 ? result.substring(0, result.length - 1) : '-'
-}
-
-const formatPort = (_row: any, _column: any, cellValue: number[]) => {
-  let port = ''
-  if (cellValue) {
-    cellValue.forEach((item) => {
-      if (item) {
-        port = port + item + ','
-      }
-    })
+const formatListeners = (cellValue: ListenerForm[], key: keyof ListenerForm) => {
+  if (!cellValue) {
+    return "-";
   }
 
-  return port.length > 0 ? port.substring(0, port.length - 1) : '-'
+  const result = cellValue.map(item => item[key]).filter(Boolean).join(",");
+  return result.length > 0 ? result : "-";
 }
+
+const formatIp = (_row: unknown, _column: unknown, cellValue: ListenerForm[]) => formatListeners(cellValue, 'ip');
+const formatHostname = (_row: unknown, _column: unknown, cellValue: ListenerForm[]) => formatListeners(cellValue, 'hostname');
+const formatPort = (_row: unknown, _column: unknown, cellValue: ListenerForm[]) => formatListeners(cellValue, 'port');
 
 const handleDelete = async (_index: number, row: ServiceForm) => {
-  let a = await service.deleteGateways(row.name)
+  let a = await service.deleteGateways(getVOId(row))
   if (a) {
     ElMessage.success(t('common.status.success'))
   }
@@ -135,9 +122,9 @@ const onSumbit = async () => {
       <el-table-column prop="name" label="Name" width="180" />
       <el-table-column prop="namespace" label="Namespace" v-if="selectedStore.is_k8s()" />
       <el-table-column :label="t('service.listener')">
-        <el-table-column prop="ip" label="ip" :formatter="formatStrings" />
-        <el-table-column prop="hostname" label="hostname" :formatter="formatStrings" />
-        <el-table-column prop="port" label="port" :formatter="formatPort" width="180" />
+        <el-table-column prop="listeners" label="ip" :formatter="formatIp" />
+        <el-table-column prop="listeners" label="hostname" :formatter="formatHostname" />
+        <el-table-column prop="listeners" label="port" :formatter="formatPort" width="180" />
       </el-table-column>
       <el-table-column :label="t('common.operations')" min-width="96em">
         <template #default="scope">
@@ -152,7 +139,7 @@ const onSumbit = async () => {
     </el-table>
   </ConfigPanel>
 
-  <el-dialog v-model="dialogForm.isOpen" :title="dialogForm.mode + ' service'" class="sp-service-drawer"
+  <el-dialog v-model="dialogForm.isOpen" :title="t('service.' + dialogForm.mode + 'Service')" class=" sp-service-drawer"
     :before-close="closeDialog">
     <el-form v-if="dialogForm.data !== undefined" :model="dialogForm.data" label-width="auto">
       <el-row class="flex-grow">
@@ -178,14 +165,16 @@ const onSumbit = async () => {
       <el-row>
         <el-col>
           <el-form-item label="Filters">
-            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow" multiple >
-              <el-option v-for=" option  in  pluginOptions " v-bind="option" />
+            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow" multiple>
+              <el-option v-for="    option     in     pluginOptions    " v-bind="option" />
             </el-select>
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="listener" class="flex">
-        <el-col v-for="( listener, index ) in  dialogForm.data.listeners " class="flex-grow mb-2">
+      <el-form-item label="listener" class="flex" :rules="[
+        { type: 'array', message: 'listener is required', trigger: 'blur' },
+      ]">
+        <el-col v-for="(    listener, index    ) in     dialogForm.data.listeners    " class="flex-grow mb-2">
           <div class="flex space-x-2 mb-1">
             <el-button circle text :icon="listener.collapsed ? ArrowRight : ArrowDown" @click="() => {
               listener.collapsed = !listener.collapsed
@@ -205,14 +194,6 @@ const onSumbit = async () => {
                       <el-input v-model="listener.name" autocomplete="off" />
                     </el-form-item>
                   </el-col>
-                  <el-col class="mb-2" v-bind="listenerColSize" v-if="selectedStore.is_k8s()">
-                    <el-form-item label="Namespace" :rules="[
-                      { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
-                    ]
-                      ">
-                      <el-input v-model="listener.namespace" autocomplete="off" :disabled="dialogForm.mode == 'edit'" />
-                    </el-form-item>
-                  </el-col>
                   <el-col class="mb-2" v-bind="listenerColSize">
                     <el-form-item label="port" required>
                       <el-input-number v-model="listener.port" v-bind="PORT_INPUT_ATTR" />
@@ -221,7 +202,7 @@ const onSumbit = async () => {
                   <el-col class="mb-2" v-bind="listenerColSize">
                     <el-form-item label="protocol" required>
                       <el-select v-model="listener.protocol" placeholder="protocol" class="flex-grow">
-                        <el-option v-for=" option  in  SERVICE_PROTOCOLS " :label="option" :value="option" />
+                        <el-option v-for="    option     in     SERVICE_PROTOCOLS    " :label="option" :value="option" />
                       </el-select>
                     </el-form-item>
                   </el-col>

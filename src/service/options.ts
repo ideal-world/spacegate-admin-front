@@ -16,7 +16,7 @@ export async function getOptions(apiType: ApiType): Promise<OptionItem[]> {
     let backends = await getBackendApi();
     if (backends.data !== undefined || backends.data !== null) {
       return backends.data.map((obj) => (
-        { label: obj.name_or_host, value: obj.id, tag: obj.namespace ?? undefined }
+        { label: obj.id, value: obj.id, tag: obj.namespace ?? undefined }
       ))
     }
   }

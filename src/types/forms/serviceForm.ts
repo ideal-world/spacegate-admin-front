@@ -1,5 +1,5 @@
 import { useSelectedInstanceStore } from "../../stores/select_instance";
-import { formatK8sObjUnique } from "../common";
+import { formatK8sObjUnique, parseK8sObjUnique } from "../common";
 import { ServiceProtocol, Parameters, Listener, Service } from "../service";
 
 
@@ -15,8 +15,10 @@ export class ServiceForm {
   }
 
   static fromService(service: Service): ServiceForm {
+    const selectedStore = useSelectedInstanceStore()
     const self = new ServiceForm();
-    self.name = service.name;
+    self.name = selectedStore.is_k8s() ? parseK8sObjUnique(service.name)[1] : service.name;
+    self.namespace = selectedStore.is_k8s() ? parseK8sObjUnique(service.name)[0] : '';
     self.parameters = service.parameters;
     self.listeners = service.listeners.map(ListenerForm.fromListener);
     self.filters = service.filters;
@@ -40,7 +42,6 @@ export class ServiceForm {
 export class ListenerForm {
   private _name?: string;
   private service_form?: ServiceForm;
-  namespace: string = '';
   port: number = 0;
   protocol: ServiceProtocol = 'Http';
   ip?: string;

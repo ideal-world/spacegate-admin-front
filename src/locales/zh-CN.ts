@@ -35,13 +35,16 @@ export default {
     type: '实例类型',
     status: '状态',
     username: '用户名',
-
+    editInstance: '编辑实例',
+    addInstance: '新增实例',
   },
   service: {
     name: '名称',
     listener: '监听',
     filters: '过滤器',
     plugin: '插件',
+    addService: '新增服务',
+    editService: '编辑服务',
   },
   route: {
     name: '名称',
@@ -61,8 +64,12 @@ export default {
     protocol: '协议',
     addRoute: '新增路由',
     editRoute: '编辑路由',
+    priority: '优先级',
+    timeoutMs: '超时(ms)'
   },
   upstream: {
-    name: '名称'
+    name: '名称',
+    addUpstream: '新增上游服务',
+    editUpstream: '编辑上游服务'
   }
 }

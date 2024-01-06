@@ -1,4 +1,4 @@
-import  path from "path";
+import path from "path";
 
 export default {
   title: 'spacegate admin',
@@ -17,18 +17,23 @@ export default {
         text: 'spacegate-admin-view',
         items: [
           { text: 'read me', link: '/spacegateadmin/index' },
-          {text: 'dashboard',link: '/spacegateadmin/dashboard' },
-          { text: 'route-view',link: '/spacegateadmin/index', 
-              items: [
-                {text: 'route',link: '/spacegateadmin/route' },
-                {text: 'route-edit',link: '/spacegateadmin/route/routeedit' },
-                {text: 'service',link: '/spacegateadmin/service' },
-                {text: 'upstream',link: '/spacegateadmin/upstream' },
-                {text: 'certificate',link: '/spacegateadmin/certificate' },
-                {text: 'plugin',link: '/spacegateadmin/plugin' },
-                {text: 'gateway',link: '/spacegateadmin/gateway' },
-                {text: 'selectInstace',link: '/spacegateadmin/selectInstance' }
-              ]
+          {
+            text: 'component', link: '/spacegateadmin/index',
+            items: [
+              { text: 'selectInstace', link: '/spacegateadmin/selectInstance' }
+            ]
+          },
+          {
+            text: 'route-view', link: '/spacegateadmin/index',
+            items: [
+              { text: 'dashboard', link: '/spacegateadmin/dashboard' },
+              { text: 'route', link: '/spacegateadmin/route' },
+              { text: 'service', link: '/spacegateadmin/service' },
+              { text: 'upstream', link: '/spacegateadmin/upstream' },
+              { text: 'certificate', link: '/spacegateadmin/certificate' },
+              { text: 'plugin', link: '/spacegateadmin/plugin' },
+              { text: 'gateway', link: '/spacegateadmin/gateway' }
+            ]
           },
         ]
       }

@@ -24,8 +24,8 @@ export default {
   },
   certificate: {
     certificates: 'certificates',
-    addCertificate: 'add certificate',
-    editCertificate: 'edit certificate',
+    addCertificate: 'Add Certificate',
+    editCertificate: 'Edit Certificate',
     name: 'name',
     cert: 'cert',
     key: 'key',
@@ -35,13 +35,16 @@ export default {
     type: 'type',
     status: 'status',
     username: 'username',
-
+    editInstance: 'Edit Instance',
+    addInstance: 'Add Instance',
   },
   service: {
     name: 'name',
     listener: 'listener',
     filters: 'filters',
     plugin: 'plugin',
+    addService: 'Add Service',
+    editService: 'Edit Service',
   },
   route: {
     name: 'name',
@@ -59,10 +62,12 @@ export default {
     weight: 'weight',
     timeout: 'timeout',
     protocol: 'protocol',
-    addRoute: 'addRoute',
-    editRoute: 'editRoute',
+    addRoute: 'Add Route',
+    editRoute: 'Edit Route',
   },
   upstream: {
-    name: 'name'
+    name: 'name',
+    addUpstream: 'Add Upstream',
+    editUpstream: 'Edit Upstream'
   }
 }

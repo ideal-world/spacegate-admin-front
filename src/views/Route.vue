@@ -15,6 +15,7 @@ import { useOptions } from '../hooks'
 import { useDialogForm } from '../types/forms'
 
 import { ConfigPanel } from '../components'
+import { getVOId } from '../types'
 const { t } = useI18n()
 const { service, backend } = useSpacegateService()
 const { options: pluginOptions } = useOptions('plugin');
@@ -71,7 +72,7 @@ const handleEdit = (_index: number, row: SgHttpRouteVO) => {
 }
 
 const handleDelete = async (_index: number, row: SgHttpRouteVO) => {
-  let result = await deleteHttpRouteApi(row.name,)
+  let result = await deleteHttpRouteApi(getVOId(row))
   if (result) {
     ElMessage.success(t('common.status.success'))
   }
@@ -138,7 +139,7 @@ const colSizeAttr = {
         </el-button>
       </el-button-group>
     </template>
-    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe >
+    <el-table v-loading="tableLoading" :data="currentRow.data" border stripe>
       <el-table-column fixed prop="name" :label="t('route.name')" />
       <el-table-column prop="namespace" :label="t('route.namespace')" v-if="selectedStore.is_k8s()" />
       <el-table-column prop="gateway_name" :label="t('route.gatewayName')" />
@@ -338,6 +339,18 @@ const colSizeAttr = {
             <el-option v-for="option in pluginOptions" v-bind="option"><span class="mr-1">{{ option.label
             }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag></el-option>
           </el-select>
+        </el-form-item>
+      </el-row>
+
+      <el-row>
+        <el-form-item :label="t('route.priority')" class="flex flex-grow">
+          <el-input-number :controls="false" v-model="opDialog.data.priority" />
+        </el-form-item>
+      </el-row>
+
+      <el-row>
+        <el-form-item :label="t('route.timeoutMs')" class="flex flex-grow">
+          <el-input-number :controls="false" v-model="opDialog.data.timeout_ms" />
         </el-form-item>
       </el-row>
     </el-form>
