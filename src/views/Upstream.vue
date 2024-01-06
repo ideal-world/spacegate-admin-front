@@ -18,7 +18,6 @@ const { options: pluginOptions } = useOptions('plugin')
 const selectedStore = useSelectedInstanceStore()
 
 const currentRow = reactive({ data: [] as BackendForm[] })
-const searchDto = reactive<GetBackendParams>({})
 const newBackendForm = () => new BackendForm()
 const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(newBackendForm())
 const { dialogForm: searchForm, open: openSearchForm, close: closeSearchForm } = useDialogForm<GetBackendParams>({})
