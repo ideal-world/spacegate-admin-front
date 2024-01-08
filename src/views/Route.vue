@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Ref, onMounted, reactive, ref } from 'vue'
 import { Search, Plus, Minus, ArrowRight, ArrowDown, Filter } from '@element-plus/icons-vue'
+import type { FormInstance } from 'element-plus'
 
 import { GetHttpRouteParamsVO } from '../requset/api/route/type'
 import { SgHttpRouteVO, convertRouteToVO, SgHttpHeaderMatchType, SgHttpPathMatchType, SgHttpQueryMatchType, convertVOToRoute, SG_HTTP_METHODS, SgHttpHeaderMatch, SgHttpQueryMatch } from '../types/route'
@@ -49,6 +50,8 @@ const onSearch = async () => {
   }
 }
 const banckendMap: Map<string, BackendVO> = new Map()
+const formRef = ref<FormInstance>()
+
 const getBackendMap = async () => {
   let res = await backend.getBackend({})
   if (res) {
@@ -79,14 +82,23 @@ const handleDelete = async (_index: number, row: SgHttpRouteVO) => {
   await onSearch()
 }
 
-const onSumbit = async () => {
-  let res = opDialog.isEdit ? await updateHttpRouteApi(convertVOToRoute(opDialog.data)) : await addHttpRouteApi(convertVOToRoute(opDialog.data))
-  if (res) {
-    ElMessage.success(t('common.status.success'))
-    onSearch()
-  }
-  closeDialog()
+const onSumbit = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  await formEl.validate(async (valid) => {
+    console.log('onSumbit====', valid)
+    if (!valid) {
+      ElMessage.error(t('common.status.fail'))
+      return false
+    }
+    let res = opDialog.isEdit ? await updateHttpRouteApi(convertVOToRoute(opDialog.data)) : await addHttpRouteApi(convertVOToRoute(opDialog.data))
+    if (res) {
+      ElMessage.success(t('common.status.success'))
+      onSearch()
+    }
+    closeDialog()
+  })
 }
+
 const closeDialog = () => {
   opDialog.data = initRouteVO()
   opDialog.isOpen = false
@@ -143,7 +155,7 @@ const colSizeAttr = {
       <el-table-column fixed prop="name" :label="t('route.name')" />
       <el-table-column prop="namespace" :label="t('route.namespace')" v-if="selectedStore.is_k8s()" />
       <el-table-column prop="gateway_name" :label="t('route.gatewayName')" />
-      <el-table-column prop="hostname" :label="t('route.hostname')" :formatter="formatStrings" />
+      <el-table-column prop="hostnames" :label="t('route.hostname')" :formatter="formatStrings" />
       <el-table-column prop="backends" :label="t('route.backend')" :formatter="getBackendInfo" />
 
       <el-table-column fixed="right" :label="t('common.operations')">
@@ -164,27 +176,28 @@ const colSizeAttr = {
     <template #header>
       <span>{{ opDialog.isEdit ? t('route.editRoute') : t('route.addRoute') }}</span>
     </template>
-    <el-form :inline="false" :model="opDialog.data" label-width="auto">
+    <el-form ref="formRef" :inline="false" :model="opDialog.data" label-width="auto">
       <h4>Common</h4>
       <el-divider class="mt-1" />
       <el-row :gutter="24">
         <el-col v-bind="colSizeAttr">
-          <el-form-item :label="t('route.name')">
+          <el-form-item :label="t('route.name')" prop="name" :rules="[
+            { required: true, message: 'name is required', trigger: ['blur', 'change'] }
+          ]">
             <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
         </el-col>
         <el-col v-bind="colSizeAttr" v-if="selectedStore.is_k8s()">
-          <el-form-item :label="t('route.namespace')" :rules="[
-            { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
+          <el-form-item :label="t('route.namespace')" prop="namespace" :rules="[
+            { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'change' },
           ]">
             <el-input v-model="opDialog.data.namespace" autocomplete="off" :disabled="opDialog.isEdit" />
           </el-form-item>
         </el-col>
         <el-col v-bind="colSizeAttr">
-          <el-form-item :label="t('route.gatewayName')" :rules="[
+          <el-form-item :label="t('route.gatewayName')" prop="gateway_name" :rules="[
             { required: true, message: 'gatewayName is required', trigger: 'blur' },
           ]">
-            <!-- <el-input v-model="opDialog.data.gateway_name" :disabled="opDialog.isEdit" /> -->
             <el-select v-model="opDialog.data.gateway_name" placeholder="Select gateway">
               <el-option v-for="item in gatewayList" :key="item.name" :label="item.name" :value="item.name" />
             </el-select>
@@ -357,7 +370,7 @@ const colSizeAttr = {
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-        <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+        <el-button type="primary" :loading="tableLoading" @click="onSumbit(formRef)">{{
           tableLoading ? t('common.status.submitting') : t('common.operation.submit')
         }}</el-button>
       </span>

@@ -68,6 +68,10 @@ export default {
   upstream: {
     name: 'name',
     addUpstream: 'Add Upstream',
-    editUpstream: 'Edit Upstream'
+    editUpstream: 'Edit Upstream',
+    kind: {
+      service: 'Service',
+      external: 'External Service',
+    }
   }
 }

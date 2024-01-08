@@ -37,4 +37,3 @@ export class DefaultBackendService implements SgBackendService {
     return deleteBackendApi(paramName)
   }
 }
-// 

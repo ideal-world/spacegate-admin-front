@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage, FormInstance } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { Search, Plus, Filter } from '@element-plus/icons-vue'
 
@@ -22,6 +22,7 @@ const newBackendForm = () => new BackendForm()
 const { dialogForm: backendForm, open: openBackendForm, close: closeBackendForm } = useDialogForm<BackendForm, 'edit' | 'add'>(newBackendForm())
 const { dialogForm: searchForm, open: openSearchForm, close: closeSearchForm } = useDialogForm<GetBackendParams>({})
 const tableLoading = ref(false)
+const formRef = ref<FormInstance>()
 
 onMounted(async () => {
   await onSearch()
@@ -47,25 +48,32 @@ const handleDelete = async (_index: number, row: BackendForm) => {
   await onSearch()
 }
 
-const onSumbit = async () => {
-  if (backendForm.data === undefined) {
-    return
-  }
-  if (backendForm.mode === 'edit') {
-    let updateResult = await backend.updateBackend(backendForm.data)
-    if (updateResult) {
-      ElMessage.success(t('common.status.success'))
-      await onSearch()
+const onSumbit = async (formR: FormInstance | undefined) => {
+  if (!formR) return
+
+  await formR.validate(async (valid) => {
+    if (valid) {
+      if (backendForm.data === undefined) {
+        return
+      }
+      let updateResult = backendForm.mode === 'edit' ? await backend.updateBackend(backendForm.data.intoBackend()) : await backend.addBackend(backendForm.data.intoBackend())
+      if (updateResult) {
+        ElMessage.success(t('common.status.success'))
+        await onSearch()
+      }
+
+      backendForm.close()
+    } else {
+      ElMessage.error(t('common.status.fail'))
+      return false
     }
-  } else {
-    let addResult = await backend.addBackend(backendForm.data)
-    if (addResult) {
-      ElMessage.success(t('common.status.success'))
-      await onSearch()
-    }
-  }
-  backendForm.close()
+  })
+
+
+
 }
+
+const formatNameSpace = (_row: any, _column: any, cellValue: string) => cellValue.length == 0 ? '-' : cellValue
 
 const colSizeAttr = {
   xs: 24,
@@ -94,7 +102,7 @@ const colSizeAttr = {
   </div>
   <el-table v-loading="tableLoading" :data="currentRow.data" border stripe style="width: 100% ">
     <el-table-column prop="id" label="Name" width="180" />
-    <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" />
+    <el-table-column v-if="selectedStore.is_k8s()" prop="namespace" label="Namespace" :formatter="formatNameSpace" />
     <el-table-column prop="protocol" label="Protocol">
       <template #default="scope">
         <el-tag v-if="scope.row.protocol">{{ scope.row.protocol }}</el-tag>
@@ -105,7 +113,8 @@ const colSizeAttr = {
     <el-table-column :label="t('common.operations')">
       <template #default="scope">
         <el-button-group>
-          <el-button size="small" @click="openBackendForm(scope.row, 'edit')">{{ t('common.operation.edit') }}</el-button>
+          <el-button size="small" @click="openBackendForm(scope.row, 'edit')">{{ t('common.operation.edit')
+          }}</el-button>
           <el-button size="small" type="danger" @click="handleDelete(scope.$index, scope.row)">{{
             t('common.operation.delete') }}</el-button>
         </el-button-group>
@@ -116,32 +125,48 @@ const colSizeAttr = {
     :title="backendForm.mode === 'edit' ? t('upstream.editUpstream') : t('upstream.addUpstream')"
     class="sp-service-drawer" :before-close="closeBackendForm">
     <div class="sp-service-drawer__content">
-      <el-form :inline="false" v-if="backendForm.data !== undefined" :model="backendForm.data" label-width="auto">
+      <el-form ref="formRef" :inline="false" v-if="backendForm.data !== undefined" :model="backendForm.data"
+        label-width="auto">
+        <el-row>
+          <el-col v-bind="colSizeAttr">
+            <el-form-item label="Kind">
+              <span v-if:="!backendForm.data.isExternal">{{ t('upstream.kind.service') }}</span>
+              <span v-if:="backendForm.data.isExternal">{{ t('upstream.kind.external') }}</span>
+              <el-switch v-model="backendForm.data.isExternal" class="ml-2" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-row :gutter="8">
           <el-col v-bind="colSizeAttr">
-            <el-form-item label="Name">
+            <el-form-item label="Name" prop="id"
+              :rules="[{ required: true, message: 'Name is required', trigger: 'blur' }]">
               <el-input v-model="backendForm.data.id" autocomplete="off" :disabled="backendForm.mode === 'edit'" />
             </el-form-item>
           </el-col>
           <el-col v-bind="colSizeAttr">
-            <el-form-item label="Protocol">
+            <el-form-item label="Protocol" prop="protocol"
+              :rules="[{ required: true, message: 'Protocol is required', trigger: 'blur' }]">
               <el-select v-model="backendForm.data.protocol">
-                <el-option v-for="item in Protocol" :key="item" :label="item" :value="item" />
+                <el-option v-for="      item       in       Protocol      " :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col v-bind="colSizeAttr">
-            <el-form-item :label="selectedStore.is_k8s() ? 'ServiceName' : 'Host'">
+            <el-form-item :label="selectedStore.is_k8s() ? backendForm.data.isExternal ? 'Host' : 'ServiceName' : 'Host'"
+              prop="name_or_host"
+              :rules="[{ required: true, message: selectedStore.is_k8s() ? 'ServiceName' : 'Host ' + 'is required', trigger: 'blur' }]">
               <el-input v-model="backendForm.data.name_or_host" />
             </el-form-item>
           </el-col>
-          <el-col v-bind="colSizeAttr">
-            <el-form-item label="Namespace">
+          <el-col v-bind="colSizeAttr" v-if:="!backendForm.data.isExternal">
+            <el-form-item label="Namespace" prop="namespace"
+              :rules="[{ required: true, message: 'namespace is required', trigger: 'blur' }]">
               <el-input v-model="backendForm.data.namespace" />
             </el-form-item>
           </el-col>
           <el-col v-bind="colSizeAttr">
-            <el-form-item label="Port" max="">
+            <el-form-item label="Port" prop="port"
+              :rules="[{ required: true, min: 1, max: 65536, message: 'port must be between 1 and 65536', trigger: 'blur' }]">
               <el-input-number v-model="backendForm.data.port" :controls="false" :max="65536" :min="0" />
             </el-form-item>
           </el-col>
@@ -171,8 +196,10 @@ const colSizeAttr = {
                 <el-col :span="18">
                   <el-form-item label="Filters">
                     <el-select v-model="backendForm.data.filters" placeholder="Filters" multiple class="flex-grow">
-                      <el-option v-for="option in pluginOptions" v-bind="option"><span class="mr-1">{{ option.label
-                      }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag>
+                      <el-option v-for="      option       in       pluginOptions      " v-bind="option"><span
+                          class="mr-1">{{
+                            option.label
+                          }}</span><el-tag v-if="option.tag">{{ option.tag }}</el-tag>
                       </el-option>
                     </el-select>
                   </el-form-item>
@@ -186,7 +213,7 @@ const colSizeAttr = {
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="closeBackendForm">{{ t('common.operation.cancel') }}</el-button>
-        <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+        <el-button type="primary" :loading="tableLoading" @click="onSumbit(formRef)">{{
           tableLoading ? t('common.status.submitting') : t('common.operation.submit')
         }}</el-button>
       </span>

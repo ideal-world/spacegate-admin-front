@@ -70,6 +70,10 @@ export default {
   upstream: {
     name: '名称',
     addUpstream: '新增上游服务',
-    editUpstream: '编辑上游服务'
+    editUpstream: '编辑上游服务',
+    kind: {
+      service: 'k8s服务',
+      external: '外部服务',
+    }
   }
 }

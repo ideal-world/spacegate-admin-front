@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage, FormInstance } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { TlsCert } from '../types/certificate';
 import { GetTlsCertParams } from '../requset/api/certificate/type';
@@ -10,6 +10,7 @@ import { Search, Plus } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 const { certificate } = useSpacegateService();
+const formRef = ref<FormInstance>()
 
 const currentRow = reactive({ data: [] as TlsCert[] })
 const searchDto = reactive<GetTlsCertParams>({})
@@ -54,14 +55,24 @@ const handleDelete = async (_index: number, row: TlsCert) => {
 
 
 
-const onSubmit = async () => {
-  let res = opDialog.isEdit ? await certificate.updateTlsCert(opDialog.data) : await certificate.addTlsCert(opDialog.data)
-  if (res) {
-    ElMessage.success(t('common.status.success'))
-    await onSearch()
-  }
+const onSubmit = async (formRef: FormInstance | undefined) => {
+  if (!formRef) return
+  await formRef.validate(async (valid) => {
+    if (valid) {
+      let res = opDialog.isEdit ? await certificate.updateTlsCert(opDialog.data) : await certificate.addTlsCert(opDialog.data)
+      if (res) {
+        ElMessage.success(t('common.status.success'))
+        await onSearch()
+      }
 
-  closeDialog()
+      closeDialog()
+    }
+    else {
+      ElMessage.error(t('common.status.fail'))
+      return false
+    }
+  })
+
 }
 
 const closeDialog = () => {
@@ -107,22 +118,23 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
   <el-dialog v-model="opDialog.isOpen"
     :title="opDialog.isEdit ? t('certificate.editCertificate') : t('certificate.addCertificate')"
     :before-close="closeDialog">
-    <el-form :inline="false" :model="opDialog.data" label-position="left" label-width="auto" label-suffix=":">
-      <el-form-item :label="t('certificate.name')" :rules="[
+    <el-form ref="formRef" :inline="false" :model="opDialog.data" label-position="left" label-width="auto"
+      label-suffix=":">
+      <el-form-item :label="t('certificate.name')" prop="name" :rules="[
         { required: true, message: 'name is required', trigger: 'blur' },
         { min: 1, message: 'name must be at least 1 characters', trigger: 'blur' }
       ]">
         <el-input v-model="opDialog.data.name" autocomplete="off" :disabled="opDialog.isEdit" />
       </el-form-item>
-      <el-form-item :label="t('certificate.key')" :rules="[
+      <el-form-item :label="t('certificate.key')" prop="key" :rules="[
         { required: true, message: 'key is required', trigger: 'blur' },
-        { min: 3, message: 'key must be at least 3 characters', trigger: 'blur' }
+        { min: 4, message: 'key must be at least 4 characters', trigger: 'blur' }
       ]">
         <el-input type="password" v-model="opDialog.data.key" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
-      <el-form-item :label="t('certificate.cert')" :rules="[
+      <el-form-item :label="t('certificate.cert')" prop="cert" :rules="[
         { required: true, message: 'cert is required', trigger: 'blur' },
-        { min: 3, message: 'cert must be at least 3 characters', trigger: 'blur' }
+        { min: 4, message: 'cert must be at least 4 characters', trigger: 'blur' }
       ]">
         <el-input type="password" v-model="opDialog.data.cert" :show-password="opDialog.isEdit ? false : true" />
       </el-form-item>
@@ -130,7 +142,7 @@ const formatKey = (_row: any, _column: any, cellValue: string) => {
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-        <el-button type="primary" :loading="tableLoading" @click="onSubmit">{{
+        <el-button type="primary" :loading="tableLoading" @click="onSubmit(formRef)">{{
           tableLoading ? t('common.status.submitting') : t('common.operation.submit')
         }}</el-button>
       </span>

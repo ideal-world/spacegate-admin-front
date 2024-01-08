@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElInput, ElMessage } from 'element-plus'
+import { ElInput, ElMessage, FormInstance } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 import { ServiceForm, ListenerForm, useDialogForm } from '../types/forms';
 import { PORT_INPUT_ATTR } from '../constants';
@@ -19,6 +19,7 @@ import { getVOId } from '../types';
 const { service } = useSpacegateService()
 const { options: pluginOptions } = useOptions('plugin');
 const { t } = useI18n()
+const formRef = ref<FormInstance>()
 
 const selectedStore = useSelectedInstanceStore()
 
@@ -83,19 +84,29 @@ const handleDelete = async (_index: number, row: ServiceForm) => {
 }
 
 
-const onSumbit = async () => {
-  if (dialogForm.data === undefined) {
-    return
-  }
-  let res = dialogForm.mode === 'edit' ?
-    await service.updateGateways(dialogForm.data.intoService()) :
-    await service.addGateways(dialogForm.data.intoService())
+const onSumbit = async (formRef: FormInstance | undefined) => {
+  if (!formRef) return
+  await formRef.validate(async (valid) => {
+    if (valid) {
+      if (dialogForm.data === undefined) {
+        return
+      }
+      let res = dialogForm.mode === 'edit' ?
+        await service.updateGateways(dialogForm.data.intoService()) :
+        await service.addGateways(dialogForm.data.intoService())
 
-  if (res) {
-    ElMessage.success(t('common.status.success'))
-    await onSearch()
-  }
-  closeDialog()
+      if (res) {
+        ElMessage.success(t('common.status.success'))
+        await onSearch()
+      }
+      closeDialog()
+    }
+    else {
+      ElMessage.error(t('common.status.fail'))
+      return false
+    }
+  })
+
 }
 </script>
 <template>
@@ -141,10 +152,10 @@ const onSumbit = async () => {
 
   <el-dialog v-model="dialogForm.isOpen" :title="t('service.' + dialogForm.mode + 'Service')" class=" sp-service-drawer"
     :before-close="closeDialog">
-    <el-form v-if="dialogForm.data !== undefined" :model="dialogForm.data" label-width="auto">
+    <el-form ref="formRef" v-if="dialogForm.data !== undefined" :model="dialogForm.data" label-width="auto">
       <el-row class="flex-grow">
         <el-col>
-          <el-form-item label="Name" :rules="[
+          <el-form-item label="Name" prop="name" :rules="[
             { required: true, message: 'name is required', trigger: 'blur' },
           ]
             ">
@@ -154,7 +165,7 @@ const onSumbit = async () => {
       </el-row>
       <el-row class="flex-grow">
         <el-col>
-          <el-form-item label="Namespace" v-if="selectedStore.is_k8s()" :rules="[
+          <el-form-item label="Namespace" prop="namespace" v-if="selectedStore.is_k8s()" :rules="[
             { required: selectedStore.is_k8s(), message: 'namespace is required', trigger: 'blur' },
           ]
             ">
@@ -162,17 +173,8 @@ const onSumbit = async () => {
           </el-form-item>
         </el-col>
       </el-row>
-      <el-row>
-        <el-col>
-          <el-form-item label="Filters">
-            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow" multiple>
-              <el-option v-for="    option     in     pluginOptions    " v-bind="option" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="listener" class="flex" :rules="[
-        { type: 'array', message: 'listener is required', trigger: 'blur' },
+      <el-form-item label="listener" class="flex" prop="listeners" :rules="[
+        { type: 'array', min: 1, message: 'listener must be at least 1', trigger: 'blur' },
       ]">
         <el-col v-for="(    listener, index    ) in     dialogForm.data.listeners    " class="flex-grow mb-2">
           <div class="flex space-x-2 mb-1">
@@ -187,10 +189,10 @@ const onSumbit = async () => {
           </div>
           <el-collapse-transition>
             <el-card shadow="hover" v-show="!listener.collapsed" class="flex-grow">
-              <el-form label-width="auto">
+              <el-form :model="listener" label-width="auto">
                 <el-row :gutter="24">
                   <el-col class="mb-2" v-bind="listenerColSize">
-                    <el-form-item label="name" required>
+                    <el-form-item label="name" prop="name" required>
                       <el-input v-model="listener.name" autocomplete="off" />
                     </el-form-item>
                   </el-col>
@@ -231,6 +233,15 @@ const onSumbit = async () => {
           </el-button>
         </el-col>
       </el-form-item>
+      <el-row>
+        <el-col>
+          <el-form-item label="Filters">
+            <el-select v-model="dialogForm.data.filters" placeholder="protocol" class="flex-grow" multiple>
+              <el-option v-for="    option     in     pluginOptions    " v-bind="option" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
 
       <el-collapse accordion>
         <el-collapse-item>
@@ -266,7 +277,7 @@ const onSumbit = async () => {
     <template #footer>
       <span>
         <el-button @click="closeDialog">{{ t('common.operation.cancel') }}</el-button>
-        <el-button type="primary" :loading="tableLoading" @click="onSumbit">{{
+        <el-button type="primary" :loading="tableLoading" @click="onSumbit(formRef)">{{
           tableLoading ? t('common.status.submitting') : t('common.operation.submit')
         }}</el-button>
       </span>

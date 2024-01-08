@@ -4,6 +4,7 @@ export class BackendForm {
   id: string = "";
   name_or_host: string = "";
   namespace: string = "";
+  isExternal: boolean = false;
   port: number = 0;
   timeout_ms: number = 5000;
   protocol: Protocol = Protocol.Http;
@@ -15,6 +16,7 @@ export class BackendForm {
     self.id = backend.id;
     self.name_or_host = backend.name_or_host;
     self.namespace = backend.namespace ?? "";
+    self.isExternal = self.namespace.length == 0;
     self.port = backend.port;
     self.timeout_ms = backend.timeout_ms ?? 5000;
     self.protocol = backend.protocol;
@@ -27,7 +29,7 @@ export class BackendForm {
     return {
       id: this.id,
       name_or_host: this.name_or_host,
-      namespace: this.namespace ?? "",
+      namespace: this.namespace.length == 0 || this.isExternal ? null : this.namespace,
       port: this.port,
       timeout_ms: this.timeout_ms,
       protocol: this.protocol,

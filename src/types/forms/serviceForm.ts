@@ -68,7 +68,7 @@ export class ListenerForm {
         this.port,
         this.ip,
       ]
-      return nameSegments.filter((s) => s !== undefined).join('-')
+      return nameSegments.filter((s) => s !== undefined).join('-').toLowerCase()
     } else {
       return this._name
     }

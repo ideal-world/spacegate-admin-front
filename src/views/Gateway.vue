@@ -127,7 +127,7 @@ const onSumbit = async () => {
     <el-form v-if="instConfigForm.data !== undefined" :model="instConfigForm.data" label-width="auto" label-suffix=":">
       <el-row>
         <el-col>
-          <el-form-item :label="t('gateway.username')">
+          <el-form-item :label="t('gateway.name')">
             <el-input v-model="instConfigForm.data.name" autocomplete="off" :disabled="instConfigForm.mode === 'edit'" />
           </el-form-item>
         </el-col>
