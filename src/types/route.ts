@@ -24,7 +24,7 @@ export function convertRouteToVO(route: SgHttpRoute): SgHttpRouteVO {
     gateway_name: route.gateway_name,
     priority: route.priority,
     hostnames: route.hostnames ? route.hostnames : [],
-    filters: route.filters,
+    filters: route.filters.concat(route.rules.map((rule) => rule.filters).flat()).filter((value, index, self) => self.indexOf(value) === index),
     matches: route.rules.map((rule) => rule.matches).filter((value): value is (SgHttpRouteMatch & {
       collapsed: boolean;
     })[] => typeof value === "object").filter((value, index, self) => self.indexOf(value) === index && value && value.length > 0).flat().map((v) => {
