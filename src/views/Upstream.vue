@@ -166,8 +166,8 @@ const colSizeAttr = {
           </el-col>
           <el-col v-bind="colSizeAttr">
             <el-form-item label="Port" prop="port"
-              :rules="[{ required: true, min: 1, max: 65536, message: 'port must be between 1 and 65536', trigger: 'blur' }]">
-              <el-input-number v-model="backendForm.data.port" :controls="false" :max="65536" :min="0" />
+              :rules="[{ required: true, type: 'number', min: 1, max: 65536, message: 'port must be between 1 and 65536', trigger: 'blur' }]">
+              <el-input-number v-model="backendForm.data.port" :controls="false" />
             </el-form-item>
           </el-col>
         </el-row>
