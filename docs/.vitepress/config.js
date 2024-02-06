@@ -20,7 +20,8 @@ export default {
           {
             text: 'component', link: '/spacegateadmin/index',
             items: [
-              { text: 'selectInstace', link: '/spacegateadmin/selectInstance' }
+              { text: 'selectInstace', link: '/spacegateadmin/selectInstance' },
+              { text: 'forms', link: '/spacegateadmin/forms' },
             ]
           },
           {

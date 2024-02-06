@@ -49,6 +49,7 @@
     "lodash": "^4.17.21",
     "pinia": "^2.1.7",
     "qs": "^6.11.2",
-    "vue-i18n": "9.2.2"
+    "vue-i18n": "9.2.2",
+    "spacegate-admin-client": "file:/home/atlas/Github/spacegate/admin-client"
   }
 }
