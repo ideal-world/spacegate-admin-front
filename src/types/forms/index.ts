@@ -6,15 +6,15 @@ export * from './instanceConfigForm'
 export class DialogForm<T, M = never>  {
   isOpen: boolean = false
   mode?: M
-  data?: T
+  _data?: T
   constructor(data?: T) {
-    this.data = data
+    this._data = data
   }
   open(data?: T, mode?: M) {
     this.isOpen = true
     this.mode = mode
     if (data !== undefined) {
-      this.data = data
+      this._data = data
     }
 
   }

@@ -40,7 +40,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await getHttpRouteApi(searchDialogForm.data)
+  let res = await getHttpRouteApi(searchDialogForm._data)
     .finally(() => {
       tableLoading.value = false
     })

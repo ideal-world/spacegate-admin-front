@@ -66,10 +66,10 @@ const handleDelete = async (_index: number, row: InstConfigForm) => {
 
 
 const onSumbit = async () => {
-  if (instConfigForm.data === undefined) {
+  if (instConfigForm._data === undefined) {
     return
   }
-  let data = instConfigForm.data.intoInstConfig()
+  let data = instConfigForm._data.intoInstConfig()
   let result = instConfigForm.mode === 'edit' ? await instance.updateInstanceList(data) : await instance.addInstanceList(data)
   if (result) {
     ElMessage.success(t('common.status.success'))

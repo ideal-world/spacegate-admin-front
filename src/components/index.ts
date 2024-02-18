@@ -1,8 +1,8 @@
 import SelectInstance from './SelectInstance.vue'
 import ConfigPanel from './ConfigPanel.vue'
-import HeaderMatchForm from './HeaderMatchForm.vue'
+import RouterMatchForm from './RouterMatchForm.vue'
 export {
   SelectInstance,
   ConfigPanel,
-  HeaderMatchForm
+  RouterMatchForm
 }

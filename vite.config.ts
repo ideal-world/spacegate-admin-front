@@ -6,7 +6,6 @@ import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import vue from '@vitejs/plugin-vue'
 import * as path from "path";
-
 export default defineConfig({
   plugins: [
     vue(),
@@ -48,6 +47,7 @@ export default defineConfig({
       formats: ['es'],
       fileName: (format) => `spacegate-admin.${format}.js`
     },
+    include: ['src/**/*'],
     rollupOptions: {
       external: ['vue', 'pinia', /element-plus\/.+/],
       output: {

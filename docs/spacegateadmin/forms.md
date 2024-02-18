@@ -2,17 +2,51 @@
 aside: false
 ---
 <script setup>
-import HeaderMatchForm from 'spacegate-admin/components/HeaderMatchForm.vue'
+import RouterMatchForm from 'spacegate-admin/components/RouterMatchForm.vue'
+import RouteRuleForm from 'spacegate-admin/components/RouteRuleForm.vue'
+import FilterForm from 'spacegate-admin/components/FilterForm.vue'
+import BackendForm from 'spacegate-admin/components/BackendForm.vue'
 import {ref} from 'vue'
 const headerMatchFormValue = ref({
-  kind: 'exact',
-  value: '111'
+  header: null,
+  path: null,
+  query: null,
+  method: null
+})
+const routeRuleFormValue = ref({
+  matches: null,
+  filters: [],
+  backends: [],
+  timeout_ms: null,
+})
+const filterFormValue = ref({
+  code: 'code',
+  spec: {
+
+  }
+})
+const backendFormValue = ref({
+  host: {
+      kind: "Host",
+      host: "example.com",
+  },
+  port: 80,
+  timeout_ms: null,
+  protocol: "http",
+  weight: 1,
+  filters: [],
 })
 </script>
 
 <DemoContainer>
-  <HeaderMatchForm v-model="headerMatchFormValue" clearable/>
+  <RouterMatchForm v-model="headerMatchFormValue"/>
   <code>
     {{headerMatchFormValue}}
   </code>
+  <RouteRuleForm v-model="routeRuleFormValue"/> 
+  <code>
+    {{routeRuleFormValue}}
+  </code>
+  <FilterForm v-model="filterFormValue"/>
+  <BackendForm v-model="backendFormValue"/>
 </DemoContainer>

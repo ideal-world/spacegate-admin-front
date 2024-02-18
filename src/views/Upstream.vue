@@ -30,7 +30,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await backend.getBackend(searchForm.data)
+  let res = await backend.getBackend(searchForm._data)
     .finally(() => {
       tableLoading.value = false
     })
@@ -53,10 +53,10 @@ const onSumbit = async (formR: FormInstance | undefined) => {
 
   await formR.validate(async (valid) => {
     if (valid) {
-      if (backendForm.data === undefined) {
+      if (backendForm._data === undefined) {
         return
       }
-      let updateResult = backendForm.mode === 'edit' ? await backend.updateBackend(backendForm.data.intoBackend()) : await backend.addBackend(backendForm.data.intoBackend())
+      let updateResult = backendForm.mode === 'edit' ? await backend.updateBackend(backendForm._data.intoBackend()) : await backend.addBackend(backendForm._data.intoBackend())
       if (updateResult) {
         ElMessage.success(t('common.status.success'))
         await onSearch()

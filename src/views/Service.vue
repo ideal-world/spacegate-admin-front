@@ -54,7 +54,7 @@ onMounted(async () => {
 
 const onSearch = async () => {
   tableLoading.value = true
-  let res = await service.getGateways(searchDialogForm.data)
+  let res = await service.getGateways(searchDialogForm._data)
 
   if (res) {
     currentRow.data = res.data.map(ServiceForm.fromService)
@@ -88,12 +88,12 @@ const onSumbit = async (formRef: FormInstance | undefined) => {
   if (!formRef) return
   await formRef.validate(async (valid) => {
     if (valid) {
-      if (dialogForm.data === undefined) {
+      if (dialogForm._data === undefined) {
         return
       }
       let res = dialogForm.mode === 'edit' ?
-        await service.updateGateways(dialogForm.data.intoService()) :
-        await service.addGateways(dialogForm.data.intoService())
+        await service.updateGateways(dialogForm._data.intoService()) :
+        await service.addGateways(dialogForm._data.intoService())
 
       if (res) {
         ElMessage.success(t('common.status.success'))
