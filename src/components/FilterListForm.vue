@@ -37,13 +37,13 @@ const close = () => {
 <template>
     <div class="flex space-x-1">
         <el-tag v-for="filter in modelValue" :key="filter.code" closable
-            @close="modelValue.splice(modelValue.indexOf(filter), 1)" @click="() => open('edit', filter)" :color="hashColor(filter.code, 'light')">
-            
+            @close="modelValue.splice(modelValue.indexOf(filter), 1)" @click="() => open('edit', filter)"
+            :color="hashColor(filter.code, 'light')">
+
             {{ filter.name }}
             <code>{{ filter.code }}</code>
         </el-tag>
-        <el-button type="primary" :icon="Plus" size="small"
-            @click="() => open('add')">Add
+        <el-button :icon="Plus" size="small" @click="() => open('add')">Add
             Filter
         </el-button>
     </div>

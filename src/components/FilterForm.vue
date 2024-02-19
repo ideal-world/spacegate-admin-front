@@ -19,33 +19,28 @@ const editorRef = ref(null)
 onMounted(() => {
 
     if (editorRef.value) {
-        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-            validate: true,
-        })
-        monaco.editor.create(editorRef.value, {
+        const editor = monaco.editor.create(editorRef.value, {
             language: 'json',
             value: specJson.value,
             minimap: {
                 enabled: false,
             },
         })
-        monaco.editor.colorizeElement(editorRef.value, {
-            mimeType: 'json'
-        })
+        editor.layout()
     }
 })
 </script>
 
 <template>
-    <el-form>
+    <el-form label-width="auto" label-suffix=":" class="space-y-1">
         <el-form-item label="Name" prop="name">
             <el-input v-model="modelValue.name" placeholder="Name"></el-input>
         </el-form-item>
         <el-form-item label="Code" prop="code">
             <el-input v-model="modelValue.code" placeholder="Code"></el-input>
         </el-form-item>
-        <el-form-item label="Spec" prop="spec">
-            <div ref="editorRef" class="w-[500px] h-[300px]"></div>
+        <el-form-item label="Spec" prop="spec" class="flex">
+            <div ref="editorRef" class="w-100 h-[30vh]  flex flex-grow "></div>
         </el-form-item>
     </el-form>
 </template>

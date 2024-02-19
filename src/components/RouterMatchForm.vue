@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client'
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 const modelValue = defineModel<Model.SgHttpRouteMatch>({
     default: {
@@ -35,37 +35,6 @@ const SG_HTTP_METHODS = [
     'TRACE',
     'CONNECT',
 ] as const;
-const addHeaderItem = () => {
-    if (modelValue.value.header !== null) {
-        modelValue.value.header.push(newHeaderItem.value)
-        newHeaderItem.value = {
-            ...DEFAULT_HEADER_MATCH
-        }
-    }
-}
-const addQueryItem = () => {
-    if (modelValue.value.query !== null) {
-        modelValue.value.query.push(newQueryItem.value)
-        newQueryItem.value = {
-            ...DEFAULT_QUERY_MATCH
-        }
-    }
-}
-const removeHeaderItem = (idx: number) => {
-    if (modelValue.value.header !== null) {
-        modelValue.value.header.splice(idx, 1)
-    }
-}
-const removeQueryItem = (idx: number) => {
-    if (modelValue.value.query !== null) {
-        modelValue.value.query.splice(idx, 1)
-    }
-}
-
-const collapse = ref({
-    header: true,
-    query: true,
-})
 const enable = ref({
     path: computed({
         get() {
@@ -120,21 +89,52 @@ const enable = ref({
     }),
 })
 
+const addHeaderItem = () => {
+    if (modelValue.value.header !== null) {
+        modelValue.value.header.push(newHeaderItem.value)
+        newHeaderItem.value = {
+            ...DEFAULT_HEADER_MATCH
+        }
+    }
+}
+const addQueryItem = () => {
+    if (modelValue.value.query !== null) {
+        modelValue.value.query.push(newQueryItem.value)
+        newQueryItem.value = {
+            ...DEFAULT_QUERY_MATCH
+        }
+    }
+}
+const removeHeaderItem = (idx: number) => {
+    if (modelValue.value.header !== null) {
+        modelValue.value.header.splice(idx, 1)
+    }
+}
+const removeQueryItem = (idx: number) => {
+    if (modelValue.value.query !== null) {
+        modelValue.value.query.splice(idx, 1)
+    }
+}
+
+const collapse = ref({
+    header: true,
+    query: true,
+})
+
+
 
 </script>
 
 <template>
-    <el-form label-width="auto" label-suffix=":">
-        <el-form-item>
-            <template #label>
-                <div class="flex justify-between items-center flex-nowrap">
-                    <div class="space-x-2">
-                        <span>path</span>
-                        <el-switch v-model="enable.path" active-text="规则" inactive-text="所有" inline-prompt></el-switch>
-                    </div>
-                </div>
-            </template>
-            <el-input v-if="enable.path && modelValue.path !== null" v-model="modelValue.path.value">
+    <el-form label-width="auto" label-suffix=":" class="space-y-1">
+        <el-form-item label="options">
+            <el-checkbox v-model="enable.path">{{ 'Match Path' }}</el-checkbox>
+            <el-checkbox v-model="enable.header">{{ 'Match Header' }}</el-checkbox>
+            <el-checkbox v-model="enable.query">{{ 'Match Query' }}</el-checkbox>
+            <el-checkbox v-model="enable.method">{{ 'Match Method' }}</el-checkbox>
+        </el-form-item>
+        <el-form-item label="path" v-if="modelValue.path !== null">
+            <el-input v-model="modelValue.path.value">
                 <template #prepend>
                     <el-select v-model="modelValue.path.kind" style="width: 115px">
                         <el-option label="exact" value="Exact" />
@@ -144,20 +144,17 @@ const enable = ref({
                 </template>
             </el-input>
         </el-form-item>
-        <el-form-item label="header">
+        <el-form-item label="header" v-if="modelValue.header !== null">
             <div class="flex justify-between items-center flex-nowrap">
-                <div class="space-x-2">
-                    <el-switch v-model="enable.header" active-text="规则" inactive-text="所有" inline-prompt></el-switch>
-                </div>
                 <el-button v-if="enable.header" :icon="collapse.header ? ArrowDown : ArrowRight"
                     @click="() => { collapse.header = !collapse.header }" text circle size="large"></el-button>
             </div>
-            <el-col v-if="collapse.header && modelValue.header !== null" class="pr-2">
+            <el-col v-if="collapse.header" class="pr-2">
                 <el-row v-for="headerMatch, idx  in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-input v-model="headerMatch.value">
                         <template #prepend>
-                            <el-select v-model="headerMatch.kind" style="width: 115px">
+                            <el-select v-model="headerMatch.kind" style="width: 7em">
                                 <el-option label="exact" value="exact" />
                                 <el-option label="regular" value="regular" />
                             </el-select>
@@ -179,17 +176,11 @@ const enable = ref({
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item>
-            <template #label>
-                <div class="flex justify-between items-center flex-nowrap">
-                    <div class="space-x-2">
-                        <span>query</span>
-                        <el-switch v-model="enable.query" active-text="规则" inactive-text="所有" inline-prompt></el-switch>
-                    </div>
-                    <el-button v-if="enable.query" :icon="collapse.query ? ArrowDown : ArrowRight"
-                        @click="() => { collapse.query = !collapse.query }" text circle size="large"></el-button>
-                </div>
-            </template>
+        <el-form-item label="query" v-if="modelValue.query !== null">
+            <div class="flex justify-between items-center flex-nowrap">
+                <el-button v-if="enable.query" :icon="collapse.query ? ArrowDown : ArrowRight"
+                    @click="() => { collapse.query = !collapse.query }" text circle size="large"></el-button>
+            </div>
             <el-col v-if="collapse.query && modelValue.query !== null" class="pr-2">
                 <el-row v-for="queryMatch, idx  in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
@@ -217,17 +208,8 @@ const enable = ref({
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item>
-            <template #label>
-                <div class="flex justify-between items-center flex-nowrap">
-                    <div class="space-x-2">
-                        <span>method</span>
-                        <el-switch v-model="enable.method" active-text="规则" inactive-text="所有" inline-prompt></el-switch>
-                    </div>
-                </div>
-            </template>
-            <el-select v-if="enable.method && modelValue.method !== null" v-model="modelValue.method" multiple
-                placeholder="Http Methods" class="flex-grow">
+        <el-form-item label="method" v-if="modelValue.method !== null">
+            <el-select v-model="modelValue.method" multiple placeholder="Http Methods" class="flex-grow">
                 <el-option v-for="M in SG_HTTP_METHODS" :key="M" :label="M" :value="M" />
             </el-select>
         </el-form-item>

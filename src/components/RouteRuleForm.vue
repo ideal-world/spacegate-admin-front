@@ -55,33 +55,57 @@ const enable = ref({
     }),
 })
 
+const matchAll = computed({
+    get() {
+        return modelValue.value.matches === null
+    },
+    set(v) {
+        if (!v) {
+            modelValue.value.matches = [
+                {
+                    path: {
+                        kind: 'Prefix',
+                        value: '/',
+                    },
+                    header: null,
+                    query: null,
+                    method: null,
+                }
+            ]
+        } else {
+            modelValue.value.matches = null
+        }
+    }
+
+})
+
 const collapse = ref({
     matches: false,
-    filters: false,
     backends: false,
 })
 </script>
 
 <template>
     <el-form label-width="auto" label-suffix=":">
-        <el-form-item label="Matches">
+        <el-form-item label="Match All">
+            <el-switch v-model="matchAll"></el-switch>
+        </el-form-item>
+        <el-form-item label="Matches" v-if="modelValue.matches !== null">
             <div class="flex flex-col flex-grow">
                 <div class="flex justify-between items-center flex-nowrap">
-                    <div class="space-x-2">
-                        <el-switch v-model="enable.matches" active-text="规则" inactive-text="所有" inline-prompt></el-switch>
-                    </div>
-                    <el-button :icon="collapse.matches ? ArrowDown : ArrowRight"
+                    <span>{{ modelValue.matches.length }} {{ 'Item(s)' }} {{ collapse.matches ? '(Collapsed)' : '' }}</span>
+                    <el-button :icon="collapse.matches ? ArrowRight : ArrowDown"
                         @click="() => { collapse.matches = !collapse.matches }" text circle size="large"></el-button>
                 </div>
-                <div v-if="collapse.matches && modelValue.matches !== null"
-                    class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
-                    <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow" shadow="hover">
+                <div v-if="!collapse.matches" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
+                    <el-card v-for="match, idx in modelValue.matches" class="relative pt-6 flex-grow" shadow="hover">
                         <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
-                            @click="() => removeBackends(idx)"></el-button>
+                            @click="() => removeMatch(idx)"></el-button>
                         <RouterMatchForm v-model="modelValue.matches[idx]"></RouterMatchForm>
                     </el-card>
                     <el-col>
-                        <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary"></el-button>
+                        <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ 'Add Match'
+                        }}</el-button>
                     </el-col>
                 </div>
             </div>
@@ -93,10 +117,12 @@ const collapse = ref({
         <el-form-item label="Backends">
             <div class="flex flex-col flex-grow">
                 <div class="flex justify-between items-center flex-nowrap">
-                    <el-button :icon="collapse.backends ? ArrowDown : ArrowRight"
+                    <span>{{ modelValue.backends.length }} {{ 'Item(s)' }} {{ collapse.backends ? '(Collapsed)' : ''
+                    }}</span>
+                    <el-button :icon="collapse.backends ? ArrowRight : ArrowDown"
                         @click="() => { collapse.backends = !collapse.backends }" text circle size="large"></el-button>
                 </div>
-                <div v-if="collapse.backends" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
+                <div v-if="!collapse.backends" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
                     <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow" shadow="hover">
                         <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
                             @click="() => removeBackends(idx)"></el-button>
