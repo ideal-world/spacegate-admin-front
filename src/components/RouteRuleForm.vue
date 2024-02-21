@@ -86,57 +86,63 @@ const collapse = ref({
 </script>
 
 <template>
-    <el-form label-width="auto" label-suffix=":">
+    <el-form label-width="auto" label-suffix=":" class="space-y-2">
         <el-form-item label="Match All">
             <el-switch v-model="matchAll"></el-switch>
         </el-form-item>
-        <el-form-item label="Matches" v-if="modelValue.matches !== null">
-            <div class="flex flex-col flex-grow">
-                <div class="flex justify-between items-center flex-nowrap">
-                    <span>{{ modelValue.matches.length }} {{ 'Item(s)' }} {{ collapse.matches ? '(Collapsed)' : '' }}</span>
-                    <el-button :icon="collapse.matches ? ArrowRight : ArrowDown"
-                        @click="() => { collapse.matches = !collapse.matches }" text circle size="large"></el-button>
+        <el-collapse-transition>
+            <el-form-item label="Matches" v-if="modelValue.matches !== null">
+                <div class="flex flex-col flex-grow">
+                    <div class="flex justify-end items-center flex-nowrap">
+                        <el-badge :value="modelValue.backends.length" class="item" type="primary">
+                            <el-button :icon="collapse.matches ? ArrowRight : ArrowDown"
+                                @click="() => { collapse.matches = !collapse.matches }" text circle size="large"></el-button>
+                        </el-badge>
+                    </div>
+                    <el-collapse-transition>
+                        <div v-if="!collapse.matches" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
+                            <el-card v-for="match, idx in modelValue.matches" class="relative pt-6 flex-grow" shadow="hover">
+                                <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
+                                    @click="() => removeMatch(idx)"></el-button>
+                                <RouterMatchForm v-model="modelValue.matches[idx]"></RouterMatchForm>
+                            </el-card>
+                            <el-col>
+                                <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ 'Add Match' }}</el-button>
+                            </el-col>
+                        </div>
+                    </el-collapse-transition>
                 </div>
-                <div v-if="!collapse.matches" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
-                    <el-card v-for="match, idx in modelValue.matches" class="relative pt-6 flex-grow" shadow="hover">
-                        <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
-                            @click="() => removeMatch(idx)"></el-button>
-                        <RouterMatchForm v-model="modelValue.matches[idx]"></RouterMatchForm>
-                    </el-card>
-                    <el-col>
-                        <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ 'Add Match'
-                        }}</el-button>
-                    </el-col>
-                </div>
-            </div>
-        </el-form-item>
+            </el-form-item>
+        </el-collapse-transition>
 
         <el-form-item label="Filters">
             <FilterListForm v-model="modelValue.filters"></FilterListForm>
         </el-form-item>
         <el-form-item label="Backends">
             <div class="flex flex-col flex-grow">
-                <div class="flex justify-between items-center flex-nowrap">
-                    <span>{{ modelValue.backends.length }} {{ 'Item(s)' }} {{ collapse.backends ? '(Collapsed)' : ''
-                    }}</span>
-                    <el-button :icon="collapse.backends ? ArrowRight : ArrowDown"
-                        @click="() => { collapse.backends = !collapse.backends }" text circle size="large"></el-button>
+                <div class="flex justify-end items-center flex-nowrap">
+                    <el-badge :value="modelValue.backends.length" class="item" type="primary">
+                        <el-button :icon="collapse.backends ? ArrowRight : ArrowDown"
+                            @click="() => { collapse.backends = !collapse.backends }" text circle size="large"></el-button>
+                    </el-badge>
                 </div>
-                <div v-if="!collapse.backends" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
-                    <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow" shadow="hover">
-                        <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
-                            @click="() => removeBackends(idx)"></el-button>
-                        <backend-form :model-value="backend"></backend-form>
-                    </el-card>
-                    <el-col>
-                        <el-button class="w-full" :icon="Plus" @click="() => modelValue.backends.push({
-                            host: {
-                                kind: 'Host', host: 'example.com',
-                            }, port: 80, timeout_ms: null, protocol: null, weight:
-                                1, filters: [],
-                        })" type="primary"></el-button>
-                    </el-col>
-                </div>
+                <el-collapse-transition>
+                    <div v-if="!collapse.backends" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
+                        <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow" shadow="hover">
+                            <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
+                                @click="() => removeBackends(idx)"></el-button>
+                            <backend-form :model-value="backend"></backend-form>
+                        </el-card>
+                        <el-col>
+                            <el-button class="w-full" :icon="Plus" @click="() => modelValue.backends.push({
+                                host: {
+                                    kind: 'Host', host: 'example.com',
+                                }, port: 80, timeout_ms: null, protocol: null, weight:
+                                    1, filters: [],
+                            })" type="primary">{{  'Add Backend' }}</el-button>
+                        </el-col>
+                    </div>
+                </el-collapse-transition>
             </div>
         </el-form-item>
         <el-form-item label="Timeout" prop="timeout_ms">

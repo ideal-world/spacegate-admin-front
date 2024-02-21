@@ -11,7 +11,6 @@ import { fetchJson, saveJson } from '../utils';
 
 const props = defineProps<{
     mode: "create" | "edit",
-    name: string,
 }>()
 
 const modelValue = defineModel<Model.SgHttpRoute>({
@@ -42,7 +41,7 @@ const removeRule = (idx: number) => {
 }
 
 const downloadConfig = (target: 'file' | 'clipboard') => {
-    saveJson(modelValue.value, props.name, target)
+    saveJson(modelValue.value, `${modelValue.value.gateway_name}.gateway`, target)
 }
 
 const uploadConfig = (target: 'file' | 'clipboard') => {
@@ -95,7 +94,7 @@ const uploadVisible = ref(false)
             </el-popover>
         </el-button-group>
         <el-form-item label="Gateway Name" prop="gateway_name">
-            <el-input v-model="modelValue.gateway_name" placeholder="Gateway Name"></el-input>
+            <el-input v-model="modelValue.gateway_name" placeholder="Gateway Name" disabled></el-input>
         </el-form-item>
         <el-form-item label="Hostnames" prop="hostnames">
             <OptionalField v-model="modelValue.hostnames" :default="[]" class="flex flex-col flex-grow space-y-1">
@@ -112,7 +111,7 @@ const uploadVisible = ref(false)
             </OptionalField>
         </el-form-item>
         <el-form-item label="Priority" prop="priority">
-            <el-input v-model="modelValue.priority" placeholder="Priority"></el-input>
+            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="0" :max="9999"></el-input-number>
         </el-form-item>
         <el-form-item label="Filters" prop="filters">
             <filter-list-form v-model="modelValue.filters"></filter-list-form>

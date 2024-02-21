@@ -2,17 +2,11 @@
 aside: false
 ---
 <script setup>
-import RouteForm from 'spacegate-admin/components/RouteForm.vue'
+import Routes from 'spacegate-admin/views/Routes.vue'
 import {ref} from 'vue'
-const RouteFormValue = ref({
-    gateway_name: "new gateway",
-    hostnames: null,
-    filters: [],
-    rules: [],
-    priority: 1,
-})
+
 </script>
 
 <DemoContainer>
-  <RouteForm v-model="RouteFormValue" name="new router" mode="create" gatewayName="gateway"/>
+  <Routes  gatewayName="gateway"/>
 </DemoContainer>

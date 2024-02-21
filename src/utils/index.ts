@@ -1,6 +1,7 @@
 import { ElMessage } from 'element-plus';
 import basic from './basic'
-import { AxiosResponse } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
+import { Api } from 'spacegate-admin-client'
 export {
   basic,
 }
@@ -14,6 +15,22 @@ export class ResponseError extends Error {
   }
 }
 
+export class ValidError extends Error {
+  constructor() {
+    super('User cancelled');
+  }
+}
+
+export const catchVersionConflict = (e: AxiosError) => {
+  /// use the re-exported axios error type
+  if (e.response !== undefined && e.status == 409 && e.response.headers['x-server-version'] !== undefined && e.response.headers['x-server-version'] !== Api.Client.clientVersion) {
+    ElMessage({
+      message: 'Version conflict, please refresh the page and try again.',
+      type: 'error',
+    })
+  }
+}
+
 export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T => {
   if (response.status >= 400 || response.status < 200) {
     ElMessage({
@@ -21,7 +38,14 @@ export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T
       type: 'error',
     })
     throw new ResponseError(response);
-  } else {
+  } else if (response.headers['content-type']?.includes('application/json') === false) {
+    ElMessage({
+      message: 'Response is not json data.',
+      type: 'error',
+    })
+    throw new ResponseError(response);
+  }
+  else {
     return response.data;
   }
 }

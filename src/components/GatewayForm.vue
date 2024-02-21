@@ -4,20 +4,12 @@ import FilterListForm from './FilterListForm.vue';
 import ListenerForm from './ListenerForm.vue';
 import { Plus, Close, Download, Upload, Document, CopyDocument, DocumentCopy } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor';
-import { onMounted, ref } from 'vue';
+import { Ref, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
 import { fetchJson, saveJson } from '../utils'
-const specJson = ref("{}")
-const editorRef = ref(null)
-
+import { useMonacoJsonEditor } from '../hooks'
+const editorRef = ref<HTMLElement | null>(null)
 const modelValue = defineModel<Model.SgGateway>({
-    default: {
-        name: "Gateway",
-        parameters: {
-
-        },
-        listeners: [],
-        filters: [],
-    },
+    required: true,
 })
 
 const props = defineProps<{
@@ -40,32 +32,13 @@ const removeListener = (idx: number) => {
     modelValue.value.listeners.splice(idx, 1)
 }
 
-onMounted(() => {
-    if (editorRef.value) {
-        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-            validate: true,
-        })
-        const editor = monaco.editor.create(editorRef.value, {
-            language: 'json',
-            value: specJson.value,
-            minimap: {
-                enabled: false,
-            },
-        })
-        editor.layout()
-        editor.onDidChangeModelContent(() => {
-            const newValue = editor.getValue();
-            try {
-                const newJsonValue = JSON.parse(newValue)
-                specJson.value = newJsonValue
-                console.debug(newJsonValue)
-            } catch (_) {
-                return
-            }
-        })
-    }
-})
-
+const { value: paramValue } = useMonacoJsonEditor<Model.SgParameters>(editorRef, modelValue.value.parameters)
+watch(modelValue.value.parameters, (newParam) => {
+    paramValue.value = newParam
+}, { deep: true })
+watch(paramValue, (newParam) => {
+    modelValue.value.parameters = newParam
+}, { deep: true })
 const downloadConfig = (target: 'file' | 'clipboard') => {
     saveJson(modelValue.value, modelValue.value.name, target)
 }
@@ -130,7 +103,7 @@ const uploadVisible = ref(false)
             <el-input v-model="modelValue.name" placeholder="Name" :readonly="props.mode === 'edit'"></el-input>
         </el-form-item>
         <el-form-item label="Parameters" prop="parameters" class="flex">
-            <div ref="editorRef" class="w-100 h-[30vh]  flex flex-grow "></div>
+            <div ref="editorRef" class="w-full h-[30vh] flex flex-grow "></div>
         </el-form-item>
         <el-form-item label="Listeners" prop="listeners">
             <div class="space-y-2 flex-grow overflow-auto">

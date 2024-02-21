@@ -54,8 +54,8 @@ export default {
       host: true,
       port: 3000,
       proxy: {
-        '/admin': {
-          target: 'http://localhost:9081/',
+        '/config': {
+          target: 'http://localhost:9001/',
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, '')
         }

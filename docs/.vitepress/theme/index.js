@@ -17,7 +17,7 @@ export default {
     app.use(ElementPlus)
     app.use(SpacegateAdmin)
     app.use(SpacegateService, {
-      backend: "default"
+      config: [],
     })
     app.component('DemoContainer', DemoContainer)
   }

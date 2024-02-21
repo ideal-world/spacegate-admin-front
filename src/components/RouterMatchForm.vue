@@ -116,10 +116,7 @@ const removeQueryItem = (idx: number) => {
     }
 }
 
-const collapse = ref({
-    header: true,
-    query: true,
-})
+
 
 
 
@@ -145,11 +142,7 @@ const collapse = ref({
             </el-input>
         </el-form-item>
         <el-form-item label="header" v-if="modelValue.header !== null">
-            <div class="flex justify-between items-center flex-nowrap">
-                <el-button v-if="enable.header" :icon="collapse.header ? ArrowDown : ArrowRight"
-                    @click="() => { collapse.header = !collapse.header }" text circle size="large"></el-button>
-            </div>
-            <el-col v-if="collapse.header" class="pr-2">
+            <el-col class="pr-2">
                 <el-row v-for="headerMatch, idx  in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-input v-model="headerMatch.value">
@@ -162,7 +155,7 @@ const collapse = ref({
                     </el-input>
                     <el-button :icon="Minus" @click="() => removeHeaderItem(idx)"></el-button>
                 </el-row>
-                <el-divider border-style="dashed" content-position="left">添加新规则</el-divider>
+                <el-divider border-style="dashed" content-position="left">{{ 'Add New Rule' }}</el-divider>
                 <el-row class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-input v-model="newHeaderItem.value">
                         <template #prepend>
@@ -177,11 +170,7 @@ const collapse = ref({
             </el-col>
         </el-form-item>
         <el-form-item label="query" v-if="modelValue.query !== null">
-            <div class="flex justify-between items-center flex-nowrap">
-                <el-button v-if="enable.query" :icon="collapse.query ? ArrowDown : ArrowRight"
-                    @click="() => { collapse.query = !collapse.query }" text circle size="large"></el-button>
-            </div>
-            <el-col v-if="collapse.query && modelValue.query !== null" class="pr-2">
+            <el-col class="pr-2">
                 <el-row v-for="queryMatch, idx  in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-input v-model="queryMatch.value">
@@ -194,7 +183,7 @@ const collapse = ref({
                     </el-input>
                     <el-button :icon="Minus" @click="() => removeQueryItem(idx)"></el-button>
                 </el-row>
-                <el-divider border-style="dashed" content-position="left">添加新规则</el-divider>
+                <el-divider border-style="dashed" content-position="left">{{ 'Add New Rule' }}</el-divider>
                 <el-row class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-input v-model="newQueryItem.value">
                         <template #prepend>
