@@ -4,13 +4,15 @@ import FilterListForm from './FilterListForm.vue';
 import ListenerForm from './ListenerForm.vue';
 import { Plus, Close, Download, Upload, Document, CopyDocument, DocumentCopy } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor';
-import { Ref, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
+import { Ref, computed, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
 import { fetchJson, saveJson } from '../utils'
 import { useMonacoJsonEditor } from '../hooks'
 const editorRef = ref<HTMLElement | null>(null)
 const modelValue = defineModel<Model.SgGateway>({
     required: true,
 })
+
+
 
 const props = defineProps<{
     mode: "create" | "edit"
@@ -32,13 +34,17 @@ const removeListener = (idx: number) => {
     modelValue.value.listeners.splice(idx, 1)
 }
 
-const { value: paramValue } = useMonacoJsonEditor<Model.SgParameters>(editorRef, modelValue.value.parameters)
-watch(modelValue.value.parameters, (newParam) => {
-    paramValue.value = newParam
+const { setValue: setJson, getValue: getJson, innerVersion } = useMonacoJsonEditor(editorRef, modelValue.value.parameters)
+
+watch(modelValue, () => {
+    setJson(modelValue.value.parameters)
 }, { deep: true })
-watch(paramValue, (newParam) => {
-    modelValue.value.parameters = newParam
-}, { deep: true })
+
+
+watch(innerVersion, () => {
+    console.log('innerVersion', innerVersion.value)
+    modelValue.value.parameters = getJson()
+})
 const downloadConfig = (target: 'file' | 'clipboard') => {
     saveJson(modelValue.value, modelValue.value.name, target)
 }
@@ -63,7 +69,7 @@ const uploadVisible = ref(false)
 
 
 <template>
-    <el-form label-width="auto" label-suffix=":">
+    <el-form label-width="auto" label-suffix=":" class="space-y-2">
         <el-button-group class="mb-4">
             <el-popover :visible="uploadVisible" placement="top" :width="160">
                 <p>{{ 'Choose a source.' }}</p>
@@ -102,8 +108,8 @@ const uploadVisible = ref(false)
         <el-form-item label="Name" prop="name">
             <el-input v-model="modelValue.name" placeholder="Name" :readonly="props.mode === 'edit'"></el-input>
         </el-form-item>
-        <el-form-item label="Parameters" prop="parameters" class="flex">
-            <div ref="editorRef" class="w-full h-[30vh] flex flex-grow "></div>
+        <el-form-item label="Parameters" prop="parameters">
+            <div ref="editorRef" class="w-full flex flex-grow h-72"></div>
         </el-form-item>
         <el-form-item label="Listeners" prop="listeners">
             <div class="space-y-2 flex-grow overflow-auto">

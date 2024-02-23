@@ -81,10 +81,10 @@ onMounted(() => {
 </script>
 
 <template>
-    <el-select v-loading="optionsPending" v-model="modelValue" placeholder="Select a route">
+    <el-select v-loading="optionsPending" v-model="modelValue" placeholder="Select a gateway">
         <template #header>
-            <el-dialog v-model="newGatewayDialog">
-                <GatewayForm v-model="newGateway" mode="create"></GatewayForm>
+            <el-dialog v-model="newGatewayDialog" width="70%" align-center>
+                <GatewayForm v-model="newGateway" mode="create" class="flex-grow space-y-2"></GatewayForm>
                 <template #footer>
                     <el-button :icon="Close" @click="closeDialog">
                         {{ 'cancel' }}
@@ -107,7 +107,7 @@ onMounted(() => {
         </template>
         <el-option v-for="item in options" :key="item" :label="item" :value="item"
             class="flex items-center justify-between">
-            <span>{{ item }}</span>
+            <span class="flex-grow">{{ item }}</span>
             <el-button type="danger" size="small" :icon="Delete" @click="() => deleteOptions(item)">
                 {{ 'delete' }}
             </el-button>

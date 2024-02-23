@@ -14,7 +14,7 @@ export function useGateway(name: string): {
         if (!gateway.value) return
         try {
             loading.value = true
-            await Api.post_config_item_gateway(name, gateway.value)
+            await Api.put_config_item_gateway(name, gateway.value)
             ElMessage({
                 message: 'Gateway updated',
                 type: 'success'

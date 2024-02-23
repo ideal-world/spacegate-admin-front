@@ -1,34 +1,23 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client'
-import { VNode, VNodeRef, computed, onMounted, ref } from 'vue';
-import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
-import RouterMatchForm from './RouterMatchForm.vue';
-import * as monaco from 'monaco-editor';
+import { ref, watch } from 'vue';
+import { useMonacoJsonEditor } from '../hooks';
 const modelValue = defineModel<Model.SgRouteFilter>({
-    default: {
-        code: "redirect",
-        name: null,
-        spec: {
-
-        }
-    },
+    required: true,
 })
-const specJson = ref("{}")
 const editorRef = ref(null)
+const { setValue: setJson, getValue: getJson } = useMonacoJsonEditor(editorRef, modelValue.value.spec)
 
-onMounted(() => {
+watch(modelValue, () => {
+    setJson(modelValue.value.spec)
+}, { deep: true })
 
-    if (editorRef.value) {
-        const editor = monaco.editor.create(editorRef.value, {
-            language: 'json',
-            value: specJson.value,
-            minimap: {
-                enabled: false,
-            },
-        })
-        editor.layout()
+defineExpose({
+    getJson() {
+        return getJson()
     }
 })
+
 </script>
 
 <template>
@@ -40,7 +29,7 @@ onMounted(() => {
             <el-input v-model="modelValue.code" placeholder="Code"></el-input>
         </el-form-item>
         <el-form-item label="Spec" prop="spec" class="flex">
-            <div ref="editorRef" class="w-100 h-[30vh]  flex flex-grow "></div>
+            <div ref="editorRef" class="w-100 h-[30vh]  flex flex-grow"></div>
         </el-form-item>
     </el-form>
 </template>

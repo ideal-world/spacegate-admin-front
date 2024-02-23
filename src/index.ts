@@ -4,31 +4,22 @@ import { App } from 'vue'
 import { createPinia } from 'pinia'
 import * as monaco from 'monaco-editor';
 import * as components from './components'
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import * as views from './views'
+
 import { Api } from 'spacegate-admin-client'
+import { ElCollapseTransition } from 'element-plus'
 const pinia = createPinia()
 function install(app: App) {
-  monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-    validate: true,
-  })
-  self.MonacoEnvironment = {
-    getWorker(_, label) {
-      if (label === 'json') {
-        let worker = new jsonWorker();
-        console.debug('json worker created', worker)
-        return worker;
-      } else {
-        console.debug(`could not found worker with label ${label}, fallback to editor worker`)
-        return new editorWorker();
-      }
-    },
-  };
   app.use(pinia)
   for (const key in components) {
     // @ts-expect-error
     app.component(key, components[key])
   }
+  for (const key in components) {
+    // @ts-expect-error
+    app.component(key, views[key])
+  }
+  app.component(ElCollapseTransition.name, ElCollapseTransition)
 }
 
 import './assets/main.scss'

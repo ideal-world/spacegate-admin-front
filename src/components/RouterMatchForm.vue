@@ -12,11 +12,15 @@ const modelValue = defineModel<Model.SgHttpRouteMatch>({
 })
 const DEFAULT_HEADER_MATCH = <Model.SgHttpHeaderMatch>{
     kind: "exact" as const,
+    name: "" as const,
     value: "" as const
 }
 const DEFAULT_QUERY_MATCH = <Model.SgHttpQueryMatch>{
     kind: "exact" as const,
-    value: "" as const
+    value: {
+        key: "",
+        value: "",
+    }
 }
 const newHeaderItem = ref(<Model.SgHttpHeaderMatch>{
     ...DEFAULT_HEADER_MATCH
@@ -115,11 +119,6 @@ const removeQueryItem = (idx: number) => {
         modelValue.value.query.splice(idx, 1)
     }
 }
-
-
-
-
-
 </script>
 
 <template>
@@ -142,57 +141,39 @@ const removeQueryItem = (idx: number) => {
             </el-input>
         </el-form-item>
         <el-form-item label="header" v-if="modelValue.header !== null">
-            <el-col class="pr-2">
+            <el-col class="pr-2 space-y-1">
                 <el-row v-for="headerMatch, idx  in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
-                    <el-input v-model="headerMatch.value">
-                        <template #prepend>
-                            <el-select v-model="headerMatch.kind" style="width: 7em">
-                                <el-option label="exact" value="exact" />
-                                <el-option label="regular" value="regular" />
-                            </el-select>
-                        </template>
-                    </el-input>
+                    <el-select v-model="headerMatch.kind" class="w-64">
+                        <el-option label="exact" value="exact" />
+                        <el-option label="regular" value="regular" />
+                    </el-select>
+                    <el-input v-model="headerMatch.name"></el-input>
+                    <span>:</span>
+                    <el-input v-if="headerMatch.kind === 'exact'" v-model="headerMatch.value"></el-input>
+                    <el-input v-if="headerMatch.kind === 'regular'" v-model="headerMatch.re"></el-input>
                     <el-button :icon="Minus" @click="() => removeHeaderItem(idx)"></el-button>
                 </el-row>
-                <el-divider border-style="dashed" content-position="left">{{ 'Add New Rule' }}</el-divider>
-                <el-row class="flex justify-between items-center flex-nowrap space-x-2">
-                    <el-input v-model="newHeaderItem.value">
-                        <template #prepend>
-                            <el-select v-model="newHeaderItem.kind" style="width: 115px">
-                                <el-option label="exact" value="exact" />
-                                <el-option label="regular" value="regular" />
-                            </el-select>
-                        </template>
-                    </el-input>
+                <el-row class="flex justify-end items-center flex-nowrap space-x-2">
                     <el-button :icon="Plus" @click="addHeaderItem" type="primary"></el-button>
                 </el-row>
             </el-col>
         </el-form-item>
         <el-form-item label="query" v-if="modelValue.query !== null">
-            <el-col class="pr-2">
+            <el-col class="pr-2 space-y-1">
                 <el-row v-for="queryMatch, idx  in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
-                    <el-input v-model="queryMatch.value">
-                        <template #prepend>
-                            <el-select v-model="queryMatch.kind" style="width: 115px">
-                                <el-option label="exact" value="exact" />
-                                <el-option label="regular" value="regular" />
-                            </el-select>
-                        </template>
-                    </el-input>
+                    <el-select v-model="queryMatch.kind" class="w-64">
+                        <el-option label="exact" value="exact" />
+                        <el-option label="regular" value="regular" />
+                    </el-select>
+                    <el-input v-model="queryMatch.value.key"></el-input>
+                    <span>=</span>
+                    <el-input v-if="queryMatch.kind === 'exact'" v-model="queryMatch.value.value"></el-input>
+                    <el-input v-if="queryMatch.kind === 'regular'" v-model="queryMatch.value.re"></el-input>
                     <el-button :icon="Minus" @click="() => removeQueryItem(idx)"></el-button>
                 </el-row>
-                <el-divider border-style="dashed" content-position="left">{{ 'Add New Rule' }}</el-divider>
-                <el-row class="flex justify-between items-center flex-nowrap space-x-2">
-                    <el-input v-model="newQueryItem.value">
-                        <template #prepend>
-                            <el-select v-model="newQueryItem.kind" style="width: 115px">
-                                <el-option label="exact" value="exact" />
-                                <el-option label="regular" value="regular" />
-                            </el-select>
-                        </template>
-                    </el-input>
+                <el-row class="flex justify-end items-center flex-nowrap space-x-2">
                     <el-button :icon="Plus" @click="addQueryItem" type="primary"></el-button>
                 </el-row>
             </el-col>
