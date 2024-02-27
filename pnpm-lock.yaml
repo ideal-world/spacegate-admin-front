@@ -27,8 +27,8 @@ dependencies:
     specifier: ^6.11.2
     version: 6.11.2
   spacegate-admin-client:
-    specifier: file:/home/atlas/Github/spacegate/admin-client
-    version: file:../../../spacegate/admin-client
+    specifier: 0.2.0-alpha.1
+    version: 0.2.0-alpha.1
   vue:
     specifier: ^3.3.4
     version: 3.4.19(typescript@5.3.3)
@@ -2209,6 +2209,14 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
+  /spacegate-admin-client@0.2.0-alpha.1:
+    resolution: {integrity: sha512-Vcf+Fg+Y/1pPhBvcjnYxkNDDKIccTqtfAmGXhPctbJTCV0X2l2K+eTNjpBlomeazSA9UMz8BpiblK//3T7HR2A==}
+    dependencies:
+      axios: 1.6.7
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
   /string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -2678,12 +2686,3 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
-
-  file:../../../spacegate/admin-client:
-    resolution: {directory: ../../../spacegate/admin-client, type: directory}
-    name: spacegate-admin-client
-    dependencies:
-      axios: 1.6.7
-    transitivePeerDependencies:
-      - debug
-    dev: false

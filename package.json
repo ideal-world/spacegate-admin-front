@@ -50,7 +50,7 @@
     "monaco-editor": "^0.45.0",
     "pinia": "^2.1.7",
     "qs": "^6.11.2",
-    "spacegate-admin-client": "file:/home/atlas/Github/spacegate/admin-client",
+    "spacegate-admin-client": "0.2.0-alpha.1",
     "vue-i18n": "9.2.2"
   }
 }
