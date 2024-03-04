@@ -21,14 +21,21 @@ export class ValidError extends Error {
   }
 }
 
-export const catchVersionConflict = (e: AxiosError) => {
-  /// use the re-exported axios error type
-  if (e.response !== undefined && e.status == 409 && e.response.headers['x-server-version'] !== undefined && e.response.headers['x-server-version'] !== Api.Client.clientVersion) {
-    ElMessage({
-      message: 'Version conflict, please refresh the page and try again.',
-      type: 'error',
-    })
+export const catchAdminServerError = (e: AxiosError) => {
+  if (e.response !== undefined) {
+    if (e.response.status == 409) {
+      ElMessage({
+        message: 'Version conflict, please refresh the page and try again.',
+        type: 'error',
+      })
+    } else {
+      ElMessage({
+        message: `(${e.response.status}): ${e.response.data}`,
+        type: 'error',
+      })
+    }
   }
+  console.error(e);
 }
 
 export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T => {

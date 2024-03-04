@@ -3,7 +3,7 @@ import { Model, Api } from 'spacegate-admin-client'
 import { Delete, Edit, Plus, Refresh, Check, Close } from '@element-plus/icons-vue'
 
 import { computed, ref, onMounted } from 'vue';
-import { catchVersionConflict, unwrapResponse } from '../utils';
+import { catchAdminServerError, unwrapResponse } from '../utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RouteForm from '../components/RouteForm.vue';
 const props = defineProps<{
@@ -76,7 +76,7 @@ const getRouteNames = async () => {
     }
 }
 const putRoute = async (name: string, route: Model.SgHttpRoute) => {
-    await Api.put_config_item_route(props.gatewayName, name, route).catch(catchVersionConflict)
+    await Api.put_config_item_route(props.gatewayName, name, route).catch(catchAdminServerError)
     await getRouteNames();
 }
 class UserCancel extends Error {
@@ -94,7 +94,7 @@ const postRoute = async (name: string, route: Model.SgHttpRoute) => {
             throw new UserCancel();
         }
     }
-    await Api.post_config_item_route(props.gatewayName, name, route).catch(catchVersionConflict);
+    await Api.post_config_item_route(props.gatewayName, name, route).catch(catchAdminServerError);
     await getRouteNames();
 }
 const deleteRoute = async (name: string) => {
@@ -103,7 +103,7 @@ const deleteRoute = async (name: string) => {
     });
     routeNamesPending.value = true
     try {
-        await Api.delete_config_item_route(props.gatewayName, name).catch(catchVersionConflict);
+        await Api.delete_config_item_route(props.gatewayName, name).catch(catchAdminServerError);
         await getRouteNames();
     } finally {
         routeNamesPending.value = false;

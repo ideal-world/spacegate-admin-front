@@ -1,6 +1,6 @@
 import { Ref, onMounted, ref } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
-import { unwrapResponse } from '..';
+import { unwrapResponse, catchAdminServerError } from '..';
 import { ElMessage } from 'element-plus';
 
 export function useGateway(name: string): {
@@ -20,12 +20,11 @@ export function useGateway(name: string): {
                 type: 'success'
             })
             const newGateway = await Api.get_config_item_gateway(name).then(unwrapResponse)
-            gateway.value = newGateway
+            if (newGateway) {
+                gateway.value = newGateway
+            }
         } catch (e) {
-            ElMessage({
-                message: 'Failed to update gateway',
-                type: 'error'
-            })
+            catchAdminServerError(e)
         } finally {
             loading.value = false
         }
@@ -35,10 +34,7 @@ export function useGateway(name: string): {
             const response = await Api.get_config_item_gateway(name)
             gateway.value = unwrapResponse(response)
         } catch (e) {
-            ElMessage({
-                message: 'Failed to fetch gateway',
-                type: 'error'
-            })
+            catchAdminServerError(e)
         } finally {
             loading.value = false
         }
