@@ -53,7 +53,7 @@ watch(() => modelValue.value.protocol.type, (type, prevType) => {
             </optional-field>
         </el-form-item>
         <el-form-item label="Port" prop="port">
-            <el-input-number v-model="modelValue.port" placeholder="Port" v-bind="PORT_INPUT_ATTR" class="text-left"></el-input-number>
+            <el-input-number v-model="modelValue.port" placeholder="Port" v-bind="PORT_INPUT_ATTR" class="port-input"></el-input-number>
         </el-form-item>
         <el-form-item label="Protocol Type" prop="protocol">
             <el-select v-model="modelValue.protocol.type" placeholder="Protocol">
@@ -79,3 +79,7 @@ watch(() => modelValue.value.protocol.type, (type, prevType) => {
 
     </el-form>
 </template>
+
+<style scoped>
+
+</style>

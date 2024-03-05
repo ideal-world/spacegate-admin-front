@@ -45,6 +45,7 @@
     "url": "git+https://github.com/ideal-world/spacegate-admin-front"
   },
   "dependencies": {
+    "@zip.js/zip.js": "^2.7.37",
     "axios": "^1.6.7",
     "lodash": "^4.17.21",
     "monaco-editor": "^0.45.0",

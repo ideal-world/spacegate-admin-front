@@ -39,7 +39,7 @@ const modelValue = defineModel<Model.SgBackendRef>({
                     <el-input v-model="modelValue.host.namespace" class="flex-grow" placeholder="namespace"></el-input>
                 </div>
                 <span>:</span>
-                <el-input-number v-model="modelValue.port" placeholder="port" v-bind="PORT_INPUT_ATTR"></el-input-number>
+                <el-input-number class="text-left" v-model="modelValue.port" placeholder="port" v-bind="PORT_INPUT_ATTR"></el-input-number>
             </div>
         </el-form-item>
         <el-row>
@@ -72,7 +72,7 @@ const modelValue = defineModel<Model.SgBackendRef>({
                 </el-form-item>
             </el-col>
         </el-row>
-        <el-form-item label="Filters" prop="filters">
+        <el-form-item label="Plugins" prop="filters">
             <FilterListForm v-model="modelValue.filters"></FilterListForm>
         </el-form-item>
     </el-form>

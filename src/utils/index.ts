@@ -57,6 +57,45 @@ export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T
   }
 }
 
+export const downloadConfigItem = async (name: string) => {
+  const response = await Api.get_config_item(name);
+  const gateway = unwrapResponse(response);
+  const a = document.createElement('a');
+  const file = new Blob([JSON.stringify(gateway, null, 2)], { type: 'application/json' });
+  const filename = `${name}.json`;
+  const fileURL = URL.createObjectURL(file);
+  a.href = fileURL;
+  a.download = filename;
+  a.click();
+}
+
+export const uploadConfigItem = async (name: string) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target?.result as string;
+        try {
+          const json = JSON.parse(content);
+          await Api.put_config_item(name, json);
+          ElMessage({
+            message: 'Gateway updated',
+            type: 'success'
+          })
+        } catch (e) {
+          catchAdminServerError(e);
+        }
+      }
+      reader.readAsText(file);
+    }
+  }
+  input.click();
+}
+
 export const saveJson = <T extends unknown>(value: T, name: string, target: 'file' | 'clipboard') => {
   const jsonString = JSON.stringify(value, null, 2);
   if (target === 'file') {

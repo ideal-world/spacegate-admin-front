@@ -11,6 +11,7 @@ import { fetchJson, saveJson } from '../utils';
 
 const props = defineProps<{
     mode: "create" | "edit",
+    name: string
 }>()
 
 const modelValue = defineModel<Model.SgHttpRoute>({
@@ -41,7 +42,7 @@ const removeRule = (idx: number) => {
 }
 
 const downloadConfig = (target: 'file' | 'clipboard') => {
-    saveJson(modelValue.value, `${modelValue.value.gateway_name}.gateway`, target)
+    saveJson(modelValue.value, `${props.name}`, target)
 }
 
 const uploadConfig = (target: 'file' | 'clipboard') => {
