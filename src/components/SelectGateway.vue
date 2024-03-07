@@ -8,6 +8,8 @@ import { ValidError, downloadConfigItem, unwrapResponse, uploadConfigItem } from
 import { ElMessageBox, ElMessage, ElPopconfirm } from 'element-plus';
 import { cloneDeep } from 'lodash';
 import GatewayForm from './GatewayForm.vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 
 const modelValue = defineModel<string>()
 const options = ref<string[]>([])
@@ -36,7 +38,7 @@ const getOptions = async () => {
 }
 
 const deleteOptions = async (name: string) => {
-    await ElMessageBox.confirm('Are you sure to delete this gateway?', {
+    await ElMessageBox.confirm(t('lint.confirmDeleteGateway'), {
         confirmButtonClass: 'el-button--danger',
     });
     optionsPending.value = true
@@ -56,11 +58,11 @@ const openDialog = () => {
 
 const createNewRoute = async () => {
     if (newGateway.value.name === '') {
-        ElMessage.error('name is required');
+        ElMessage.error(t('lint.missingGatewayName'));
         throw new ValidError()
     }
     if (options.value.includes(newGateway.value.name)) {
-        ElMessage.error('name already exists');
+        ElMessage.error(t('lint.duplicatedGatewayName'));
         throw new ValidError()
     }
     await Api.post_config_item_gateway(newGateway.value.name, newGateway.value).then(unwrapResponse);
@@ -75,7 +77,7 @@ const closeDialog = () => {
 
 const uploadConfigWithConfirm = async (name: string) => {
     let result = await ElMessageBox.confirm(
-        'This will overwrite the original config, are you sure to do so?',
+        t('lint.confirmOverwriteConfig'),
         {
             confirmButtonClass: 'el-button--danger'
         }
@@ -97,7 +99,7 @@ onMounted(() => {
                 <GatewayForm v-model="newGateway" mode="create" class="flex-grow space-y-2"></GatewayForm>
                 <template #footer>
                     <el-button :icon="Close" @click="closeDialog">
-                        {{ 'cancel' }}
+                        {{ t('button.cancel') }}
                     </el-button>
                     <el-button :icon="Plus" type="primary" @click="async () => {
         try {
@@ -107,12 +109,12 @@ onMounted(() => {
 
         }
     }">
-                        {{ 'create' }}
+                        {{ t('button.create') }}
                     </el-button>
                 </template>
             </el-dialog>
             <el-button :icon="Plus" type="primary" class="flex-grow w-full" @click="openDialog">
-                {{ 'add' }}
+                {{ t('button.add') }}
             </el-button>
         </template>
         <el-option v-for="item in options" :key="item" :label="item" :value="item"
@@ -120,13 +122,13 @@ onMounted(() => {
             <span class="flex-grow">{{ item }}</span>
             <el-button-group>
                 <el-button size="small" :icon="Upload" @click="() => uploadConfigWithConfirm(item)">
-                    {{ 'upload' }}
+                    {{ t('button.upload') }}
                 </el-button>
                 <el-button size="small" :icon="Download" @click="() => downloadConfigItem(item)">
-                    {{ 'download' }}
+                    {{ t('button.download') }}
                 </el-button>
                 <el-button type="danger" size="small" :icon="Delete" @click="() => deleteOptions(item)">
-                    {{ 'delete' }}
+                    {{ t('button.delete') }}
                 </el-button>
             </el-button-group>
         </el-option>

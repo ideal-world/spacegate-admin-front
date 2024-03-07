@@ -6,6 +6,9 @@ import { computed, ref, onMounted } from 'vue';
 import { catchAdminServerError, unwrapResponse } from '../utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RouteForm from '../components/RouteForm.vue';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
+
 const props = defineProps<{
     gatewayName: string
 }>()
@@ -117,60 +120,60 @@ onMounted(() => {
 
 <template>
     <div class="flex flex-col space-y-2">
-        <el-dialog width="90%" :title="dialogMode === 'create' ? 'Create Route' : 'Edit Route'" v-model="dialogOpen">
+        <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen">
             <el-input v-model="dialogRouteName" class="flex-grow my-3" placeholder="route name"
                 :disabled="dialogMode === 'edit'"></el-input>
-            <RouteForm  v-model="dialogModel" :name="dialogRouteName" :mode="dialogMode"></RouteForm>
+            <RouteForm v-model="dialogModel" :name="dialogRouteName" :mode="dialogMode"></RouteForm>
             <template #footer>
                 <el-button :icon="Close" @click="closeDialog">
-                    Cancel
+                    {{ t('button.cancel') }}
                 </el-button>
                 <el-button type="primary" :icon="Check" @click="async () => {
-                    try {
-                        if (dialogMode === 'create') {
-                            await postRoute(dialogRouteName, dialogModel)
-                        } else if (dialogMode === 'edit') {
-                            await putRoute(dialogRouteName, dialogModel)
-                        }
-                        closeDialog()
-                    } catch (e) {
-                        if (e === undefined || e instanceof UserCancel) {
-                            // do nothing
-                        } else {
-                            throw e
-                        }
-                    }
-                }">
-                    Save
+            try {
+                if (dialogMode === 'create') {
+                    await postRoute(dialogRouteName, dialogModel)
+                } else if (dialogMode === 'edit') {
+                    await putRoute(dialogRouteName, dialogModel)
+                }
+                closeDialog()
+            } catch (e) {
+                if (e === undefined || e instanceof UserCancel) {
+                    // do nothing
+                } else {
+                    throw e
+                }
+            }
+        }">
+                    {{ t('button.save') }}
                 </el-button>
             </template>
         </el-dialog>
         <div class="flex align-center space-x-2">
             <div class="flex-grow">
                 <el-input v-model="search" class="" placeholder="search route">
-    
+
                 </el-input>
             </div>
             <el-button-group class="flex">
-                <el-button  :icon="Plus" type="primary" @click="() => openDialog('new route', 'create')">
-                    {{ 'new' }}
+                <el-button :icon="Plus" type="primary" @click="() => openDialog('new route', 'create')">
+                    {{ t('button.new') }}
                 </el-button>
-                <el-button  :icon="Refresh" @click="refresh">
-                    {{ 'refresh' }}
+                <el-button :icon="Refresh" @click="refresh">
+                    {{ t('button.refresh') }}
                 </el-button>
             </el-button-group>
         </div>
-        <el-card v-loading="routeNamesPending" shadow="never" >
+        <el-card v-loading="routeNamesPending" shadow="never">
             <div class="flex flex-col space-y-2">
                 <div v-for="routeName, idx in showRouteNames"
                     class="flex flex-row justify-between border-b border-gray-300 p-2 my-2">
                     <span class="flex-grow">{{ routeName }}</span>
                     <el-button-group>
                         <el-button :icon="Edit" size="small" @click="() => openDialog(routeName, 'edit')">
-                            {{ 'edit' }}
+                            {{ t('button.edit') }}
                         </el-button>
                         <el-button type="danger" size="small" :icon="Delete" @click="() => deleteRoute(routeName)">
-                            {{ 'delete' }}
+                            {{ t('button.delete') }}
                         </el-button>
                     </el-button-group>
                 </div>

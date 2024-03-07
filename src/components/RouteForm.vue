@@ -8,7 +8,8 @@ import FilterListForm from './FilterListForm.vue';
 import RouteRuleForm from './RouteRuleForm.vue';
 import OptionalField from './OptionalField.vue';
 import { fetchJson, saveJson } from '../utils';
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 const props = defineProps<{
     mode: "create" | "edit",
     name: string
@@ -61,44 +62,47 @@ const uploadVisible = ref(false)
     <el-form label-width="auto" label-suffix=":">
         <el-button-group class="mb-4">
             <el-popover :visible="uploadVisible" placement="top" :width="160">
-                <p>{{ 'Choose a source.' }}</p>
+                <p>{{ t('lint.chooseASource') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
-                        uploadConfig('clipboard')
-                        uploadVisible = false
-                    }">{{ 'clipboard' }}</el-button>
+                uploadConfig('clipboard')
+                uploadVisible = false
+            }">{{ t('button.clipboard') }}</el-button>
                     <el-button size="small" type="primary" @click="() => {
-                        uploadConfig('file')
-                        uploadVisible = false
-                    }">{{ 'file' }}</el-button>
+                uploadConfig('file')
+                uploadVisible = false
+            }">{{ t('button.file') }}</el-button>
                 </div>
                 <template #reference>
-                    <el-button :icon="Upload" @click="uploadVisible = !uploadVisible">{{ 'Upload Config' }}</el-button>
+                    <el-button :icon="Upload" @click="uploadVisible = !uploadVisible">{{ t('button.upload')
+                        }}</el-button>
                 </template>
             </el-popover>
             <el-popover :visible="downloadVisible" placement="top" :width="160">
-                <p>{{ 'Choose a target.' }}</p>
+                <p>{{ t('lint.chooseATarget') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
-                        downloadConfig('clipboard')
-                        downloadVisible = false
-                    }">{{ 'clipboard' }}</el-button>
+                downloadConfig('clipboard')
+                downloadVisible = false
+            }">{{ t('button.clipboard') }}</el-button>
                     <el-button size="small" type="primary" @click="() => {
-                        downloadConfig('file')
-                        downloadVisible = false
-                    }">{{ 'file' }}</el-button>
+                downloadConfig('file')
+                downloadVisible = false
+            }">{{ t('button.file') }}</el-button>
                 </div>
+
                 <template #reference>
-                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ 'Download Config'
-                    }}</el-button>
+                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ t('button.upload')
+                        }}</el-button>
                 </template>
             </el-popover>
         </el-button-group>
-        <el-form-item label="Gateway Name" prop="gateway_name">
+        <el-form-item :label="t('label.gatewayName')" prop="gateway_name">
             <el-input v-model="modelValue.gateway_name" placeholder="Gateway Name" disabled></el-input>
         </el-form-item>
-        <el-form-item label="Hostnames" prop="hostnames">
+        <el-form-item :label="t('label.hostname')" prop="hostnames">
             <OptionalField v-model="modelValue.hostnames" :default="[]" class="flex flex-col flex-grow space-y-1">
+
                 <template #some>
                     <div v-for="hostname, idx in modelValue.hostnames!" class="flex flex-row">
                         <el-input v-model="modelValue.hostnames![idx]" placeholder="Hostnames">
@@ -106,18 +110,19 @@ const uploadVisible = ref(false)
                         <el-button :icon="Minus" @click="() => modelValue.hostnames!.splice(idx, 1)"></el-button>
                     </div>
                     <el-button type="primary" @click="() => modelValue.hostnames!.push('')" :icon="Plus">
-                        Add Hostname
+                        {{ t('button.addHost') }}
                     </el-button>
                 </template>
             </OptionalField>
         </el-form-item>
-        <el-form-item label="Priority" prop="priority">
-            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="0" :max="9999"></el-input-number>
+        <el-form-item :label="t('label.priority')" prop="priority">
+            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="0"
+                :max="9999"></el-input-number>
         </el-form-item>
-        <el-form-item label="Filters" prop="filters">
+        <el-form-item :label="t('label.plugins')" prop="filters">
             <filter-list-form v-model="modelValue.filters"></filter-list-form>
         </el-form-item>
-        <el-form-item label="Rules" prop="rules">
+        <el-form-item :label="t('label.rules')" prop="rules">
 
             <div class="space-y-2 flex-grow overflow-auto">
                 <el-card v-for="(rule, idx) in modelValue.rules" :name="idx" :key="idx" class="relative pt-6 flex-grow"
@@ -129,7 +134,7 @@ const uploadVisible = ref(false)
                     <route-rule-form v-model="modelValue.rules[idx]"></route-rule-form>
                 </el-card>
                 <el-button type="primary" @click="addRule" :icon="Plus" class="w-full">
-                    <span>Add Rule</span>
+                    <span>{{t('button.addRule')}}</span>
                 </el-button>
             </div>
         </el-form-item>

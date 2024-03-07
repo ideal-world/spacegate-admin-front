@@ -1,7 +1,7 @@
 import zhCn from './zh-CN'
 import en from './en'
 
-export const MESSAGES = {
+export const LOCALES = {
   'zh-CN': zhCn,
   en,
 } as const

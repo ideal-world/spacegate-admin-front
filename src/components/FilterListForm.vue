@@ -6,7 +6,8 @@ import { cloneDeep } from 'lodash';
 import { ref } from 'vue';
 import { hashColor } from '../utils';
 import FilterForm from './FilterForm.vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 const modelValue = defineModel<Model.SgRouteFilter[]>({
     default: []
 })
@@ -27,7 +28,6 @@ const pickNewFilterName = (): string => {
 const formData = ref<Model.SgRouteFilter>(cloneDeep(defaultFilter))
 const open = (m: 'add' | 'edit', filter?: Model.SgRouteFilter) => {
     mode.value = m;
-    console.debug('open', m, filter)
     formData.value = filter ? cloneDeep(filter) : cloneDeep(defaultFilter);
     isOpen.value = true;
 }
@@ -50,11 +50,10 @@ const close = () => {
             name: pickNewFilterName(),
             code: 'redirect',
             spec: {}
-        })">Add
-            Filter
+        })">{{t('button.addPlugin')}}
         </el-button>
     </div>
-    <el-dialog v-model="isOpen" :title="mode === 'add' ? 'New Filter' : 'Edit Filter'">
+    <el-dialog v-model="isOpen" :title="mode === 'add' ? t('title.newPlugin') : t('title.editPlugin')">
         <filter-form v-model="formData" :before-close="close" ref="formRef"></filter-form>
         <template #footer>
             <el-button type="primary" :icon="Check" @click="() => {
@@ -68,7 +67,7 @@ const close = () => {
                 }
                 close()
             }">
-                Save
+                {{t('button.save')}}
             </el-button>
         </template>
     </el-dialog>

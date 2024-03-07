@@ -2,6 +2,9 @@
 import { Model } from 'spacegate-admin-client'
 import { computed, ref, watch } from 'vue';
 import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
+
 const modelValue = defineModel<Model.SgHttpRouteMatch>({
     default: {
         path: null,
@@ -123,30 +126,30 @@ const removeQueryItem = (idx: number) => {
 
 <template>
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
-        <el-form-item label="options">
-            <el-checkbox v-model="enable.path">{{ 'Match Path' }}</el-checkbox>
-            <el-checkbox v-model="enable.header">{{ 'Match Header' }}</el-checkbox>
-            <el-checkbox v-model="enable.query">{{ 'Match Query' }}</el-checkbox>
-            <el-checkbox v-model="enable.method">{{ 'Match Method' }}</el-checkbox>
+        <el-form-item :label="t('label.option')">
+            <el-checkbox v-model="enable.path">{{ t('label.matchPath') }}</el-checkbox>
+            <el-checkbox v-model="enable.header">{{ t('label.matchHeader') }}</el-checkbox>
+            <el-checkbox v-model="enable.query">{{ t('label.matchQuery') }}</el-checkbox>
+            <el-checkbox v-model="enable.method">{{ t('label.matchMethod') }}</el-checkbox>
         </el-form-item>
-        <el-form-item label="path" v-if="modelValue.path !== null">
+        <el-form-item :label="t('label.path')" v-if="modelValue.path !== null">
             <el-input v-model="modelValue.path.value">
                 <template #prepend>
                     <el-select v-model="modelValue.path.kind" style="width: 115px">
-                        <el-option label="exact" value="Exact" />
-                        <el-option label="prefix" value="Prefix" />
-                        <el-option label="regular expression" value="Regular" />
+                        <el-option :label="t('label.exact')" value="Exact" />
+                        <el-option :label="t('label.prefix')" value="Prefix" />
+                        <el-option :label="t('label.regExp')" value="Regular" />
                     </el-select>
                 </template>
             </el-input>
         </el-form-item>
-        <el-form-item label="header" v-if="modelValue.header !== null">
+        <el-form-item :label="t('label.header')" v-if="modelValue.header !== null">
             <el-col class="pr-2 space-y-1">
                 <el-row v-for="headerMatch, idx  in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-select v-model="headerMatch.kind" class="w-64">
-                        <el-option label="exact" value="exact" />
-                        <el-option label="regular" value="regular" />
+                        <el-option :label="t('label.exact')" value="exact" />
+                        <el-option :label="t('label.regExp')" value="regular" />
                     </el-select>
                     <el-input v-model="headerMatch.name"></el-input>
                     <span>:</span>
@@ -159,13 +162,13 @@ const removeQueryItem = (idx: number) => {
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item label="query" v-if="modelValue.query !== null">
+        <el-form-item :label="t('label.query')" v-if="modelValue.query !== null">
             <el-col class="pr-2 space-y-1">
                 <el-row v-for="queryMatch, idx  in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-select v-model="queryMatch.kind" class="w-64">
-                        <el-option label="exact" value="exact" />
-                        <el-option label="regular" value="regular" />
+                        <el-option :label="t('label.exact')" value="exact" />
+                        <el-option :label="t('label.regExp')" value="regular" />
                     </el-select>
                     <el-input v-model="queryMatch.value.key"></el-input>
                     <span>=</span>
@@ -178,7 +181,7 @@ const removeQueryItem = (idx: number) => {
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item label="method" v-if="modelValue.method !== null">
+        <el-form-item :label="t('label.method')" v-if="modelValue.method !== null">
             <el-select v-model="modelValue.method" multiple placeholder="Http Methods" class="flex-grow">
                 <el-option v-for="M in SG_HTTP_METHODS" :key="M" :label="M" :value="M" />
             </el-select>

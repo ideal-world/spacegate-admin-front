@@ -7,6 +7,10 @@ import * as monaco from 'monaco-editor';
 import { Ref, computed, onMounted, onUnmounted, onUpdated, ref, watch } from 'vue';
 import { fetchJson, saveJson } from '../utils'
 import { useMonacoJsonEditor } from '../hooks'
+
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
+
 const editorRef = ref<HTMLElement | null>(null)
 const modelValue = defineModel<Model.SgGateway>({
     required: true,
@@ -72,46 +76,46 @@ const uploadVisible = ref(false)
     <el-form label-width="auto" label-suffix=":" class="space-y-2">
         <el-button-group class="mb-4">
             <el-popover :visible="uploadVisible" placement="top" :width="160">
-                <p>{{ 'Choose a source.' }}</p>
+                <p>{{ t('lint.chooseASource') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                         uploadConfig('clipboard')
                         uploadVisible = false
-                    }">{{ 'clipboard' }}</el-button>
+                    }">{{  t('button.clipboard') }}</el-button>
                     <el-button size="small" type="primary" @click="() => {
                         uploadConfig('file')
                         uploadVisible = false
-                    }">{{ 'file' }}</el-button>
+                    }">{{ t('button.file') }}</el-button>
                 </div>
                 <template #reference>
-                    <el-button :icon="Upload" @click="uploadVisible = !uploadVisible">{{ 'Upload Config' }}</el-button>
+                    <el-button :icon="Upload" @click="uploadVisible = !uploadVisible">{{ t('button.upload') }}</el-button>
                 </template>
             </el-popover>
             <el-popover :visible="downloadVisible" placement="top" :width="160">
-                <p>{{ 'Choose a target.' }}</p>
+                <p>{{ t('lint.chooseATarget') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                         downloadConfig('clipboard')
                         downloadVisible = false
-                    }">{{ 'clipboard' }}</el-button>
+                    }">{{ t('button.clipboard') }}</el-button>
                     <el-button size="small" type="primary" @click="() => {
                         downloadConfig('file')
                         downloadVisible = false
-                    }">{{ 'file' }}</el-button>
+                    }">{{  t('button.file') }}</el-button>
                 </div>
                 <template #reference>
-                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ 'Download Config'
+                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ t('button.download')
                     }}</el-button>
                 </template>
             </el-popover>
         </el-button-group>
-        <el-form-item label="Name" prop="name">
+        <el-form-item :label="t('label.name')" prop="name">
             <el-input v-model="modelValue.name" placeholder="Name" :readonly="props.mode === 'edit'"></el-input>
         </el-form-item>
-        <el-form-item label="Parameters" prop="parameters">
+        <el-form-item :label="t('label.parameters')" prop="parameters">
             <div ref="editorRef" class="w-full flex flex-grow h-72"></div>
         </el-form-item>
-        <el-form-item label="Listeners" prop="listeners">
+        <el-form-item :label="t('label.listeners')" prop="listeners">
             <div class="space-y-2 flex-grow overflow-auto">
                 <el-card v-for="(listener, idx) in modelValue.listeners" :name="idx" :key="idx"
                     class="relative pt-6 flex-grow" shadow="hover">
@@ -122,12 +126,12 @@ const uploadVisible = ref(false)
                     <ListenerForm v-model="modelValue.listeners[idx]"></ListenerForm>
                 </el-card>
                 <el-button type="primary" @click="addListener" :icon="Plus" class="w-full">
-                    <span>Add Listener</span>
+                    <span>{{t('button.addListener')}}</span>
                 </el-button>
             </div>
 
         </el-form-item>
-        <el-form-item label="Filters" prop="filters">
+        <el-form-item :label="t('label.plugins')" prop="filters">
             <FilterListForm v-model="modelValue.filters"></FilterListForm>
         </el-form-item>
     </el-form>

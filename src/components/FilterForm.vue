@@ -2,6 +2,9 @@
 import { Model } from 'spacegate-admin-client'
 import { ref, watch } from 'vue';
 import { useMonacoJsonEditor } from '../hooks';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
+
 const modelValue = defineModel<Model.SgRouteFilter>({
     required: true,
 })
@@ -22,13 +25,13 @@ defineExpose({
 
 <template>
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
-        <el-form-item label="Name" prop="name">
+        <el-form-item :label="t('label.name')" prop="name">
             <el-input v-model="modelValue.name" placeholder="Name"></el-input>
         </el-form-item>
-        <el-form-item label="Code" prop="code">
+        <el-form-item :label="t('label.code')" prop="code">
             <el-input v-model="modelValue.code" placeholder="Code"></el-input>
         </el-form-item>
-        <el-form-item label="Spec" prop="spec" class="flex">
+        <el-form-item :label="t('label.spec')" prop="spec" class="flex">
             <div ref="editorRef" class="w-100 h-[30vh]  flex flex-grow"></div>
         </el-form-item>
     </el-form>

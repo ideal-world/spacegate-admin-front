@@ -6,7 +6,8 @@ import RouterMatchForm from './RouterMatchForm.vue';
 import BackendForm from './BackendForm.vue';
 import FilterListForm from './FilterListForm.vue';
 import OptionalField from "./OptionalField.vue";
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 const modelValue = defineModel<Model.SgHttpRouteRule>({
     default: {
         matches: null,
@@ -87,11 +88,11 @@ const collapse = ref({
 
 <template>
     <el-form label-width="auto" label-suffix=":" class="space-y-2">
-        <el-form-item label="Match All">
+        <el-form-item :label="t('label.matchAll')">
             <el-switch v-model="matchAll"></el-switch>
         </el-form-item>
         <el-collapse-transition>
-            <el-form-item label="Matches" v-if="modelValue.matches !== null">
+            <el-form-item :label="t('label.matches')" v-if="modelValue.matches !== null">
                 <div class="flex flex-col flex-grow">
                     <div class="flex justify-end items-center flex-nowrap">
                         <el-badge :value="modelValue.backends.length" class="item" type="primary">
@@ -107,7 +108,7 @@ const collapse = ref({
                                 <RouterMatchForm v-model="modelValue.matches[idx]"></RouterMatchForm>
                             </el-card>
                             <el-col>
-                                <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ 'Add Match' }}</el-button>
+                                <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ t('button.addMatch') }}</el-button>
                             </el-col>
                         </div>
                     </el-collapse-transition>
@@ -115,10 +116,10 @@ const collapse = ref({
             </el-form-item>
         </el-collapse-transition>
 
-        <el-form-item label="Filters">
+        <el-form-item :label="t('label.plugins')">
             <FilterListForm v-model="modelValue.filters"></FilterListForm>
         </el-form-item>
-        <el-form-item label="Backends">
+        <el-form-item :label="t('label.backends')">
             <div class="flex flex-col flex-grow">
                 <div class="flex justify-end items-center flex-nowrap">
                     <el-badge :value="modelValue.backends.length" class="item" type="primary">
@@ -139,13 +140,13 @@ const collapse = ref({
                                     kind: 'Host', host: 'example.com',
                                 }, port: 80, timeout_ms: null, protocol: null, weight:
                                     1, filters: [],
-                            })" type="primary">{{  'Add Backend' }}</el-button>
+                            })" type="primary">{{  t('button.addBackend') }}</el-button>
                         </el-col>
                     </div>
                 </el-collapse-transition>
             </div>
         </el-form-item>
-        <el-form-item label="Timeout" prop="timeout_ms">
+        <el-form-item :label="t('label.timeout')" prop="timeout_ms">
             <optional-field :default="5000" v-model="modelValue.timeout_ms">
                 <template #some>
                     <el-input-number v-model="(modelValue.timeout_ms as number)" placeholder="timeout"></el-input-number>
