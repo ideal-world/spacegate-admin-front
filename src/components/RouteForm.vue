@@ -92,7 +92,7 @@ const uploadVisible = ref(false)
                 </div>
 
                 <template #reference>
-                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ t('button.upload')
+                    <el-button :icon="Download" @click="downloadVisible = !downloadVisible">{{ t('button.download')
                         }}</el-button>
                 </template>
             </el-popover>

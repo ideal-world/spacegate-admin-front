@@ -30,7 +30,11 @@ export default {
     "protocol": "协议",
     "weight": "权重",
     "option": "选项",
-    "path": "路径"
+    "path": "路径",
+    "redisUrl": "redis地址",
+    "logLevel": "日志级别",
+    "lang": "语言",
+    "ignoreTlsVerification": "忽略TLS验证",
   },
   "title": {
     "newPlugin": "新建插件",

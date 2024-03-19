@@ -164,10 +164,10 @@ onMounted(() => {
             </el-button-group>
         </div>
         <el-card v-loading="routeNamesPending" shadow="never">
-            <div class="flex flex-col space-y-2">
-                <div v-for="routeName, idx in showRouteNames"
-                    class="flex flex-row justify-between border-b border-gray-300 p-2 my-2">
-                    <span class="flex-grow">{{ routeName }}</span>
+            <div class="flex flex-wrap items-start space-y-2 space-x-2">
+                <el-card shadow="hover" v-for="routeName, idx in showRouteNames"
+                    class="inline-block flex justify-between border-b border-gray-300 p-2 my-2">
+                    <span class="flex-grow mx-2">{{ routeName }}</span>
                     <el-button-group>
                         <el-button :icon="Edit" size="small" @click="() => openDialog(routeName, 'edit')">
                             {{ t('button.edit') }}
@@ -176,7 +176,7 @@ onMounted(() => {
                             {{ t('button.delete') }}
                         </el-button>
                     </el-button-group>
-                </div>
+                </el-card>
             </div>
         </el-card>
     </div>
