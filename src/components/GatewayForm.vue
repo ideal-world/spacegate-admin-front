@@ -117,22 +117,22 @@ const uploadVisible = ref(false)
         <el-form-item :label="t('label.parameters')" prop="parameters">
             <el-card shadow="never" class="w-full">
                 <el-form label-width="auto" label-suffix=":" >
-                    <el-form-item :label="t('label.redisUrl')">
-                        <OptionalField v-model="modelValue.parameters.redis_url" :default="''">
+                    <el-form-item :label="t('label.redisUrl')" >
+                        <OptionalField v-model="modelValue.parameters.redis_url" :default="''" class="flex-grow">
                             <template #some>
-                                <el-input v-model="modelValue.parameters.redis_url" placeholder="redis_url"></el-input>
+                                <el-input v-model="modelValue.parameters.redis_url" placeholder="redis_url" ></el-input>
                             </template>
                         </OptionalField>
                     </el-form-item>
-                    <el-form-item :label="t('label.logLevel')">
-                        <OptionalField v-model="modelValue.parameters.log_level" :default="''">
+                    <el-form-item :label="t('label.logLevel')" >
+                        <OptionalField v-model="modelValue.parameters.log_level" :default="''"  class="flex-grow">
                             <template #some>
-                                <el-input v-model="modelValue.parameters.log_level" placeholder="log_level"></el-input>
+                                <el-input v-model="modelValue.parameters.log_level" placeholder="log_level" ></el-input>
                             </template>
                         </OptionalField>
                     </el-form-item>
                     <el-form-item :label="t('label.lang')">
-                        <OptionalField v-model="modelValue.parameters.lang" :default="''">
+                        <OptionalField v-model="modelValue.parameters.lang" :default="''" class="flex-grow">
                             <template #some>
                                 <el-input v-model="modelValue.parameters.lang" placeholder="lang"></el-input>
                             </template>
