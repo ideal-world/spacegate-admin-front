@@ -74,20 +74,21 @@ export function useMonacoJsonEditor(target: Ref<HTMLElement | null>, initValue?:
             }
         }
     }
-    
+
     const setSchema = (schema?: string) => {
+        let uri = monaco.Uri.parse(genUriBySchema(schema));
+        let model = monaco.editor.getModel(uri);
         let old_value = schemaRef.value
-        // if editor is null, we need to create an editor
-        if (old_value === schema) {
+        const isModelEmpty = model === null || model === undefined;
+        // if model is null, we need to create an model for the first render
+        if (old_value === schema && !isModelEmpty) {
             return
         } else {
             schemaRef.value = schema
         }
 
-        let uri = monaco.Uri.parse(genUriBySchema(schema));
-        let model = monaco.editor.getModel(uri);
-        if (model === undefined || model === null) {
-            model = monaco.editor.createModel(JSON.stringify(initValue, null, 2), "json", monaco.Uri.parse(genUriBySchema(schema)))
+        if (isModelEmpty) {
+            model = monaco.editor.createModel(JSON.stringify(initValue, null, 2), "json", uri)
         }
         editor.setModel(model)
 
