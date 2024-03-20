@@ -76,35 +76,29 @@ export function useMonacoJsonEditor(target: Ref<HTMLElement | null>, initValue?:
     }
 
     const setSchema = (schema?: string) => {
+        if (!target.value) return
+        if (editor === null) {
+            editor = monaco.editor.create(target.value, {
+                minimap: {
+                    enabled: false,
+                },
+                automaticLayout: true,
+            })
+        }
         let uri = monaco.Uri.parse(genUriBySchema(schema));
         let model = monaco.editor.getModel(uri);
-        let old_value = schemaRef.value
         const isModelEmpty = model === null || model === undefined;
-        // if model is null, we need to create an model for the first render
-        if (old_value === schema && !isModelEmpty) {
-            return
-        } else {
-            schemaRef.value = schema
-        }
-
+        schemaRef.value = schema
         if (isModelEmpty) {
             model = monaco.editor.createModel(JSON.stringify(initValue, null, 2), "json", uri)
         }
         editor.setModel(model)
-
     }
     onMounted(async () => {
         if (!target.value) return
         if (schemaRef.value !== undefined) {
             await updateAllSchema()
         }
-        editor = monaco.editor.create(target.value, {
-            minimap: {
-                enabled: false,
-            },
-            automaticLayout: true,
-        })
-
         setSchema(schemaRef.value)
     })
 

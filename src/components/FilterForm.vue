@@ -12,7 +12,7 @@ const editorRef = ref(null)
 
 
 
-const { setValue, getValue, setSchema } = useMonacoJsonEditor(editorRef, undefined, {
+const { setValue, getValue, setSchema } = useMonacoJsonEditor(editorRef, modelValue.value.spec, {
     schema: modelValue.value.code
 })
 watch(() => modelValue.value.code, () => {
