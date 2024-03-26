@@ -94,6 +94,7 @@ export function useMonacoJsonEditor(target: Ref<HTMLElement | null>, initValue?:
         }
         editor.setModel(model)
     }
+
     onMounted(async () => {
         if (!target.value) return
         if (schemaRef.value !== undefined) {

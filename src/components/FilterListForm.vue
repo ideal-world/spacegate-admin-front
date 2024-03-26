@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client';
 import { Plus, Minus, Close, ArrowDown, ArrowRight, Check } from '@element-plus/icons-vue'
@@ -26,6 +25,7 @@ const pickNewFilterName = (): string => {
     return modelValue.value.find((f) => f.name === name) ? pickNewFilterName() : name
 }
 const formData = ref<Model.SgRouteFilter>(cloneDeep(defaultFilter))
+const editIndex = ref(0);
 const open = (m: 'add' | 'edit', filter?: Model.SgRouteFilter) => {
     mode.value = m;
     formData.value = filter ? cloneDeep(filter) : cloneDeep(defaultFilter);
@@ -39,9 +39,11 @@ const close = () => {
 </script>
 <template>
     <div class="flex space-x-1">
-        <el-tag v-for="filter in modelValue" :key="filter.code" closable
-            @close="modelValue.splice(modelValue.indexOf(filter), 1)" @click="() => open('edit', filter)"
-            :color="hashColor(filter.code, 'light')" class="hover:cursor-pointer hover:brightness-110">
+        <el-tag v-for="(filter, index) in modelValue" :key="filter.code" closable @close="modelValue.splice(index, 1)"
+            @click="() => {
+            editIndex = index
+            open('edit', filter)
+        }" :color="hashColor(filter.code, 'light')" class="hover:cursor-pointer hover:brightness-110">
 
             <code class="rounded bg-black text-white bg-opacity-60 px-1">{{ filter.code }}</code>
             {{ filter.name }}
@@ -50,24 +52,23 @@ const close = () => {
             name: pickNewFilterName(),
             code: 'redirect',
             spec: {}
-        })">{{t('button.addPlugin')}}
+        })">{{ t('button.addPlugin') }}
         </el-button>
     </div>
     <el-dialog v-model="isOpen" :title="mode === 'add' ? t('title.newPlugin') : t('title.editPlugin')">
         <filter-form v-model="formData" :before-close="close" ref="formRef"></filter-form>
         <template #footer>
             <el-button type="primary" :icon="Check" @click="() => {
-                if (mode === 'add' && formData) {
-                    formData.spec = formRef!.getJson() as Model.SgRouteFilter['spec']
-                    modelValue.push(cloneDeep(formData))
-                } else if (mode === 'edit') {
-                    const idx = modelValue.findIndex((f) => f.name === formData.name)
-                    formData.spec = formRef!.getJson() as Model.SgRouteFilter['spec']
-                    modelValue[idx] = cloneDeep(formData)
-                }
-                close()
-            }">
-                {{t('button.save')}}
+            if (mode === 'add' && formData) {
+                formData.spec = formRef!.getJson() as Model.SgRouteFilter['spec']
+                modelValue.push(cloneDeep(formData))
+            } else if (mode === 'edit') {
+                formData.spec = formRef!.getJson() as Model.SgRouteFilter['spec']
+                modelValue[editIndex] = cloneDeep(formData)
+            }
+            close()
+        }">
+                {{ t('button.save') }}
             </el-button>
         </template>
     </el-dialog>
