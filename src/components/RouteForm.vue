@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Plus, Minus, Close, Download, Upload } from '@element-plus/icons-vue'
 import RouterMatchForm from './RouterMatchForm.vue';
 import BackendForm from './BackendForm.vue';
-import FilterListForm from './FilterListForm.vue';
+import PluginListForm from './PluginListForm.vue';
 import RouteRuleForm from './RouteRuleForm.vue';
 import OptionalField from './OptionalField.vue';
 import { fetchJson, saveJson } from '../utils';
@@ -29,7 +29,7 @@ const addRule = () => {
     if (modelValue.value.rules !== null) {
         modelValue.value.rules.push({
             matches: null,
-            filters: [],
+            plugins: [],
             backends: [],
             timeout_ms: null,
         })
@@ -97,8 +97,8 @@ const uploadVisible = ref(false)
                 </template>
             </el-popover>
         </el-button-group>
-        <el-form-item :label="t('label.gatewayName')" prop="gateway_name">
-            <el-input v-model="modelValue.gateway_name" placeholder="Gateway Name" disabled></el-input>
+        <el-form-item :label="t('label.routeName')" prop="gateway_name">
+            <el-input v-model="modelValue.route_name" placeholder="Gateway Name" disabled></el-input>
         </el-form-item>
         <el-form-item :label="t('label.hostname')" prop="hostnames">
             <OptionalField v-model="modelValue.hostnames" :default="[]" class="flex flex-col flex-grow space-y-1">
@@ -116,11 +116,11 @@ const uploadVisible = ref(false)
             </OptionalField>
         </el-form-item>
         <el-form-item :label="t('label.priority')" prop="priority">
-            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="0"
-                :max="9999"></el-input-number>
+            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="-5000"
+                :max="5000"></el-input-number>
         </el-form-item>
-        <el-form-item :label="t('label.plugins')" prop="filters">
-            <filter-list-form v-model="modelValue.filters"></filter-list-form>
+        <el-form-item :label="t('label.plugins')" prop="plugins">
+            <plugin-list-form v-model="modelValue.plugins"></plugin-list-form>
         </el-form-item>
         <el-form-item :label="t('label.rules')" prop="rules">
 

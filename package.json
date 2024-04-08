@@ -13,19 +13,19 @@
     "vue": "^3.3.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.25",
-    "@types/qs": "^6.9.12",
+    "@types/node": "^20.12.5",
+    "@types/qs": "^6.9.14",
     "@vitejs/plugin-vue": "^4.6.2",
-    "autoprefixer": "^10.4.18",
-    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
     "rimraf": "^5.0.5",
-    "sass": "^1.71.1",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.4.2",
+    "sass": "^1.74.1",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.4",
     "unplugin-auto-import": "^0.16.7",
     "unplugin-icons": "^0.17.4",
     "unplugin-vue-components": "^0.25.2",
-    "vite": "^5.1.5",
+    "vite": "^5.2.8",
     "vitepress": "1.0.0-rc.34",
     "vue-tsc": "^1.8.27"
   },
@@ -45,13 +45,13 @@
     "url": "git+https://github.com/ideal-world/spacegate-admin-front"
   },
   "dependencies": {
-    "@zip.js/zip.js": "^2.7.40",
-    "axios": "^1.6.7",
+    "@zip.js/zip.js": "^2.7.41",
+    "axios": "^1.6.8",
     "lodash": "^4.17.21",
     "monaco-editor": "^0.45.0",
     "pinia": "^2.1.7",
     "qs": "^6.12.0",
-    "spacegate-admin-client": "0.2.0-alpha.3",
+    "spacegate-admin-client": "0.2.0-alpha.5",
     "vue-i18n": "9.2.2"
   }
 }

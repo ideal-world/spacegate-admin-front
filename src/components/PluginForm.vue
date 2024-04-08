@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client'
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { updatePluginCodes, useMonacoJsonEditor } from '../hooks';
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
 
-const modelValue = defineModel<Model.SgRouteFilter>({
+const modelValue = defineModel<Model.PluginConfig>({
     required: true,
 })
 const editorRef = ref(null)
@@ -30,15 +30,26 @@ defineExpose({
 })
 
 const codeOptions = updatePluginCodes()
+const kind = ref<'named' | 'mono' | 'anon'>('named')
+const name = ref('')
+const uid = ref(BigInt(0))
 
-
-
+const uidDisplay = computed(() => uid.value.toString(16).padStart(16, '0'));
+watch(kind, (k) => {
+    if (k === 'anon') {
+        name.value = ''
+        uid.value = BigInt(Math.floor(Math.random() * 2 ** 64))
+    }
+})
 </script>
 
 <template>
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
-        <el-form-item :label="t('label.name')" prop="name">
-            <el-input v-model="modelValue.name" placeholder="Name"></el-input>
+        <el-form-item v-if="kind === 'named'" :label="t('label.name')" prop="name">
+            <el-input v-model="name" placeholder="Name"></el-input>
+        </el-form-item>
+        <el-form-item v-if="kind === 'anon'" :label="t('label.anonUid')" prop="name">
+            <el-input v-model="uidDisplay" placeholder="Uid" disabled></el-input>
         </el-form-item>
         <el-form-item :label="t('label.code')" prop="code">
             <el-select v-model="modelValue.code" filterable allow-create default-first-option>

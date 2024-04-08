@@ -7,7 +7,7 @@ import { hashColor } from '../utils';
 import FilterForm from './FilterForm.vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
-const modelValue = defineModel<Model.SgRouteFilter[]>({
+const modelValue = defineModel<Model.PluginInstanceId[]>({
     default: []
 })
 const formRef = ref<InstanceType<typeof FilterForm> | null>(null)

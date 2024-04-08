@@ -107,11 +107,17 @@ export const saveJson = <T extends unknown>(value: T, name: string, target: 'fil
     a.download = filename;
     a.click();
   } else if (target === 'clipboard') {
+    navigator.permissions.query({ name: "clipboard-write" }).then((result) => {
+      if (result.state == "granted" || result.state == "prompt") {
+        /* write to the clipboard now */
+      }
+    });
     navigator.clipboard.writeText(jsonString);
     ElMessage({
       message: 'Copied to clipboard',
       type: 'success',
     })
+
   }
 }
 
@@ -158,7 +164,20 @@ export const fetchJson = <T extends unknown>(source: 'file' | 'clipboard'): Prom
       }
       input.click();
     } else if (source === 'clipboard') {
-      navigator.clipboard.readText().then((content) => resolve(onFulfilled(content))).catch(reject);
+      // 火狐暂时不支持readText Api
+      if (/firefox/i.test(navigator.userAgent)) {
+        ElMessage({
+          message: 'Firefox does not support clipboard read',
+          type: 'warning',
+        })
+        reject(new ValidError());
+      } else {
+        navigator.permissions.query({ name: "clipboard-read" }).then((result) => {
+          if (result.state == "granted" || result.state == "prompt") {
+            navigator.clipboard.readText().then((content) => resolve(onFulfilled(content))).catch(reject);
+          }
+        });
+      }
     }
   })
 }

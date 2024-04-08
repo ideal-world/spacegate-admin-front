@@ -10,6 +10,7 @@ export default {
     "hostname": "主机名",
     "tlsConfig": "端口",
     "gatewayName": "网关名称",
+    "routeName": "路由名称",
     "priority": "优先级",
     "plugins": "插件",
     "rules": "规则",

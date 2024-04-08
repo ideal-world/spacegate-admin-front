@@ -14,12 +14,12 @@ export function useGateway(name: string): {
         if (!gateway.value) return
         try {
             loading.value = true
-            await Api.put_config_item_gateway(name, gateway.value)
+            await Api.putConfigItemGateway(name, gateway.value)
             ElMessage({
                 message: 'Gateway updated',
                 type: 'success'
             })
-            const newGateway = await Api.get_config_item_gateway(name).then(unwrapResponse)
+            const newGateway = await Api.getConfigItemGateway(name).then(unwrapResponse)
             if (newGateway) {
                 gateway.value = newGateway
             }
@@ -31,7 +31,7 @@ export function useGateway(name: string): {
     }
     onMounted(async () => {
         try {
-            const response = await Api.get_config_item_gateway(name)
+            const response = await Api.getConfigItemGateway(name)
             gateway.value = unwrapResponse(response)
         } catch (e) {
             catchAdminServerError(e)
