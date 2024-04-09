@@ -1,14 +1,12 @@
 import './index.css'
 import './assets/preflight.css'
 import { App } from 'vue'
-import { createPinia } from 'pinia'
 import * as monaco from 'monaco-editor';
 import * as components from './components'
 import * as views from './views'
 
 import { Api } from 'spacegate-admin-client'
 import { ElCollapseTransition } from 'element-plus'
-const pinia = createPinia()
 function install(app: App) {
   Api.Client.axiosInstance.interceptors.response.use(undefined, (error) => {
     if (error.response) {
@@ -26,7 +24,6 @@ function install(app: App) {
     }
     return Promise.reject(error)
   })
-  app.use(pinia)
   for (const key in components) {
     app.component(key, components[key])
   }

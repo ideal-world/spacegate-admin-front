@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import RouterMatchForm from './RouterMatchForm.vue';
 import BackendForm from './BackendForm.vue';
-import FilterListForm from './FilterListForm.vue';
+import PluginListForm from './PluginListForm.vue';
 import OptionalField from "./OptionalField.vue";
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
@@ -97,18 +97,21 @@ const collapse = ref({
                     <div class="flex justify-end items-center flex-nowrap">
                         <el-badge :value="modelValue.backends.length" class="item" type="primary">
                             <el-button :icon="collapse.matches ? ArrowRight : ArrowDown"
-                                @click="() => { collapse.matches = !collapse.matches }" text circle size="large"></el-button>
+                                @click="() => { collapse.matches = !collapse.matches }" text circle
+                                size="large"></el-button>
                         </el-badge>
                     </div>
                     <el-collapse-transition>
                         <div v-if="!collapse.matches" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
-                            <el-card v-for="match, idx in modelValue.matches" class="relative pt-6 flex-grow" shadow="hover">
+                            <el-card v-for="match, idx in modelValue.matches" class="relative pt-6 flex-grow"
+                                shadow="hover">
                                 <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
                                     @click="() => removeMatch(idx)"></el-button>
                                 <RouterMatchForm v-model="modelValue.matches[idx]"></RouterMatchForm>
                             </el-card>
                             <el-col>
-                                <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{ t('button.addMatch') }}</el-button>
+                                <el-button class="w-full" :icon="Plus" @click="addMatch" type="primary">{{
+                                    t('button.addMatch') }}</el-button>
                             </el-col>
                         </div>
                     </el-collapse-transition>
@@ -117,19 +120,21 @@ const collapse = ref({
         </el-collapse-transition>
 
         <el-form-item :label="t('label.plugins')">
-            <FilterListForm v-model="modelValue.filters"></FilterListForm>
+            <PluginListForm v-model="modelValue.plugins"></PluginListForm>
         </el-form-item>
         <el-form-item :label="t('label.backends')">
             <div class="flex flex-col flex-grow">
                 <div class="flex justify-end items-center flex-nowrap">
                     <el-badge :value="modelValue.backends.length" class="item" type="primary">
                         <el-button :icon="collapse.backends ? ArrowRight : ArrowDown"
-                            @click="() => { collapse.backends = !collapse.backends }" text circle size="large"></el-button>
+                            @click="() => { collapse.backends = !collapse.backends }" text circle
+                            size="large"></el-button>
                     </el-badge>
                 </div>
                 <el-collapse-transition>
                     <div v-if="!collapse.backends" class="space-y-2 flex-grow max-h-[80vh] overflow-auto">
-                        <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow" shadow="hover">
+                        <el-card v-for="backend, idx in modelValue.backends" class="relative pt-6 flex-grow"
+                            shadow="hover">
                             <el-button circle text class="absolute top-0 right-0 m-2" :icon="Close"
                                 @click="() => removeBackends(idx)"></el-button>
                             <backend-form :model-value="backend"></backend-form>
@@ -139,8 +144,8 @@ const collapse = ref({
                                 host: {
                                     kind: 'Host', host: 'example.com',
                                 }, port: 80, timeout_ms: null, protocol: null, weight:
-                                    1, filters: [],
-                            })" type="primary">{{  t('button.addBackend') }}</el-button>
+                                    1, plugins: [],
+                            })" type="primary">{{ t('button.addBackend') }}</el-button>
                         </el-col>
                     </div>
                 </el-collapse-transition>
@@ -149,7 +154,8 @@ const collapse = ref({
         <el-form-item :label="t('label.timeout')" prop="timeout_ms">
             <optional-field :default="5000" v-model="modelValue.timeout_ms">
                 <template #some>
-                    <el-input-number v-model="(modelValue.timeout_ms as number)" placeholder="timeout"></el-input-number>
+                    <el-input-number v-model="(modelValue.timeout_ms as number)"
+                        placeholder="timeout"></el-input-number>
                     <span>ms</span>
                 </template>
             </optional-field>

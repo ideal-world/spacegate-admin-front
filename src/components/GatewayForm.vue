@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client';
-import FilterListForm from './FilterListForm.vue';
+import PluginListForm from './PluginListForm.vue';
 import ListenerForm from './ListenerForm.vue';
 import { Plus, Close, Download, Upload, Document, CopyDocument, DocumentCopy } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor';
@@ -16,7 +16,6 @@ const editorRef = ref<HTMLElement | null>(null)
 const modelValue = defineModel<Model.SgGateway>({
     required: true,
 })
-
 
 
 const props = defineProps<{
@@ -163,7 +162,7 @@ const uploadVisible = ref(false)
 
         </el-form-item>
         <el-form-item :label="t('label.plugins')" prop="filters">
-            <FilterListForm v-model="modelValue.filters"></FilterListForm>
+            <PluginListForm v-model="modelValue.plugins"></PluginListForm>
         </el-form-item>
     </el-form>
 </template>

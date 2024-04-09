@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client'
 import { computed, ref, watch } from 'vue';
-import FilterListForm from './FilterListForm.vue';
+import PluginListForm from './PluginListForm.vue';
 import OptionalField from "./OptionalField.vue";
 import { PORT_INPUT_ATTR } from '../constants';
 import { useI18n } from 'vue-i18n'

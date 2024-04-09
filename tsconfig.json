@@ -8,14 +8,28 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "lib": ["esnext", "dom"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationDir": "./dist/types",
     "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["vite/client", "element-plus/global"]
+    "types": [
+      "vite/client",
+      "element-plus/global"
+    ]
   },
-  "include": ["src/**/*.ts",  "src/**/*.tsx", "src/**/*.vue", "src/index.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "components.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/index.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

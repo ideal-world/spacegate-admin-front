@@ -4,7 +4,7 @@ aside: false
 <script setup>
 import RouterMatchForm from 'spacegate-admin/components/RouterMatchForm.vue'
 import RouteRuleForm from 'spacegate-admin/components/RouteRuleForm.vue'
-import FilterForm from 'spacegate-admin/components/FilterForm.vue'
+import PluginForm from 'spacegate-admin/components/PluginForm.vue'
 import BackendForm from 'spacegate-admin/components/BackendForm.vue'
 import {ref} from 'vue'
 const headerMatchFormValue = ref({
@@ -19,7 +19,7 @@ const routeRuleFormValue = ref({
   backends: [],
   timeout_ms: null,
 })
-const filterFormValue = ref({
+const PluginFormValue = ref({
   code: 'code',
   spec: {
 
@@ -47,6 +47,6 @@ const backendFormValue = ref({
   <code>
     {{routeRuleFormValue}}
   </code>
-  <FilterForm v-model="filterFormValue"/>
+  <PluginForm v-model="PluginFormValue"/>
   <BackendForm v-model="backendFormValue"/>
 </DemoContainer>

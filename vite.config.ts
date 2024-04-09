@@ -49,7 +49,7 @@ export default defineConfig({
     },
     include: ['src/**/*'],
     rollupOptions: {
-      external: ['vue', 'pinia', /element-plus\/.+/],
+      external: ['vue', 'spacegate-admin-client', /element-plus\/.+/],
       output: {
         exports: 'named',
         globals: {

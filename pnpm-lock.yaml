@@ -30,8 +30,8 @@ dependencies:
     specifier: ^6.12.0
     version: 6.12.0
   spacegate-admin-client:
-    specifier: 0.2.0-alpha.5
-    version: 0.2.0-alpha.5
+    specifier: 0.2.0-alpha.8
+    version: 0.2.0-alpha.8
   vue:
     specifier: ^3.3.4
     version: 3.4.21(typescript@5.4.4)
@@ -41,8 +41,8 @@ dependencies:
 
 devDependencies:
   '@types/node':
-    specifier: ^20.12.5
-    version: 20.12.5
+    specifier: ^20.12.6
+    version: 20.12.6
   '@types/qs':
     specifier: ^6.9.14
     version: 6.9.14
@@ -78,10 +78,10 @@ devDependencies:
     version: 0.25.2(vue@3.4.21)
   vite:
     specifier: ^5.2.8
-    version: 5.2.8(@types/node@20.12.5)(sass@1.74.1)
+    version: 5.2.8(@types/node@20.12.6)(sass@1.74.1)
   vitepress:
     specifier: 1.0.0-rc.34
-    version: 1.0.0-rc.34(@algolia/client-search@4.23.2)(@types/node@20.12.5)(axios@1.6.8)(postcss@8.4.38)(sass@1.74.1)(search-insights@2.13.0)(typescript@5.4.4)
+    version: 1.0.0-rc.34(@algolia/client-search@4.23.2)(@types/node@20.12.6)(axios@1.6.8)(postcss@8.4.38)(sass@1.74.1)(search-insights@2.13.0)(typescript@5.4.4)
   vue-tsc:
     specifier: ^1.8.27
     version: 1.8.27(typescript@5.4.4)
@@ -849,8 +849,8 @@ packages:
     resolution: {integrity: sha512-6L6VymKTzYSrEf4Nev4Xa1LCHKrlTlYCBMTlQKFuddo1CvQcE52I0mwfOJayueUC7MJuXOeHTcIU683lzd0cUA==}
     dev: true
 
-  /@types/node@20.12.5:
-    resolution: {integrity: sha512-BD+BjQ9LS/D8ST9p5uqBxghlN+S42iuNxjsUGjeZobe/ciXzk2qb1B6IXc6AnRLS+yFJRpN2IPEHMzwspfDJNw==}
+  /@types/node@20.12.6:
+    resolution: {integrity: sha512-3KurE8taB8GCvZBPngVbp0lk5CKi8M9f9k1rsADh0Evdz5SzJ+Q+Hx9uHoFGsLnLnd1xmkDQr2hVhlA0Mn0lKQ==}
     dependencies:
       undici-types: 5.26.5
     dev: true
@@ -874,7 +874,7 @@ packages:
       vite: ^4.0.0 || ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.2.8(@types/node@20.12.5)(sass@1.74.1)
+      vite: 5.2.8(@types/node@20.12.6)(sass@1.74.1)
       vue: 3.4.21(typescript@5.4.4)
     dev: true
 
@@ -885,7 +885,7 @@ packages:
       vite: ^5.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 5.2.8(@types/node@20.12.5)(sass@1.74.1)
+      vite: 5.2.8(@types/node@20.12.6)(sass@1.74.1)
       vue: 3.4.21(typescript@5.4.4)
     dev: true
 
@@ -1180,7 +1180,7 @@ packages:
       postcss: ^8.1.0
     dependencies:
       browserslist: 4.23.0
-      caniuse-lite: 1.0.30001606
+      caniuse-lite: 1.0.30001607
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.0.0
@@ -1224,8 +1224,8 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-      caniuse-lite: 1.0.30001606
-      electron-to-chromium: 1.4.729
+      caniuse-lite: 1.0.30001607
+      electron-to-chromium: 1.4.730
       node-releases: 2.0.14
       update-browserslist-db: 1.0.13(browserslist@4.23.0)
     dev: true
@@ -1246,8 +1246,8 @@ packages:
     engines: {node: '>= 6'}
     dev: true
 
-  /caniuse-lite@1.0.30001606:
-    resolution: {integrity: sha512-LPbwnW4vfpJId225pwjZJOgX1m9sGfbw/RKJvw/t0QhYOOaTXHvkjVGFGPpvwEzufrjvTlsULnVTxdy4/6cqkg==}
+  /caniuse-lite@1.0.30001607:
+    resolution: {integrity: sha512-WcvhVRjXLKFB/kmOFVwELtMxyhq3iM/MvmXcyCe2PNf166c39mptscOc/45TTS96n2gpNV2z7+NakArTWZCQ3w==}
     dev: true
 
   /chokidar@3.6.0:
@@ -1354,8 +1354,8 @@ packages:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
     dev: true
 
-  /electron-to-chromium@1.4.729:
-    resolution: {integrity: sha512-bx7+5Saea/qu14kmPTDHQxkp2UnziG3iajUQu3BxFvCOnpAJdDbMV4rSl+EqFDkkpNNVUFlR1kDfpL59xfy1HA==}
+  /electron-to-chromium@1.4.730:
+    resolution: {integrity: sha512-oJRPo82XEqtQAobHpJIR3zW5YO3sSRRkPz2an4yxi1UvqhsGm54vR/wzTFV74a3soDOJ8CKW7ajOOX5ESzddwg==}
     dev: true
 
   /element-plus@2.6.3(vue@3.4.21):
@@ -2252,8 +2252,8 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
-  /spacegate-admin-client@0.2.0-alpha.5:
-    resolution: {integrity: sha512-4GyzcyBSEo6KLAaneo6IwuZIHfP53hCDOccMouxVrBRl9m+35CJ0KITGGgeYxvNpmi0c+8SWp7h4eToonWeUEA==}
+  /spacegate-admin-client@0.2.0-alpha.8:
+    resolution: {integrity: sha512-im6xDnNoSFvH9Ve7t9fLBU5n2Tc7lB57Tzs/aVfCYqIBj/EXlVRF1pr5B9ET1gbgmfOOa55pjFBxOXQ+XH77ag==}
     dependencies:
       axios: 1.6.8
     transitivePeerDependencies:
@@ -2527,7 +2527,7 @@ packages:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
     dev: true
 
-  /vite@5.2.8(@types/node@20.12.5)(sass@1.74.1):
+  /vite@5.2.8(@types/node@20.12.6)(sass@1.74.1):
     resolution: {integrity: sha512-OyZR+c1CE8yeHw5V5t59aXsUPPVTHMDjEZz8MgguLL/Q7NblxhZUlTu9xSPqlsUO/y+X7dlU05jdhvyycD55DA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -2555,7 +2555,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 20.12.5
+      '@types/node': 20.12.6
       esbuild: 0.20.2
       postcss: 8.4.38
       rollup: 4.14.1
@@ -2564,7 +2564,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitepress@1.0.0-rc.34(@algolia/client-search@4.23.2)(@types/node@20.12.5)(axios@1.6.8)(postcss@8.4.38)(sass@1.74.1)(search-insights@2.13.0)(typescript@5.4.4):
+  /vitepress@1.0.0-rc.34(@algolia/client-search@4.23.2)(@types/node@20.12.6)(axios@1.6.8)(postcss@8.4.38)(sass@1.74.1)(search-insights@2.13.0)(typescript@5.4.4):
     resolution: {integrity: sha512-TUbTiSdAZFni2XlHlpx61KikgkQ5uG4Wtmw2R0SXhIOG6qGqzDJczAFjkMc4i45I9c3KyatwOYe8oEfCnzVYwQ==}
     hasBin: true
     peerDependencies:
@@ -2591,7 +2591,7 @@ packages:
       shikiji: 0.9.19
       shikiji-core: 0.9.19
       shikiji-transformers: 0.9.19
-      vite: 5.2.8(@types/node@20.12.5)(sass@1.74.1)
+      vite: 5.2.8(@types/node@20.12.6)(sass@1.74.1)
       vue: 3.4.21(typescript@5.4.4)
     transitivePeerDependencies:
       - '@algolia/client-search'

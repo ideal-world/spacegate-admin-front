@@ -1,7 +1,7 @@
 import { ElMessage } from 'element-plus';
 import basic from './basic'
 import { AxiosError, AxiosResponse } from 'axios';
-import { Api } from 'spacegate-admin-client'
+import { Api, Model } from 'spacegate-admin-client'
 export {
   basic,
 }
@@ -58,7 +58,7 @@ export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T
 }
 
 export const downloadConfigItem = async (name: string) => {
-  const response = await Api.get_config_item(name);
+  const response = await Api.getConfigItem(name);
   const gateway = unwrapResponse(response);
   const a = document.createElement('a');
   const file = new Blob([JSON.stringify(gateway, null, 2)], { type: 'application/json' });
@@ -81,7 +81,7 @@ export const uploadConfigItem = async (name: string) => {
         const content = e.target?.result as string;
         try {
           const json = JSON.parse(content);
-          await Api.put_config_item(name, json);
+          await Api.putConfigItem(name, json);
           ElMessage({
             message: 'Gateway updated',
             type: 'success'
@@ -216,4 +216,25 @@ function mapLightness(color: string, range: [number, number]): string {
   const g = mapPhase(parseInt(color.substring(3, 5), 16));
   const b = mapPhase(parseInt(color.substring(5, 7), 16));
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+export function keyPluginId(item: Model.PluginInstanceId) {
+  switch (item.kind) {
+    case 'named':
+      return `${item.code}-n-${item.name}`
+    case 'anon':
+      return `${item.code}-a-${item.uid}`
+    case 'mono':
+      return `${item.code}-m`
+  }
+}
+export function labelPluginId(item: Model.PluginInstanceId) {
+  switch (item.kind) {
+    case 'named':
+      return item.name
+    case 'anon':
+      return item.uid.toString().padStart(16, '0')
+    case 'mono':
+      return item.code
+  }
 }

@@ -30,7 +30,7 @@ const newGateway = ref<Model.SgGateway>(cloneDeep(DEFAULT_NEW_GATEWAY))
 const getOptions = async () => {
     optionsPending.value = true
     try {
-        const resp = await Api.get_config_names().then(unwrapResponse);
+        const resp = await Api.getConfigNames().then(unwrapResponse<string[]>);
         options.value = resp;
     } finally {
         optionsPending.value = false;
@@ -43,7 +43,7 @@ const deleteOptions = async (name: string) => {
     });
     optionsPending.value = true
     try {
-        await Api.delete_config_item_gateway(name);
+        await Api.deleteConfigItemGateway(name);
         await getOptions();
         modelValue.value = options.value[0]
     } finally {
@@ -65,7 +65,7 @@ const createNewRoute = async () => {
         ElMessage.error(t('lint.duplicatedGatewayName'));
         throw new ValidError()
     }
-    await Api.post_config_item_gateway(newGateway.value.name, newGateway.value).then(unwrapResponse);
+    await Api.postConfigItemGateway(newGateway.value.name, newGateway.value).then(unwrapResponse);
     await getOptions();
 }
 
@@ -102,13 +102,13 @@ onMounted(() => {
                         {{ t('button.cancel') }}
                     </el-button>
                     <el-button :icon="Plus" type="primary" @click="async () => {
-        try {
-            await createNewRoute()
-            closeDialog()
-        } catch (e) {
+                        try {
+                            await createNewRoute()
+                            closeDialog()
+                        } catch (e) {
 
-        }
-    }">
+                        }
+                    }">
                         {{ t('button.create') }}
                     </el-button>
                 </template>

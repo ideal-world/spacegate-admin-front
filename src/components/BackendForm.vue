@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Model } from "spacegate-admin-client"
 import OptionalField from "./OptionalField.vue";
-import FilterListForm from './FilterListForm.vue';
+import PluginListForm from './PluginListForm.vue';
 import { PORT_INPUT_ATTR } from '../constants';
 import { useI18n } from 'vue-i18n'
 
@@ -36,12 +36,15 @@ const modelValue = defineModel<Model.SgBackendRef>({
                     <el-input v-model="modelValue.host.host"></el-input>
                 </div>
                 <div v-if="modelValue.host.kind === 'K8sService'" class="flex-grow flex space-x-1">
-                    <el-input v-model="modelValue.host.name" class="flex-grow" :placeholder="t('placeholder.name')"></el-input>
+                    <el-input v-model="modelValue.host.name" class="flex-grow"
+                        :placeholder="t('placeholder.name')"></el-input>
                     <span>.</span>
-                    <el-input v-model="modelValue.host.namespace" class="flex-grow" :placeholder="t('placeholder.namespace')"></el-input>
+                    <el-input v-model="modelValue.host.namespace" class="flex-grow"
+                        :placeholder="t('placeholder.namespace')"></el-input>
                 </div>
                 <span>:</span>
-                <el-input-number class="text-left" v-model="modelValue.port" placeholder="port" v-bind="PORT_INPUT_ATTR"></el-input-number>
+                <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
+                    v-bind="PORT_INPUT_ATTR"></el-input-number>
             </div>
         </el-form-item>
         <el-row>
@@ -75,7 +78,7 @@ const modelValue = defineModel<Model.SgBackendRef>({
             </el-col>
         </el-row>
         <el-form-item :label="t('label.plugins')" prop="filters">
-            <FilterListForm v-model="modelValue.filters"></FilterListForm>
+            <PluginListForm v-model="modelValue.plugins"></PluginListForm>
         </el-form-item>
     </el-form>
 </template>
