@@ -30,18 +30,16 @@ const showRouteNames = computed(() => {
 const routeNamesPending = ref(true)
 const dialogOpen = ref(false);
 const dialogModel = ref<Model.SgHttpRoute>({
-    gateway_name: props.gatewayName,
     hostnames: null,
-    filters: [],
+    plugins: [],
     rules: [],
     priority: 1,
 })
 const dialogRouteName = ref('new route');
 const resetDialogModel = () => {
     dialogModel.value = {
-        gateway_name: props.gatewayName,
         hostnames: null,
-        filters: [],
+        plugins: [],
         rules: [],
         priority: 1,
     }
@@ -120,7 +118,7 @@ onMounted(() => {
 
 <template>
     <div class="flex flex-col space-y-2">
-        <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen">
+        <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen" >
             <el-input v-model="dialogRouteName" class="flex-grow my-3" placeholder="route name"
                 :disabled="dialogMode === 'edit'"></el-input>
             <RouteForm v-model="dialogModel" :name="dialogRouteName" :mode="dialogMode"></RouteForm>

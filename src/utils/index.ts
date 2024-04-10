@@ -2,6 +2,7 @@ import { ElMessage } from 'element-plus';
 import basic from './basic'
 import { AxiosError, AxiosResponse } from 'axios';
 import { Api, Model } from 'spacegate-admin-client'
+import { customAlphabet } from 'nanoid';
 export {
   basic,
 }
@@ -233,8 +234,14 @@ export function labelPluginId(item: Model.PluginInstanceId) {
     case 'named':
       return item.name
     case 'anon':
-      return item.uid.toString().padStart(16, '0')
+      return ''
     case 'mono':
-      return item.code
+      return ''
   }
+}
+const nanoid = customAlphabet('0123456789abcdef', 16)
+export function randomU64(): bigint {
+  const hex = '0x' + nanoid()
+  const integer = BigInt(hex)
+  return integer
 }

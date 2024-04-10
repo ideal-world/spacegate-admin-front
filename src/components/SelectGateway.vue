@@ -95,7 +95,7 @@ onMounted(() => {
 <template>
     <el-select v-loading="optionsPending" v-model="modelValue" placeholder="Select a gateway">
         <template #header>
-            <el-dialog v-model="newGatewayDialog" width="70%" align-center>
+            <el-dialog v-model="newGatewayDialog" width="70%" align-center :close-on-click-modal="false" append-to-body>
                 <GatewayForm v-model="newGateway" mode="create" class="flex-grow space-y-2"></GatewayForm>
                 <template #footer>
                     <el-button :icon="Close" @click="closeDialog">

@@ -9,7 +9,7 @@ export async function updateAllSchema() {
     let resp = await Api.pluginList();
     let list = unwrapResponse(resp);
     let schemas = list.map(code => ({
-        uri: `http:///plugin/schema/${code}`,
+        uri: `http:///api/plugin/schema/${code}`,
         fileMatch: [
             `**/${code}/*.json`,
         ],
