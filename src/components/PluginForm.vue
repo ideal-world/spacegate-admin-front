@@ -41,13 +41,6 @@ watch(() => modelValue.value.code, async (code) => {
     }
 }, { immediate: true })
 
-const uidDisplay = computed(() => {
-    if (modelValue.value.kind === 'anon') {
-        return modelValue.value.uid.toString(16).padStart(16, '0')
-    } else {
-        ''
-    }
-});
 </script>
 
 <template>
@@ -55,7 +48,7 @@ const uidDisplay = computed(() => {
         <el-input v-model="modelValue.name" placeholder="Name"></el-input>
     </el-form-item>
     <el-form-item v-if="modelValue.kind === 'anon'" :label="t('label.anonUid')" prop="name">
-        <el-input v-model="uidDisplay" placeholder="Uid" disabled></el-input>
+        <el-input v-model="modelValue.uid" placeholder="Uid" disabled></el-input>
     </el-form-item>
     <!-- <el-form-item :label="t('label.code')" prop="code">
         <el-select v-model="modelValue.code" filterable allow-create default-first-option>

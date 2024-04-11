@@ -240,8 +240,7 @@ export function labelPluginId(item: Model.PluginInstanceId) {
   }
 }
 const nanoid = customAlphabet('0123456789abcdef', 16)
-export function randomU64(): bigint {
-  const hex = '0x' + nanoid()
-  const integer = BigInt(hex)
-  return integer
+export function randomUid(): string {
+  const hex = nanoid()
+  return hex
 }

@@ -21,7 +21,6 @@ import './assets/main.scss'
 import { ElMessage } from 'element-plus'
 export default { install }
 export { SpacegateService } from './service'
-export { LOCALES } from './locales'
 export * from './components'
 export * from './constants'
 export * from './utils'

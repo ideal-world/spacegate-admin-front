@@ -30,14 +30,15 @@ const showRouteNames = computed(() => {
 const routeNamesPending = ref(true)
 const dialogOpen = ref(false);
 const dialogModel = ref<Model.SgHttpRoute>({
+    route_name: 'new route',
     hostnames: null,
     plugins: [],
     rules: [],
     priority: 1,
 })
-const dialogRouteName = ref('new route');
 const resetDialogModel = () => {
     dialogModel.value = {
+        route_name: 'new route',
         hostnames: null,
         plugins: [],
         rules: [],
@@ -46,10 +47,10 @@ const resetDialogModel = () => {
 }
 const dialogMode = ref<'create' | 'edit'>('create');
 const openDialog = async (name: string, mode: 'create' | 'edit') => {
-    dialogRouteName.value = name;
+    dialogModel.value.route_name = name;
     dialogMode.value = mode;
     if (mode === 'edit') {
-        const resp = await Api.get_config_item_route(props.gatewayName, name).then(unwrapResponse);
+        const resp = await Api.getConfigItemRoute(props.gatewayName, name).then(unwrapResponse);
         if (resp === null) {
             ElMessage.error('route not found');
         } else {
@@ -70,14 +71,14 @@ const refresh = () => {
 const getRouteNames = async () => {
     routeNamesPending.value = true
     try {
-        const resp = await Api.get_config_item_route_names(props.gatewayName).then(unwrapResponse);
+        const resp = await Api.getConfigItemRouteNames(props.gatewayName).then(unwrapResponse);
         routeNames.value = resp;
     } finally {
         routeNamesPending.value = false;
     }
 }
 const putRoute = async (name: string, route: Model.SgHttpRoute) => {
-    await Api.put_config_item_route(props.gatewayName, name, route).catch(catchAdminServerError)
+    await Api.putConfigItemRoute(props.gatewayName, name, route).catch(catchAdminServerError)
     await getRouteNames();
 }
 class UserCancel extends Error {
@@ -95,7 +96,7 @@ const postRoute = async (name: string, route: Model.SgHttpRoute) => {
             throw new UserCancel();
         }
     }
-    await Api.post_config_item_route(props.gatewayName, name, route).catch(catchAdminServerError);
+    await Api.postConfigItemRoute(props.gatewayName, name, route).catch(catchAdminServerError);
     await getRouteNames();
 }
 const deleteRoute = async (name: string) => {
@@ -104,7 +105,7 @@ const deleteRoute = async (name: string) => {
     });
     routeNamesPending.value = true
     try {
-        await Api.delete_config_item_route(props.gatewayName, name).catch(catchAdminServerError);
+        await Api.deleteConfigItemRoute(props.gatewayName, name).catch(catchAdminServerError);
         await getRouteNames();
     } finally {
         routeNamesPending.value = false;
@@ -119,9 +120,7 @@ onMounted(() => {
 <template>
     <div class="flex flex-col space-y-2">
         <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen" >
-            <el-input v-model="dialogRouteName" class="flex-grow my-3" placeholder="route name"
-                :disabled="dialogMode === 'edit'"></el-input>
-            <RouteForm v-model="dialogModel" :name="dialogRouteName" :mode="dialogMode"></RouteForm>
+            <RouteForm v-model="dialogModel" :name="dialogModel.route_name" :mode="dialogMode"></RouteForm>
             <template #footer>
                 <el-button :icon="Close" @click="closeDialog">
                     {{ t('button.cancel') }}
@@ -129,9 +128,9 @@ onMounted(() => {
                 <el-button type="primary" :icon="Check" @click="async () => {
             try {
                 if (dialogMode === 'create') {
-                    await postRoute(dialogRouteName, dialogModel)
+                    await postRoute(dialogModel.route_name, dialogModel)
                 } else if (dialogMode === 'edit') {
-                    await putRoute(dialogRouteName, dialogModel)
+                    await putRoute(dialogModel.route_name, dialogModel)
                 }
                 closeDialog()
             } catch (e) {

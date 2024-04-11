@@ -76,7 +76,7 @@ const uploadVisible = ref(false)
     <el-form label-width="auto" label-suffix=":" class="space-y-2">
         <el-button-group class="mb-4">
             <el-popover :visible="uploadVisible" placement="top" :width="160">
-                <p>{{ t('lint.chooseASource') }}</p>
+                <p>{{ t('hint.chooseASource') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                 uploadConfig('clipboard')
@@ -93,7 +93,7 @@ const uploadVisible = ref(false)
                 </template>
             </el-popover>
             <el-popover :visible="downloadVisible" placement="top" :width="160">
-                <p>{{ t('lint.chooseATarget') }}</p>
+                <p>{{ t('hint.chooseATarget') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                 downloadConfig('clipboard')

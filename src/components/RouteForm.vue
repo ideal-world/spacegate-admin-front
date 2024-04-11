@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const modelValue = defineModel<Model.SgHttpRoute>({
     default: {
-        gateway_name: "",
+        route_name: "",
         hostnames: null,
         filters: [],
         rules: [],
@@ -62,7 +62,7 @@ const uploadVisible = ref(false)
     <el-form label-width="auto" label-suffix=":">
         <el-button-group class="mb-4">
             <el-popover :visible="uploadVisible" placement="top" :width="160">
-                <p>{{ t('lint.chooseASource') }}</p>
+                <p>{{ t('hint.chooseASource') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                 uploadConfig('clipboard')
@@ -79,7 +79,7 @@ const uploadVisible = ref(false)
                 </template>
             </el-popover>
             <el-popover :visible="downloadVisible" placement="top" :width="160">
-                <p>{{ t('lint.chooseATarget') }}</p>
+                <p>{{ t('hint.chooseATarget') }}</p>
                 <div>
                     <el-button size="small" type="primary" @click="() => {
                 downloadConfig('clipboard')
@@ -97,8 +97,8 @@ const uploadVisible = ref(false)
                 </template>
             </el-popover>
         </el-button-group>
-        <el-form-item :label="t('label.routeName')" prop="gateway_name">
-            <el-input v-model="modelValue.route_name" placeholder="Gateway Name" disabled></el-input>
+        <el-form-item :label="t('label.routeName')" prop="route_name">
+            <el-input v-model="modelValue.route_name" placeholder="Route Name"></el-input>
         </el-form-item>
         <el-form-item :label="t('label.hostname')" prop="hostnames">
             <OptionalField v-model="modelValue.hostnames" :default="[]" class="flex flex-col flex-grow space-y-1">

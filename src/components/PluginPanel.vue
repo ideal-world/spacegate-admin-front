@@ -64,7 +64,7 @@ const closeDialog = async (action: 'save' | 'cancel' | 'update') => {
             await refreshPluginInstancesList(code.value);
         } catch (e) {
             ElMessage.error(e.message);
-        } 
+        }
     } else if (action === 'update') {
         try {
             await updatePlugin();
@@ -72,7 +72,7 @@ const closeDialog = async (action: 'save' | 'cancel' | 'update') => {
             await refreshPluginInstancesList(code.value);
         } catch (e) {
             ElMessage.error(e.message);
-        } 
+        }
     } else {
         dialogVisible.value = false;
     }
@@ -112,7 +112,7 @@ const createPlugin = async () => {
     }
     await Api.postConfigPlugin(config);
 }
-const updatePlugin= async () => {
+const updatePlugin = async () => {
     if (formRef.value === null) {
         return;
     }
@@ -124,7 +124,7 @@ const updatePlugin= async () => {
 }
 </script>
 <template>
-    <el-select v-model="code">
+    <el-select filterable v-model="code">
         <el-option v-for="pluginCode in codeOptions" :label="pluginCode" :value=pluginCode></el-option>
     </el-select>
     <el-descriptions v-if="attr" border>
@@ -155,14 +155,15 @@ const updatePlugin= async () => {
         </div>
         <div class="flex flex-wrap items-start space-y-2 space-x-2">
 
-            <el-card v-for="instance in instances.filter((c) => c.kind === 'named')" 
-                class="inline-block flex justify-between border-b border-gray-300 p-2 my-2"
-                shadow="hover"
-                >
+            <el-card v-for="instance in instances.filter((c) => {
+                return c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))
+            })" class="inline-block flex justify-between border-b border-gray-300 p-2 my-2" shadow="hover">
                 <span class="flex-grow mx-2">{{ instance.name }}</span>
                 <el-button-group>
-                    <el-button size="small" :icon="Edit" type="primary" @click="() => editInstance(instance)">Edit</el-button>
-                    <el-button size="small" :icon="Delete" type="danger" @click="() => deleteInstance(instance)">Delete</el-button>
+                    <el-button size="small" :icon="Edit" type="primary"
+                        @click="() => editInstance(instance)">Edit</el-button>
+                    <el-button size="small" :icon="Delete" type="danger"
+                        @click="() => deleteInstance(instance)">Delete</el-button>
                 </el-button-group>
             </el-card>
         </div>

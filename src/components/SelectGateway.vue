@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Model, Api } from 'spacegate-admin-client'
-import { Delete, Plus, Close, Download, Upload } from '@element-plus/icons-vue'
+import { Delete, Plus, Close, Download, Upload, Check } from '@element-plus/icons-vue'
 import RouteForm from './RouteForm.vue'
 
 import { computed, ref, onMounted } from 'vue';
@@ -15,7 +15,7 @@ const modelValue = defineModel<string>()
 const options = ref<string[]>([])
 const optionsPending = ref(true)
 const newGatewayDialog = ref(false)
-const DEFAULT_NEW_GATEWAY = {
+const DEFAULT_NEW_GATEWAY: Model.SgGateway = {
     name: 'New Gateway',
     parameters: {
         redis_url: null,
@@ -24,7 +24,7 @@ const DEFAULT_NEW_GATEWAY = {
         ignore_tls_verification: null,
     },
     listeners: [],
-    filters: [],
+    plugins: [],
 }
 const newGateway = ref<Model.SgGateway>(cloneDeep(DEFAULT_NEW_GATEWAY))
 const getOptions = async () => {
@@ -38,7 +38,7 @@ const getOptions = async () => {
 }
 
 const deleteOptions = async (name: string) => {
-    await ElMessageBox.confirm(t('lint.confirmDeleteGateway'), {
+    await ElMessageBox.confirm(t('hint.confirmDeleteGateway'), {
         confirmButtonClass: 'el-button--danger',
     });
     optionsPending.value = true
@@ -58,11 +58,11 @@ const openDialog = () => {
 
 const createNewRoute = async () => {
     if (newGateway.value.name === '') {
-        ElMessage.error(t('lint.missingGatewayName'));
+        ElMessage.error(t('hint.missingGatewayName'));
         throw new ValidError()
     }
     if (options.value.includes(newGateway.value.name)) {
-        ElMessage.error(t('lint.duplicatedGatewayName'));
+        ElMessage.error(t('hint.duplicatedGatewayName'));
         throw new ValidError()
     }
     await Api.postConfigItemGateway(newGateway.value.name, newGateway.value).then(unwrapResponse);
@@ -77,7 +77,7 @@ const closeDialog = () => {
 
 const uploadConfigWithConfirm = async (name: string) => {
     let result = await ElMessageBox.confirm(
-        t('lint.confirmOverwriteConfig'),
+        t('hint.confirmOverwriteConfig'),
         {
             confirmButtonClass: 'el-button--danger'
         }
@@ -101,12 +101,12 @@ onMounted(() => {
                     <el-button :icon="Close" @click="closeDialog">
                         {{ t('button.cancel') }}
                     </el-button>
-                    <el-button :icon="Plus" type="primary" @click="async () => {
+                    <el-button :icon="Check" type="primary" @click="async () => {
                         try {
                             await createNewRoute()
                             closeDialog()
                         } catch (e) {
-
+                            console.error(e)
                         }
                     }">
                         {{ t('button.create') }}
