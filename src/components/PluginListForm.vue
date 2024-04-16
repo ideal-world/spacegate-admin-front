@@ -5,9 +5,8 @@ import { cloneDeep } from 'lodash';
 import { ref } from 'vue';
 import { hashColor, labelPluginId, keyPluginId } from '../utils';
 import PluginSelect from './PluginSelect.vue';
-import { useI18n } from 'vue-i18n'
-import Draggable from 'vuedraggable'
 import { PluginInstanceId } from 'spacegate-admin-client/dist/model';
+import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
 const modelValue = defineModel<Model.PluginInstanceId[]>({
     default: []

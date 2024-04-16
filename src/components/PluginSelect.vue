@@ -108,13 +108,13 @@ onMounted(async () => {
         :inactive-text="t('hint.selectAnInstance')"></el-switch>
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
         <el-form-item :label="t('label.code')">
-            <el-select v-model="code">
+            <el-select filterable v-model="code">
                 <el-option v-for="item in pluginOptions" :key="item" :label="item" :value="item" />
             </el-select>
         </el-form-item>
         <plugin-form ref="formRef" v-if="createNew" :attr="attr" v-model="newConfig" />
         <el-form-item v-else :label="t('label.instance')">
-            <el-select v-model="modelValue">
+            <el-select filterable v-model="modelValue">
                 <el-option v-for="(item) in pluginIds.filter((id) => id.code === code && id.kind === 'named')"
                     :key="keyPluginId(item)" :label="labelPluginId(item)" :value="item" />
             </el-select>

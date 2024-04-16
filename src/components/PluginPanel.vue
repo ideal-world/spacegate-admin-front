@@ -6,6 +6,8 @@ import { Plus, Delete, Check, Edit } from '@element-plus/icons-vue'
 import { PluginForm } from '.';
 import { PluginConfig } from 'spacegate-admin-client/dist/model';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 const codeOptions = ref([]);
 const code = ref<string | undefined>();
 const attr = ref<Model.PluginAttributes | undefined>();
@@ -56,18 +58,10 @@ const openCreateDialog = () => {
     dialogTitle.value = `Create Instance`;
     dialogVisible.value = true;
 }
-const closeDialog = async (action: 'save' | 'cancel' | 'update') => {
+const closeDialog = async (action: 'save' | 'cancel') => {
     if (action === 'save') {
         try {
             await savePlugin();
-            dialogVisible.value = false;
-            await refreshPluginInstancesList(code.value);
-        } catch (e) {
-            ElMessage.error(e.message);
-        }
-    } else if (action === 'update') {
-        try {
-            await updatePlugin();
             dialogVisible.value = false;
             await refreshPluginInstancesList(code.value);
         } catch (e) {
@@ -82,7 +76,7 @@ const savePlugin = async () => {
     if (dialogMode.value === 'create') {
         await createPlugin();
     } else {
-        // await saveEditedPlugin();
+        await updatePlugin();
     }
 }
 const editInstance = async (instance: Model.PluginConfig) => {
@@ -151,19 +145,19 @@ const updatePlugin = async () => {
     <div v-if="attr !== undefined && !attr.mono && instances !== undefined">
         <div class="flex items-start space-x-2">
             <el-input v-model="searchText" placeholder="Search Instance Name"></el-input>
-            <el-button :icon="Plus" type="primary" @click="openCreateDialog">Create</el-button>
+            <el-button :icon="Plus" type="primary" @click="openCreateDialog">{{t('button.create')}}</el-button>
         </div>
         <div class="flex flex-wrap items-start space-y-2 space-x-2">
 
             <el-card v-for="instance in instances.filter((c) => {
                 return c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))
             })" class="inline-block flex justify-between border-b border-gray-300 p-2 my-2" shadow="hover">
-                <span class="flex-grow mx-2">{{ instance.name }}</span>
+                <span class="flex-grow mx-2">{{ instance.kind === 'named' ? instance.name : undefined }}</span>
                 <el-button-group>
                     <el-button size="small" :icon="Edit" type="primary"
-                        @click="() => editInstance(instance)">Edit</el-button>
+                        @click="() => editInstance(instance)">{{t('button.edit')}}</el-button>
                     <el-button size="small" :icon="Delete" type="danger"
-                        @click="() => deleteInstance(instance)">Delete</el-button>
+                        @click="() => deleteInstance(instance)">{{t('button.delete')}}</el-button>
                 </el-button-group>
             </el-card>
         </div>
@@ -174,8 +168,8 @@ const updatePlugin = async () => {
             </template>
             <plugin-form ref="formRef" :attr="attr" v-model="formPluginConfig"></plugin-form>
             <template #footer>
-                <el-button :icon="Delete" @click="() => closeDialog('cancel')">Cancel</el-button>
-                <el-button :icon="Check" type="primary" @click="() => closeDialog('save')">Save</el-button>
+                <el-button :icon="Delete" @click="() => closeDialog('cancel')">{{t('button.cancel')}}</el-button>
+                <el-button :icon="Check" type="primary" @click="() => closeDialog('save')">{{t('button.save')}}</el-button>
             </template>
         </el-dialog>
     </div>

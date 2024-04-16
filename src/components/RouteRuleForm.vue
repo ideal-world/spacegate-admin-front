@@ -92,10 +92,10 @@ const collapse = ref({
             <el-switch v-model="matchAll"></el-switch>
         </el-form-item>
         <el-collapse-transition>
-            <el-form-item :label="t('label.matches')" v-if="modelValue.matches !== null">
+            <el-form-item :label="t('label.matchAndRewrite')" v-if="modelValue.matches !== null">
                 <div class="flex flex-col flex-grow">
                     <div class="flex justify-end items-center flex-nowrap">
-                        <el-badge :value="modelValue.backends.length" class="item" type="primary">
+                        <el-badge :value="modelValue.matches.length" class="item" type="primary">
                             <el-button :icon="collapse.matches ? ArrowRight : ArrowDown"
                                 @click="() => { collapse.matches = !collapse.matches }" text circle
                                 size="large"></el-button>

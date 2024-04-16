@@ -3,6 +3,7 @@ import { Model } from 'spacegate-admin-client'
 import { computed, ref, watch } from 'vue';
 import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import OptionalField from './OptionalField.vue'
 const { t } = useI18n();
 
 const modelValue = defineModel<Model.SgHttpRouteMatch>({
@@ -51,7 +52,8 @@ const enable = ref({
             if (v) {
                 modelValue.value.path = {
                     kind: "Prefix",
-                    value: "/"
+                    value: "/",
+                    replace: null,
                 }
             } else {
                 modelValue.value.path = null
@@ -133,28 +135,40 @@ const removeQueryItem = (idx: number) => {
             <el-checkbox v-model="enable.method">{{ t('label.matchMethod') }}</el-checkbox>
         </el-form-item>
         <el-form-item :label="t('label.path')" v-if="modelValue.path !== null">
-            <el-input v-model="modelValue.path.value">
-                <template #prepend>
-                    <el-select v-model="modelValue.path.kind" style="width: 115px">
-                        <el-option :label="t('label.exact')" value="Exact" />
-                        <el-option :label="t('label.prefix')" value="Prefix" />
-                        <el-option :label="t('label.regExp')" value="Regular" />
-                    </el-select>
-                </template>
-            </el-input>
+            <div class="flex flex-row flex-grow items-center flex-nowrap pr-2">
+                <el-input v-model="modelValue.path.value">
+                    <template #prepend>
+                        <el-select v-model="modelValue.path.kind" class="w-28">
+                            <el-option :label="t('label.exact')" value="Exact" />
+                            <el-option :label="t('label.prefix')" value="Prefix" />
+                            <el-option :label="t('label.regExp')" value="RegExp" />
+                        </el-select>
+                    </template>
+                </el-input>
+                <el-button disabled text>{{ t('hint.rewriteTo') }}</el-button>
+                <el-input v-model="modelValue.path.replace"
+                    @change="() => { if (modelValue.path.replace.trim().length === 0) { modelValue.path.replace = null } }"></el-input>
+
+            </div>
         </el-form-item>
         <el-form-item :label="t('label.header')" v-if="modelValue.header !== null">
             <el-col class="pr-2 space-y-1">
-                <el-row v-for="headerMatch, idx  in modelValue.header" :key="idx"
+                <el-row v-for="headerMatch, idx in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
-                    <el-select v-model="headerMatch.kind" class="w-64">
-                        <el-option :label="t('label.exact')" value="exact" />
-                        <el-option :label="t('label.regExp')" value="regular" />
-                    </el-select>
-                    <el-input v-model="headerMatch.name"></el-input>
+                    <el-input v-model="headerMatch.name">
+                        <template #prepend>
+                            <el-select v-model="headerMatch.kind" class="w-28">
+                                <el-option :label="t('label.exact')" value="exact" />
+                                <el-option :label="t('label.regExp')" value="reg_exp" />
+                            </el-select>
+                        </template>
+                    </el-input>
                     <span>:</span>
                     <el-input v-if="headerMatch.kind === 'exact'" v-model="headerMatch.value"></el-input>
-                    <el-input v-if="headerMatch.kind === 'regular'" v-model="headerMatch.re"></el-input>
+                    <el-input v-if="headerMatch.kind === 'reg_exp'" v-model="headerMatch.re"></el-input>
+                    <el-button disabled text>{{ t('hint.rewriteTo') }}</el-button>
+                    <el-input v-model="headerMatch.replace"
+                        @change="() => { if (headerMatch.replace.trim().length === 0) { headerMatch.replace = null } }"></el-input>
                     <el-button :icon="Minus" @click="() => removeHeaderItem(idx)"></el-button>
                 </el-row>
                 <el-row class="flex justify-end items-center flex-nowrap space-x-2">
@@ -164,7 +178,7 @@ const removeQueryItem = (idx: number) => {
         </el-form-item>
         <el-form-item :label="t('label.query')" v-if="modelValue.query !== null">
             <el-col class="pr-2 space-y-1">
-                <el-row v-for="queryMatch, idx  in modelValue.query" :key="idx"
+                <el-row v-for="queryMatch, idx in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
                     <el-select v-model="queryMatch.kind" class="w-64">
                         <el-option :label="t('label.exact')" value="exact" />
