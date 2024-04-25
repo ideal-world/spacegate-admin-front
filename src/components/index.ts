@@ -12,6 +12,7 @@ import RouteRuleForm from './RouteRuleForm.vue'
 import SelectGateway from './SelectGateway.vue'
 import PluginSelect from './PluginSelect.vue'
 import PluginPanel from './PluginPanel.vue'
+import Login from './Login.vue'
 export {
   BackendForm,
   ConfigPanel,
@@ -25,5 +26,6 @@ export {
   RouteRuleForm,
   SelectGateway,
   PluginSelect,
-  PluginPanel
+  PluginPanel,
+  Login
 }

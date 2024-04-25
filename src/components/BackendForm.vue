@@ -31,9 +31,13 @@ const modelValue = defineModel<Model.SgBackendRef>({
                 <el-select v-model="modelValue.host.kind" class="w-36">
                     <el-option :label="t('label.host')" value="Host"></el-option>
                     <el-option :label="t('label.k8sService')" value="K8sService"></el-option>
+                    <el-option :label="t('label.file')" value="File"></el-option>
                 </el-select>
-                <div v-if="modelValue.host.kind === 'Host'" class="flex-grow">
+                <div v-if="modelValue.host.kind === 'Host'" class="flex-grow flex space-x-1">
                     <el-input v-model="modelValue.host.host"></el-input>
+                    <span>:</span>
+                    <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
+                        v-bind="PORT_INPUT_ATTR"></el-input-number>
                 </div>
                 <div v-if="modelValue.host.kind === 'K8sService'" class="flex-grow flex space-x-1">
                     <el-input v-model="modelValue.host.name" class="flex-grow"
@@ -41,10 +45,14 @@ const modelValue = defineModel<Model.SgBackendRef>({
                     <span>.</span>
                     <el-input v-model="modelValue.host.namespace" class="flex-grow"
                         :placeholder="t('placeholder.namespace')"></el-input>
+                    <span>:</span>
+                    <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
+                        v-bind="PORT_INPUT_ATTR"></el-input-number>
                 </div>
-                <span>:</span>
-                <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
-                    v-bind="PORT_INPUT_ATTR"></el-input-number>
+                <div v-if="modelValue.host.kind === 'File'" class="flex-grow flex space-x-1">
+                    <el-input v-model="modelValue.host.path" class="flex-grow"
+                        :placeholder="t('placeholder.path')"></el-input>
+                </div>
             </div>
         </el-form-item>
         <el-row>
