@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Model } from "spacegate-admin-client"
+import { Model, Api } from "spacegate-admin-client"
+import { Search } from '@element-plus/icons-vue'
 import OptionalField from "./OptionalField.vue";
 import PluginListForm from './PluginListForm.vue';
 import { PORT_INPUT_ATTR } from '../constants';
 import { useI18n } from 'vue-i18n'
+import { onMounted, ref } from "vue";
+import { unwrapResponse } from "../utils";
 
 const { t } = useI18n();
 const modelValue = defineModel<Model.SgBackendRef>({
@@ -20,14 +23,65 @@ const modelValue = defineModel<Model.SgBackendRef>({
     }
 })
 
+const discoveredBackends = ref<Array<Model.BackendHost>>([]);
 
+onMounted(async () => {
+    const backendHosts = unwrapResponse(await Api.instanceBackends())
+    discoveredBackends.value = backendHosts
+    if ( backendHosts[0] !== undefined) {
+        selectedDiscoveredBackends.value = backendHosts[0]
+    }
+})
+const hostCategory: Model.BackendHost['kind'][] = ['File', 'Host', 'K8sService'];
+const labelHostCategory = {
+    'File': t('label.file'),
+    'Host': t('label.host'),
+    'K8sService': t('label.k8sService')
+}
+const labelHost = (host: Model.BackendHost) => {
+    switch (host.kind) {
+        case 'Host':
+            return host.host;
+        case 'K8sService':
+            return `${host.name}.${host.namespace}`;
+        case 'File':
+            return host.path;
+    }
+}
+const backendDialogVisible = ref(false);
+const selectedDiscoveredBackends = ref<Model.BackendHost | undefined>(undefined);
+const doSelectDiscoveredBackend = () => {
+    const backend = selectedDiscoveredBackends.value;
+    if (backend) {
+        modelValue.value.host = backend;
+    }
+    backendDialogVisible.value = false;
+}
 </script>
 
 <template>
+
+    <el-dialog v-model="backendDialogVisible" :title="t('hint.selectBackend')">
+        <el-select filterable v-model="selectedDiscoveredBackends">
+            <el-option-group v-for="group in hostCategory" :key="group" :label="labelHostCategory[group]">
+                <el-option v-for="(host, _) in discoveredBackends.filter((b) => b.kind === group)"
+                    :label="labelHost(host)" :value=host></el-option>
+            </el-option-group>
+        </el-select>
+        <template #footer>
+            <div class="dialog-footer">
+                <el-button @click="backendDialogVisible = false">{{ t('button.cancel') }}</el-button>
+                <el-button type="primary" @click="doSelectDiscoveredBackend">
+                    {{ t('button.confirm') }}
+                </el-button>
+            </div>
+        </template>
+    </el-dialog>
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
 
         <el-form-item :label="t('label.backends')">
             <div class="flex space-x-2">
+                <el-button @click="backendDialogVisible = true" :icon="Search">{{ t('button.discover') }}</el-button>
                 <el-select v-model="modelValue.host.kind" class="w-36">
                     <el-option :label="t('label.host')" value="Host"></el-option>
                     <el-option :label="t('label.k8sService')" value="K8sService"></el-option>
