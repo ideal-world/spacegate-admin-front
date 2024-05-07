@@ -16,7 +16,6 @@ function install(app: App) {
   }
   app.component(ElCollapseTransition.name, ElCollapseTransition)
 }
-
 import './assets/main.scss'
 import { ElMessage } from 'element-plus'
 export default { install }
