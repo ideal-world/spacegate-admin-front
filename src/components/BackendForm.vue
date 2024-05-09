@@ -28,6 +28,9 @@ const discoveredBackends = ref<Array<Model.BackendHost>>([]);
 onMounted(async () => {
     const backendHosts = unwrapResponse(await Api.instanceBackends())
     discoveredBackends.value = backendHosts
+    discoveredBackends.value.forEach(e => {
+        e.label = labelHost(e)
+    });
     if ( backendHosts[0] !== undefined) {
         selectedDiscoveredBackends.value = backendHosts[0]
     }
@@ -62,10 +65,10 @@ const doSelectDiscoveredBackend = () => {
 <template>
 
     <el-dialog v-model="backendDialogVisible" :title="t('hint.selectBackend')">
-        <el-select filterable v-model="selectedDiscoveredBackends">
+        <el-select filterable v-model="selectedDiscoveredBackends" value-key="label">
             <el-option-group v-for="group in hostCategory" :key="group" :label="labelHostCategory[group]">
                 <el-option v-for="(host, _) in discoveredBackends.filter((b) => b.kind === group)"
-                    :label="labelHost(host)" :value=host></el-option>
+                    :label="host.label" :value=host></el-option>
             </el-option-group>
         </el-select>
         <template #footer>

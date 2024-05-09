@@ -5,7 +5,9 @@ import { Plus, Minus, Close, ArrowDown, ArrowRight } from '@element-plus/icons-v
 import { useI18n } from 'vue-i18n'
 import OptionalField from './OptionalField.vue'
 const { t } = useI18n();
-
+function notEmpty<T>(x: T | null | undefined): x is T {
+    return x !== null && x !== undefined
+}
 const modelValue = defineModel<Model.SgHttpRouteMatch>({
     default: {
         path: null,
@@ -46,7 +48,7 @@ const SG_HTTP_METHODS = [
 const enable = ref({
     path: computed({
         get() {
-            return modelValue.value.path !== null
+            return notEmpty(modelValue.value.path)
         },
         set(v) {
             if (v) {
@@ -62,7 +64,7 @@ const enable = ref({
     }),
     header: computed({
         get() {
-            return modelValue.value.header !== null
+            return notEmpty(modelValue.value.header)
         },
         set(v) {
             if (v) {
@@ -74,7 +76,7 @@ const enable = ref({
     }),
     query: computed({
         get() {
-            return modelValue.value.query !== null
+            return notEmpty(modelValue.value.query)
         },
         set(v) {
             if (v) {
@@ -86,7 +88,7 @@ const enable = ref({
     }),
     method: computed({
         get() {
-            return modelValue.value.method !== null
+            return notEmpty(modelValue.value.method)
         },
         set(v) {
             if (v) {
@@ -99,7 +101,7 @@ const enable = ref({
 })
 
 const addHeaderItem = () => {
-    if (modelValue.value.header !== null) {
+    if (notEmpty(modelValue.value.header)) {
         modelValue.value.header.push(newHeaderItem.value)
         newHeaderItem.value = {
             ...DEFAULT_HEADER_MATCH
@@ -107,7 +109,7 @@ const addHeaderItem = () => {
     }
 }
 const addQueryItem = () => {
-    if (modelValue.value.query !== null) {
+    if (notEmpty(modelValue.value.query)) {
         modelValue.value.query.push(newQueryItem.value)
         newQueryItem.value = {
             ...DEFAULT_QUERY_MATCH
@@ -115,12 +117,12 @@ const addQueryItem = () => {
     }
 }
 const removeHeaderItem = (idx: number) => {
-    if (modelValue.value.header !== null) {
+    if (notEmpty(modelValue.value.header)) {
         modelValue.value.header.splice(idx, 1)
     }
 }
 const removeQueryItem = (idx: number) => {
-    if (modelValue.value.query !== null) {
+    if (notEmpty(modelValue.value.query)) {
         modelValue.value.query.splice(idx, 1)
     }
 }
@@ -134,7 +136,7 @@ const removeQueryItem = (idx: number) => {
             <el-checkbox v-model="enable.query">{{ t('label.matchQuery') }}</el-checkbox>
             <el-checkbox v-model="enable.method">{{ t('label.matchMethod') }}</el-checkbox>
         </el-form-item>
-        <el-form-item :label="t('label.path')" v-if="modelValue.path !== null">
+        <el-form-item :label="t('label.path')" v-if="modelValue.path">
             <div class="flex flex-row flex-grow items-center flex-nowrap pr-2">
                 <el-input v-model="modelValue.path.value">
                     <template #prepend>
@@ -151,7 +153,7 @@ const removeQueryItem = (idx: number) => {
 
             </div>
         </el-form-item>
-        <el-form-item :label="t('label.header')" v-if="modelValue.header !== null">
+        <el-form-item :label="t('label.header')" v-if="modelValue.header">
             <el-col class="pr-2 space-y-1">
                 <el-row v-for="headerMatch, idx in modelValue.header" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
@@ -176,7 +178,7 @@ const removeQueryItem = (idx: number) => {
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item :label="t('label.query')" v-if="modelValue.query !== null">
+        <el-form-item :label="t('label.query')" v-if="modelValue.query">
             <el-col class="pr-2 space-y-1">
                 <el-row v-for="queryMatch, idx in modelValue.query" :key="idx"
                     class="flex justify-between items-center flex-nowrap space-x-2">
@@ -195,7 +197,7 @@ const removeQueryItem = (idx: number) => {
                 </el-row>
             </el-col>
         </el-form-item>
-        <el-form-item :label="t('label.method')" v-if="modelValue.method !== null">
+        <el-form-item :label="t('label.method')" v-if="modelValue.method">
             <el-select v-model="modelValue.method" multiple placeholder="Http Methods" class="flex-grow">
                 <el-option v-for="M in SG_HTTP_METHODS" :key="M" :label="M" :value="M" />
             </el-select>

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Model, Api } from 'spacegate-admin-client'
 import { Delete, Plus, Close, Download, Upload, Check } from '@element-plus/icons-vue'
-import RouteForm from './RouteForm.vue'
 
-import { computed, ref, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ValidError, downloadConfigItem, unwrapResponse, uploadConfigItem } from '../utils';
-import { ElMessageBox, ElMessage, ElPopconfirm } from 'element-plus';
+import { ElMessageBox, ElMessage, } from 'element-plus';
 import { cloneDeep } from 'lodash';
 import GatewayForm from './GatewayForm.vue';
 import { useI18n } from 'vue-i18n'
@@ -16,7 +15,7 @@ const options = ref<string[]>([])
 const optionsPending = ref(true)
 const newGatewayDialog = ref(false)
 const DEFAULT_NEW_GATEWAY: Model.SgGateway = {
-    name: 'New Gateway',
+    name: 'New-Gateway',
     parameters: {
         redis_url: null,
         log_level: null,

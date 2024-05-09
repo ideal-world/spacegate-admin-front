@@ -1,12 +1,13 @@
-import { Ref, onMounted, ref } from 'vue';
+import { Ref, onMounted, ref, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, catchAdminServerError } from '..';
 import { ElMessage } from 'element-plus';
 
-export function useGateway(name: string): {
+export function useGateway(name: Ref<string>): {
     gateway: Ref<Model.SgGateway | null>;
     loading: Ref<boolean>;
     update: () => Promise<void>;
+    refresh: () => Promise<void>;
 } {
     const gateway = ref<Model.SgGateway | null>(null)
     const loading = ref(true)
@@ -14,12 +15,12 @@ export function useGateway(name: string): {
         if (!gateway.value) return
         try {
             loading.value = true
-            await Api.putConfigItemGateway(name, gateway.value)
+            await Api.putConfigItemGateway(name.value, gateway.value)
             ElMessage({
                 message: 'Gateway updated',
                 type: 'success'
             })
-            const newGateway = await Api.getConfigItemGateway(name).then(unwrapResponse)
+            const newGateway = await Api.getConfigItemGateway(name.value).then(unwrapResponse)
             if (newGateway) {
                 gateway.value = newGateway
             }
@@ -29,17 +30,19 @@ export function useGateway(name: string): {
             loading.value = false
         }
     }
-    onMounted(async () => {
+    const refresh = async () => {
         try {
-            const response = await Api.getConfigItemGateway(name)
+            const response = await Api.getConfigItemGateway(name.value)
             gateway.value = unwrapResponse(response)
         } catch (e) {
             catchAdminServerError(e)
         } finally {
             loading.value = false
         }
-    })
+    }
+    onMounted(refresh)
+
     return {
-        gateway, loading, update
+        gateway, loading, update, refresh
     }
 }

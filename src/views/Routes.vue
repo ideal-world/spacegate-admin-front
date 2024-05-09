@@ -2,7 +2,7 @@
 import { Model, Api } from 'spacegate-admin-client'
 import { Delete, Edit, Plus, Refresh, Check, Close } from '@element-plus/icons-vue'
 
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { catchAdminServerError, unwrapResponse } from '../utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RouteForm from '../components/RouteForm.vue';
@@ -115,6 +115,8 @@ const deleteRoute = async (name: string) => {
 onMounted(() => {
     getRouteNames()
 })
+
+watch(() => props.gatewayName, refresh)
 </script>
 
 <template>
