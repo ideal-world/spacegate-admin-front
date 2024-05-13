@@ -67,10 +67,8 @@ const close = () => {
     <div class="flex space-x-1">
         <el-tag v-for="(plugin, index) in plugins" :key="keyPluginId(plugin)" closable
             @close="modelValue.splice(index, 1)" :color="hashColor(plugin.code, 'light')"
-            @click="() => open('edit', plugin)"
-            class="hover:cursor-pointer hover:brightness-110"
-            >
-            <span class="mx-1 text-gray-900"  draggable="true" @dragstart="dragstart(index)" @dragover.prevent
+            @click="() => open('edit', plugin)" class="hover:cursor-pointer hover:brightness-110">
+            <span class="mx-1 text-gray-900" draggable="true" @dragstart="dragstart(index)" @dragover.prevent
                 @drop="drop(index)">:::</span>
             <code class="rounded bg-black text-white bg-opacity-60 px-1">{{ plugin.code }}</code>
             {{ labelPluginId(plugin) }}

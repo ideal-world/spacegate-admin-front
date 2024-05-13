@@ -22,6 +22,8 @@ export function useGateway(name: Ref<string>): {
             })
             const newGateway = await Api.getConfigItemGateway(name.value).then(unwrapResponse)
             if (newGateway) {
+                newGateway.plugins = newGateway.plugins??[]
+                newGateway.listener = newGateway.listeners??[]
                 gateway.value = newGateway
             }
         } catch (e) {
@@ -33,6 +35,8 @@ export function useGateway(name: Ref<string>): {
     const refresh = async () => {
         try {
             const response = await Api.getConfigItemGateway(name.value)
+            response.plugins = response.plugins??[]
+            response.listener = response.listeners??[]
             gateway.value = unwrapResponse(response)
         } catch (e) {
             catchAdminServerError(e)

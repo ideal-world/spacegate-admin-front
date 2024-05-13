@@ -19,7 +19,7 @@ const modelValue = defineModel<Model.SgHttpRoute>({
     default: {
         route_name: "",
         hostnames: null,
-        filters: [],
+        plugins: [],
         rules: [],
         priority: 1,
     },

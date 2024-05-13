@@ -54,7 +54,16 @@ const openDialog = async (name: string, mode: 'create' | 'edit') => {
         if (resp === null) {
             ElMessage.error('route not found');
         } else {
+            resp.plugins = resp.plugins ?? [];
+            resp.rules = resp.rules ?? [];
+            resp.rules.forEach(rule => {
+                rule.plugins = rule.plugins ?? [];
+                rule.backends = rule.backends ?? [];
+                rule.matches = rule.matches ?? [];
+                rule.backends.plugins = rule.backends.plugins ?? [];
+            })
             dialogModel.value = resp;
+            console.debug(dialogModel.value)
         }
     } else if (mode === 'create') {
         resetDialogModel()
@@ -121,7 +130,7 @@ watch(() => props.gatewayName, refresh)
 
 <template>
     <div class="flex flex-col space-y-2">
-        <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen" >
+        <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen" destroy-on-close>
             <RouteForm v-model="dialogModel" :name="dialogModel.route_name" :mode="dialogMode"></RouteForm>
             <template #footer>
                 <el-button :icon="Close" @click="closeDialog">
