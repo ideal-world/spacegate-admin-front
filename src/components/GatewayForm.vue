@@ -123,6 +123,9 @@ const uploadVisible = ref(false)
                             </template>
                         </OptionalField>
                     </el-form-item>
+                    <el-form-item :label="t('label.enableXRequestId')">
+                        <el-switch v-model="modelValue.parameters.enable_x_request_id"></el-switch>
+                    </el-form-item>
                     <el-form-item :label="t('label.logLevel')" >
                         <OptionalField v-model="modelValue.parameters.log_level" :default="''"  class="flex-grow">
                             <template #some>

@@ -30,8 +30,8 @@ dependencies:
     specifier: ^6.12.0
     version: 6.12.0
   spacegate-admin-client:
-    specifier: 0.2.0-alpha.19
-    version: 0.2.0-alpha.19
+    specifier: 0.2.0-alpha.20
+    version: 0.2.0-alpha.20
   vue:
     specifier: ^3.3.4
     version: 3.4.21(typescript@5.4.4)
@@ -2240,8 +2240,8 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
-  /spacegate-admin-client@0.2.0-alpha.19:
-    resolution: {integrity: sha512-CQnCeQJ2EsL3nrupQAjQ3Mp9n/sFI/zbKq2yz9HvE2TO9qVcotbG1NcJIjbh+xCIo2v6jdeA2lfwhvjMPkgcjw==}
+  /spacegate-admin-client@0.2.0-alpha.20:
+    resolution: {integrity: sha512-6bOr2xa/cdKamXrXOVgUGh+f+M0ai/uKOOvXHk4RxKA4Mia0yzeUt5mwpY/SjjTLqLyTXV+qase1jVSi2/k9xw==}
     dependencies:
       axios: 1.6.8
     transitivePeerDependencies:
