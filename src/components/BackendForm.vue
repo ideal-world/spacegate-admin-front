@@ -31,7 +31,7 @@ onMounted(async () => {
     discoveredBackends.value.forEach(e => {
         e.label = labelHost(e)
     });
-    if ( backendHosts[0] !== undefined) {
+    if (backendHosts[0] !== undefined) {
         selectedDiscoveredBackends.value = backendHosts[0]
     }
 })
@@ -67,8 +67,8 @@ const doSelectDiscoveredBackend = () => {
     <el-dialog v-model="backendDialogVisible" :title="t('hint.selectBackend')">
         <el-select filterable v-model="selectedDiscoveredBackends" value-key="label">
             <el-option-group v-for="group in hostCategory" :key="group" :label="labelHostCategory[group]">
-                <el-option v-for="(host, _) in discoveredBackends.filter((b) => b.kind === group)"
-                    :label="host.label" :value=host></el-option>
+                <el-option v-for="(host, _) in discoveredBackends.filter((b) => b.kind === group)" :label="host.label"
+                    :value=host></el-option>
             </el-option-group>
         </el-select>
         <template #footer>
@@ -83,7 +83,7 @@ const doSelectDiscoveredBackend = () => {
     <el-form label-width="auto" label-suffix=":" class="space-y-1">
 
         <el-form-item :label="t('label.backends')">
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 w-full">
                 <el-button @click="backendDialogVisible = true" :icon="Search">{{ t('button.discover') }}</el-button>
                 <el-select v-model="modelValue.host.kind" class="w-36">
                     <el-option :label="t('label.host')" value="Host"></el-option>
@@ -93,27 +93,27 @@ const doSelectDiscoveredBackend = () => {
                 <div v-if="modelValue.host.kind === 'Host'" class="flex-grow flex space-x-1">
                     <el-input v-model="modelValue.host.host"></el-input>
                     <span>:</span>
-                    <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
+                    <el-input-number class="text-left w-[18rem]" v-model="modelValue.port" placeholder="port"
                         v-bind="PORT_INPUT_ATTR"></el-input-number>
                 </div>
                 <div v-if="modelValue.host.kind === 'K8sService'" class="flex-grow flex space-x-1">
                     <el-input v-model="modelValue.host.name" class="flex-grow"
-                        :placeholder="t('placeholder.name')"></el-input>
+                        :placeholder="t('placeholder.serviceName')"></el-input>
                     <span>.</span>
                     <el-input v-model="modelValue.host.namespace" class="flex-grow"
-                        :placeholder="t('placeholder.namespace')"></el-input>
+                        :placeholder="t('placeholder.serviceNamespace')"></el-input>
                     <span>:</span>
-                    <el-input-number class="text-left" v-model="modelValue.port" placeholder="port"
+                    <el-input-number class="text-left w-[18rem]" v-model="modelValue.port" placeholder="port"
                         v-bind="PORT_INPUT_ATTR"></el-input-number>
                 </div>
                 <div v-if="modelValue.host.kind === 'File'" class="flex-grow flex space-x-1">
-                    <el-input v-model="modelValue.host.path" class="flex-grow"
+                    <el-input v-model="modelValue.host.path" class="flex-grow "
                         :placeholder="t('placeholder.path')"></el-input>
                 </div>
             </div>
         </el-form-item>
         <el-row>
-            <el-col :span="8">
+            <el-col :span="6">
                 <el-form-item :label="t('label.timeout')" prop="timeout_ms">
                     <optional-field :default="5000" v-model="modelValue.timeout_ms">
                         <template #some>
@@ -124,7 +124,7 @@ const doSelectDiscoveredBackend = () => {
                     </optional-field>
                 </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
                 <el-form-item :label="t('label.protocol')" prop="protocol">
                     <optional-field :default="('http' as Model.SgBackendProtocol)" v-model="modelValue.protocol">
                         <template #some>
@@ -136,7 +136,16 @@ const doSelectDiscoveredBackend = () => {
                     </optional-field>
                 </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
+                <el-form-item :label="t('label.http2Downgrade')" prop="http2_downgrade">
+
+                    <el-switch v-model="(modelValue.downgrade_http2 as boolean)" placeholder="Protocol" class="w-24">
+
+                    </el-switch>
+
+                </el-form-item>
+            </el-col>
+            <el-col :span="6">
                 <el-form-item :label="t('label.weight')" prop="weight">
                     <el-input-number v-model="modelValue.weight" placeholder="Weight" :min="0"></el-input-number>
                 </el-form-item>

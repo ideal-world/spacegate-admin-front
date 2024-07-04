@@ -31,6 +31,9 @@ const getOptions = async () => {
     try {
         const resp = await Api.getConfigNames().then(unwrapResponse<string[]>);
         options.value = resp;
+        if (options.value.length > 0 && modelValue.value === undefined) {
+            modelValue.value = options.value[0]
+        }
     } finally {
         optionsPending.value = false;
     }
