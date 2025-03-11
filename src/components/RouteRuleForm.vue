@@ -67,6 +67,7 @@ const matchAll = computed({
                     path: {
                         kind: 'Prefix',
                         value: '/',
+                        replace: ""
                     },
                     header: null,
                     query: null,
@@ -145,6 +146,7 @@ const collapse = ref({
                                     kind: 'Host', host: 'example.com',
                                 }, port: 80, timeout_ms: null, protocol: null, weight:
                                     1, plugins: [],
+                                    downgrade_http2: false
                             })" type="primary">{{ t('button.addBackend') }}</el-button>
                         </el-col>
                     </div>

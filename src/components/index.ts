@@ -13,6 +13,7 @@ import SelectGateway from './SelectGateway.vue'
 import PluginSelect from './PluginSelect.vue'
 import PluginPanel from './PluginPanel.vue'
 import Login from './Login.vue'
+import InstanceList from './InstanceList.vue'
 export {
   BackendForm,
   ConfigPanel,
@@ -27,5 +28,6 @@ export {
   SelectGateway,
   PluginSelect,
   PluginPanel,
-  Login
+  Login,
+  InstanceList
 }
