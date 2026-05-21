@@ -8,12 +8,12 @@ export interface TenantRateLimitRule {
   rps: number
   burst: number
   cost: number
-  // TODO(v2): surface ttl_secs in the UI when temporary rate-limit rules are supported.
   ttl_secs?: number
 }
 
 export interface TenantRateLimitRuleView extends TenantRateLimitRule {
   key: string
+  ttl_remaining_secs?: number
 }
 
 const baseUrl = (() => {

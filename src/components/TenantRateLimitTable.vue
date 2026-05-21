@@ -51,7 +51,6 @@ function resetEditing(rule?: TenantRateLimitRule) {
     rps: rule?.rps ?? 10,
     burst: rule?.burst ?? 20,
     cost: rule?.cost ?? 1,
-    // TODO(v2): keep ttl_secs in the data model but hide it until temporary rules are supported.
     ttl_secs: rule?.ttl_secs,
   })
 }
@@ -82,6 +81,10 @@ async function saveRule() {
   }
   if (editing.rps <= 0 || editing.burst <= 0 || editing.cost <= 0) {
     ElMessage.error('每秒入队上限、突发容量和单次消耗必须大于 0')
+    return
+  }
+  if (editing.ttl_secs != null && editing.ttl_secs <= 0) {
+    ElMessage.error('TTL 必须大于 0 秒，或留空表示永久生效')
     return
   }
   await upsertTenantRateLimit({ ...editing })
@@ -135,6 +138,8 @@ onMounted(refresh)
       <el-table-column prop="rps" label="每秒入队上限" width="120" />
       <el-table-column prop="burst" label="突发容量" width="110" />
       <el-table-column prop="cost" label="单次消耗" width="110" />
+      <el-table-column prop="ttl_secs" label="TTL(秒)" width="100" />
+      <el-table-column prop="ttl_remaining_secs" label="剩余TTL" width="100" />
       <el-table-column prop="key" label="队列配额键" min-width="260" show-overflow-tooltip />
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
@@ -177,6 +182,10 @@ onMounted(refresh)
         <el-form-item label="单次消耗（Cost）">
           <el-input-number v-model="editing.cost" :min="1" />
           <div class="tenant-rate-limit__hint">单条请求占用的令牌数，重负载请求（如 long-context）可设为 ≥ 2。</div>
+        </el-form-item>
+        <el-form-item label="TTL（秒，可选）">
+          <el-input-number v-model="editing.ttl_secs" :min="1" clearable />
+          <div class="tenant-rate-limit__hint">临时配额过期时间；留空表示永久生效，到期后 Redis key 自动删除。</div>
         </el-form-item>
         <el-alert type="info" :closable="false">
           <template #title>
