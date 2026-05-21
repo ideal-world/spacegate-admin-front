@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
-import { PluginForm } from '.';
+import { AiGatewayQueueDrawer, PluginForm } from '.';
 import { PluginConfig } from 'spacegate-admin-client/dist/model';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
@@ -44,6 +44,8 @@ const dialogVisible = ref(false);
 const dialogTitle = ref('');
 const dialogMode = ref<'create' | 'edit'>('create');
 const formRef = ref<InstanceType<typeof PluginForm>>(null);
+const aiGatewayQueueVisible = ref(false);
+const aiGatewayQueueInstance = ref<Model.PluginConfig | undefined>();
 
 /** 是否为 Wasm 类插件 code（归入 AI Tab） */
 function isWasmPluginCode(pluginCode: string): boolean {
@@ -184,6 +186,11 @@ async function selectNativePlugin(pluginCode: string) {
 
 /** 配置 AI Wasm：有实例则进入编辑，否则按目录创建新实例 */
 async function configureAiCard(card: AiPluginCard) {
+    if (card.catalog?.id === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') {
+        aiGatewayQueueInstance.value = card.instance;
+        aiGatewayQueueVisible.value = true;
+        return;
+    }
     code.value = WASM_PLUGIN_CODE
     await ensureWasmAttr()
     if (card.instance) {
@@ -345,6 +352,10 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
         window.open(item.meta.repository, '_blank');
     }
 }
+
+async function onAiGatewayQueueSaved() {
+    await loadWasmInstances()
+}
 </script>
 
 <template>
@@ -444,6 +455,11 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
             </div>
             <el-empty v-if="!pluginsLoading && filteredAiCards.length === 0" />
         </div>
+        <ai-gateway-queue-drawer
+            v-model="aiGatewayQueueVisible"
+            :instance="aiGatewayQueueInstance"
+            @saved="onAiGatewayQueueSaved"
+        />
     </div>
 
     <!-- 选中插件后的配置详情 -->
