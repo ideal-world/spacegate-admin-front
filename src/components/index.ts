@@ -14,6 +14,11 @@ import PluginSelect from './PluginSelect.vue'
 import PluginPanel from './PluginPanel.vue'
 import Login from './Login.vue'
 import InstanceList from './InstanceList.vue'
+import AiGatewayQueueDrawer from './AiGatewayQueueDrawer.vue'
+import PluginMarkdown from './PluginMarkdown.vue'
+import SchemaArrayField from './SchemaArrayField.vue'
+import SchemaForm from './SchemaForm.vue'
+import TenantRateLimitTable from './TenantRateLimitTable.vue'
 export {
   BackendForm,
   ConfigPanel,
@@ -29,5 +34,10 @@ export {
   PluginSelect,
   PluginPanel,
   Login,
-  InstanceList
+  InstanceList,
+  AiGatewayQueueDrawer,
+  PluginMarkdown,
+  SchemaArrayField,
+  SchemaForm,
+  TenantRateLimitTable
 }

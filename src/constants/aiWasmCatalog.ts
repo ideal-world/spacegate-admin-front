@@ -7,6 +7,12 @@ export type AiWasmCatalogItem = {
 
 export const AI_WASM_CATALOG: AiWasmCatalogItem[] = [
   {
+    id: 'ai-gateway-queue',
+    title: 'AI 请求队列网关',
+    description:
+      '把超额 AI 请求按租户 / 模型 / 路径分流到 Redis 多优先级队列，支持入队异步处理（queue）和入队同步等待（wait）两种交付模式，配合回调与重试实现无损交付。',
+  },
+  {
     id: 'ai-agent',
     title: 'AI 智能体',
     description:
