@@ -131,7 +131,7 @@ async function save() {
     } else {
       await Api.postConfigPlugin(config)
     }
-    ElMessage.success('AI 请求队列网关配置已保存')
+    ElMessage.success('AI 网关排队限流配置已保存')
     emit('saved')
     visible.value = false
   } finally {
@@ -144,7 +144,7 @@ async function save() {
   <el-drawer v-model="visible" size="72%" destroy-on-close>
     <template #header>
       <div class="ai-gateway-drawer__header">
-        <span>AI 请求队列网关</span>
+        <span>AI 网关排队限流</span>
         <el-tag v-if="existingInstance" type="success">已部署</el-tag>
       </div>
     </template>
@@ -153,7 +153,7 @@ async function save() {
       <el-alert
         type="info"
         :closable="false"
-        title="AI 请求队列网关"
+        title="AI 网关排队限流"
         description="入口处对超额 AI 请求做准入判断，命中后按租户配额把请求分流到 Redis 多优先级队列；支持 queue（异步处理 + 回调）与 wait（入队同步等待）两种交付模式，配合回调重试与对象存储 offload 实现无损交付。"
         class="ai-gateway-drawer__intro"
       />
