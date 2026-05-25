@@ -57,24 +57,41 @@ const nativePluginAttrs = computed(() =>
     pluginAttrs.value.filter((item) => !isWasmPluginCode(item.code))
 )
 
+/** 从 spec 读取 Wasm 插件逻辑名（与 plugin/wasm.{name}.json 对应） */
+function instancePluginName(inst: Model.PluginConfig): string {
+    const spec = inst.spec as Record<string, unknown> | null
+    return typeof spec?.plugin_name === 'string' ? spec.plugin_name.trim() : ''
+}
+
+function instanceTitle(inst: Model.PluginConfig): string {
+    const fromSpec = instancePluginName(inst)
+    if (fromSpec) return fromSpec
+    if (inst.kind === 'named') return inst.name
+    return WASM_PLUGIN_CODE
+}
+
+/** 目录项与已部署 wasm 实例是否同一插件 */
+function instanceMatchesCatalog(inst: Model.PluginConfig, catalog: AiWasmCatalogItem): boolean {
+    const pluginName = instancePluginName(inst)
+    if (pluginName && pluginName === catalog.id) return true
+    if (inst.kind === 'named' && inst.name === catalog.id) return true
+    const title = instanceTitle(inst)
+    return title === catalog.title || title === catalog.id
+}
+
+function isAiGatewayQueueCard(card: AiPluginCard): boolean {
+    if (card.catalog?.id === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') return true
+    const inst = card.instance
+    return !!inst && instancePluginName(inst) === 'ai-gateway-queue'
+}
+
 /** 合并目录与已配置的 wasm 实例为 AI 卡片列表 */
 const aiPluginCards = computed((): AiPluginCard[] => {
-    const instanceTitle = (inst: Model.PluginConfig) => {
-        const spec = inst.spec as Record<string, unknown> | null
-        const fromSpec = typeof spec?.plugin_name === 'string' ? spec.plugin_name : ''
-        if (fromSpec.trim()) return fromSpec.trim()
-        if (inst.kind === 'named') return inst.name
-        return WASM_PLUGIN_CODE
-    }
-
     const usedInstanceKeys = new Set<string>()
     const cards: AiPluginCard[] = []
 
     for (const catalog of AI_WASM_CATALOG) {
-        const instance = wasmInstances.value.find((inst) => {
-            const title = instanceTitle(inst)
-            return title === catalog.title || inst.kind === 'named' && inst.name === catalog.id
-        })
+        const instance = wasmInstances.value.find((inst) => instanceMatchesCatalog(inst, catalog))
         if (instance) {
             usedInstanceKeys.add(instance.kind === 'named' ? instKey(instance) : JSON.stringify(instance))
         }
@@ -90,6 +107,9 @@ const aiPluginCards = computed((): AiPluginCard[] => {
     for (const inst of wasmInstances.value) {
         const key = inst.kind === 'named' ? instKey(inst) : JSON.stringify(inst)
         if (usedInstanceKeys.has(key)) continue
+        // 已在目录中的 plugin_name 不再重复展示（避免 wasm.json 等错误文件名导致双卡片）
+        const pluginName = instancePluginName(inst)
+        if (pluginName && AI_WASM_CATALOG.some((c) => c.id === pluginName)) continue
         const spec = inst.spec as Record<string, unknown> | null
         const title = instanceTitle(inst)
         const desc =
@@ -186,7 +206,7 @@ async function selectNativePlugin(pluginCode: string) {
 
 /** 配置 AI Wasm：有实例则进入编辑，否则按目录创建新实例 */
 async function configureAiCard(card: AiPluginCard) {
-    if (card.catalog?.id === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') {
+    if (isAiGatewayQueueCard(card)) {
         aiGatewayQueueInstance.value = card.instance;
         aiGatewayQueueVisible.value = true;
         return;
