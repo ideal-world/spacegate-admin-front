@@ -9,7 +9,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
 import { AI_WASM_CATALOG, type AiWasmCatalogItem } from '../constants/aiWasmCatalog'
 
-const { t } = useI18n();
+const { locale, t } = useI18n();
 
 type PluginTab = 'native' | 'ai'
 
@@ -46,6 +46,37 @@ const dialogMode = ref<'create' | 'edit'>('create');
 const formRef = ref<InstanceType<typeof PluginForm>>(null);
 const aiGatewayQueueVisible = ref(false);
 const aiGatewayQueueInstance = ref<Model.PluginConfig | undefined>();
+const texts = computed(() => locale.value.startsWith('zh') ? {
+    homepage: '主页',
+    repository: '仓库',
+    pluginType: '插件类型',
+    version: '版本',
+    mono: '单例',
+    yes: '是',
+    no: '否',
+    authors: '作者',
+    description: '说明',
+    searchConfigName: '搜索插件配置名称',
+    emptyConfig: '暂无插件配置',
+    deleteConfirm: '确认删除这个插件配置？删除后已引用该配置的资源可能无法正常加载插件。',
+    deleteTitle: '删除插件配置',
+    deleteFailed: (message: string) => `插件配置删除失败：${message}`,
+} : {
+    homepage: 'Homepage',
+    repository: 'Repository',
+    pluginType: 'Plugin Type',
+    version: 'Version',
+    mono: 'Mono',
+    yes: 'Yes',
+    no: 'No',
+    authors: 'Authors',
+    description: 'Description',
+    searchConfigName: 'Search configuration name',
+    emptyConfig: 'No plugin configurations',
+    deleteConfirm: 'Delete this plugin configuration? Resources referencing it may fail to load the plugin.',
+    deleteTitle: 'Delete Plugin Configuration',
+    deleteFailed: (message: string) => `Plugin configuration delete failed: ${message}`,
+})
 const thirdPartyWasmVisible = ref(false);
 const thirdPartyWasmInstance = ref<Model.PluginConfig | undefined>();
 
@@ -313,7 +344,7 @@ const openCreateDialog = () => {
         }
     }
     dialogMode.value = 'create';
-    dialogTitle.value = `Create Instance`;
+    dialogTitle.value = t('title.newPlugin');
     dialogVisible.value = true;
 }
 const closeDialog = async (action: 'save' | 'cancel') => {
@@ -340,19 +371,26 @@ const savePlugin = async () => {
 }
 const editInstance = async (instance: Model.PluginConfig) => {
     dialogMode.value = 'edit';
-    dialogTitle.value = `Edit Instance`;
+    dialogTitle.value = t('title.editPlugin');
     formPluginConfig.value = instance;
     dialogVisible.value = true;
 }
 const deleteInstance = async (instance: Model.PluginConfig) => {
-    const action = await ElMessageBox.confirm('Are you sure to delete this plugin instance?', 'Warning', {
-        confirmButtonText: 'OK',
-        cancelButtonText: 'Cancel',
-        type: 'warning',
-    });
-    if (action === 'confirm') {
+    try {
+        await ElMessageBox.confirm(texts.value.deleteConfirm, texts.value.deleteTitle, {
+            confirmButtonText: t('button.delete'),
+            cancelButtonText: t('button.cancel'),
+            type: 'warning',
+        });
+    } catch {
+        return
+    }
+    try {
         await Api.deleteConfigPlugin(instance);
         await refreshPluginInstancesList(code.value!);
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e)
+        ElMessage.error(texts.value.deleteFailed(message))
     }
 }
 const createPlugin = async () => {
@@ -440,10 +478,10 @@ async function onThirdPartyWasmSaved() {
                         <template #dropdown>
                             <el-dropdown-menu>
                                 <el-dropdown-item v-if="item.meta.homepage" command="homepage">
-                                    Homepage
+                                    {{ texts.homepage }}
                                 </el-dropdown-item>
                                 <el-dropdown-item v-if="item.meta.repository" command="repository">
-                                    Repository
+                                    {{ texts.repository }}
                                 </el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -509,51 +547,57 @@ async function onThirdPartyWasmSaved() {
             <span class="plugin-detail__code">{{ code }}</span>
         </div>
         <el-descriptions v-if="attr" border class="plugin-detail__meta">
-            <el-descriptions-item label="Code">{{ attr.code }}</el-descriptions-item>
-            <el-descriptions-item label="Version">{{ attr.meta.version }}</el-descriptions-item>
-            <el-descriptions-item label="Mono">
-                {{ attr.mono ? '✔️' : '❌' }}
+            <el-descriptions-item :label="texts.pluginType">{{ attr.code }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.version">{{ attr.meta.version }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.mono">
+                {{ attr.mono ? texts.yes : texts.no }}
             </el-descriptions-item>
-            <el-descriptions-item label="Authors">{{ attr.meta.authors }}</el-descriptions-item>
-            <el-descriptions-item label="Homepage">
+            <el-descriptions-item :label="texts.authors">{{ attr.meta.authors }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.homepage">
                 <el-link v-if="attr.meta.homepage" :href="attr.meta.homepage" target="_blank">{{ attr.meta.homepage
                     }}</el-link>
             </el-descriptions-item>
-            <el-descriptions-item label="Repository">
+            <el-descriptions-item :label="texts.repository">
                 <el-link v-if="attr.meta.repository" :href="attr.meta.repository" target="_blank">{{ attr.meta.repository
                     }}</el-link>
             </el-descriptions-item>
-            <el-descriptions-item label="Description">{{ attr.meta.description }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.description">{{ attr.meta.description }}</el-descriptions-item>
         </el-descriptions>
         <div v-if="attr !== undefined && attr.mono" />
 
         <div v-if="attr !== undefined && !attr.mono && instances !== undefined">
-            <div class="flex items-start space-x-2">
-                <el-input v-model="searchText" placeholder="Search Instance Name"></el-input>
+            <div class="plugin-detail__actions">
+                <el-input v-model="searchText" :placeholder="texts.searchConfigName"></el-input>
                 <el-button :icon="Plus" type="primary" @click="openCreateDialog">{{ t('button.create') }}</el-button>
             </div>
-            <div class="flex flex-wrap items-start space-y-2 space-x-2">
-                <el-card v-for="instance in instances.filter((c) => {
+            <div class="plugin-instance-list">
+                <div v-for="instance in instances.filter((c) => {
                     return c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))
                 })" :key="instance.kind === 'named' ? instance.name : ''"
-                    class="inline-block flex justify-between border-b border-gray-300 p-2 my-2" shadow="hover">
-                    <span class="flex-grow mx-2">{{ instance.kind === 'named' ? instance.name : undefined }}</span>
-                    <el-button-group>
-                        <el-button size="small" :icon="Edit" type="primary"
+                    class="plugin-instance-row">
+                    <div>
+                        <strong>{{ instance.kind === 'named' ? instance.name : undefined }}</strong>
+                        <span>{{ instance.code }} / {{ instance.kind }}</span>
+                    </div>
+                    <div class="plugin-instance-row__actions">
+                        <el-button size="small" :icon="Edit" link type="primary"
                             @click="() => editInstance(instance)">{{ t('button.edit') }}</el-button>
-                        <el-button size="small" :icon="Delete" type="danger"
+                        <el-button size="small" :icon="Delete" link type="danger"
                             @click="() => deleteInstance(instance)">{{ t('button.delete') }}</el-button>
-                    </el-button-group>
-                </el-card>
+                    </div>
+                </div>
+                <el-empty v-if="instances.filter((c) => c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))).length === 0" :description="texts.emptyConfig" />
             </div>
-            <el-dialog v-model="dialogVisible" :title="dialogTitle">
+            <el-dialog v-model="dialogVisible" :title="dialogTitle" width="720px" class="plugin-config-dialog" destroy-on-close>
                 <template #title>
-                    <code class="border rounded px-2 mx-2">{{ attr.code }}</code>
-                    <span>{{ dialogTitle }}</span>
+                    <div class="plugin-config-dialog__title">
+                        <code>{{ attr.code }}</code>
+                        <span>{{ dialogTitle }}</span>
+                    </div>
                 </template>
                 <plugin-form ref="formRef" :attr="attr" v-model="formPluginConfig"></plugin-form>
                 <template #footer>
-                    <el-button :icon="Delete" @click="() => closeDialog('cancel')">{{ t('button.cancel') }}</el-button>
+                    <el-button @click="() => closeDialog('cancel')">{{ t('button.cancel') }}</el-button>
                     <el-button :icon="Check" type="primary" @click="() => closeDialog('save')">{{ t('button.save') }}</el-button>
                 </template>
             </el-dialog>
@@ -702,5 +746,68 @@ async function onThirdPartyWasmSaved() {
 
 .plugin-detail__meta {
     margin-bottom: 16px;
+}
+
+.plugin-detail__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+
+    .el-input {
+        max-width: 320px;
+    }
+}
+
+.plugin-instance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.plugin-instance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.plugin-instance-row strong {
+    display: block;
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.plugin-instance-row span {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.plugin-instance-row__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.plugin-config-dialog__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.plugin-config-dialog__title code {
+    padding: 3px 8px;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    color: #0f766e;
+    background: #ecfdf5;
+    font-size: 12px;
 }
 </style>

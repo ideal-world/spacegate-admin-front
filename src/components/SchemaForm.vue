@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SchemaArrayField from './SchemaArrayField.vue'
 
 type JsonSchema = Record<string, any>
@@ -7,6 +8,7 @@ type JsonSchema = Record<string, any>
 const props = defineProps<{
   schema: JsonSchema
 }>()
+const { locale } = useI18n()
 
 const modelValue = defineModel<Record<string, any>>({
   required: true,
@@ -33,13 +35,13 @@ function fieldSchema(schema: JsonSchema): JsonSchema {
 
 function titleOf(key: string, schema: JsonSchema) {
   const i18n = schema?.['x-title-i18n']
-  const lang = typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh-CN' : 'en'
+  const lang = locale.value.startsWith('zh') ? 'zh-CN' : 'en'
   return i18n?.[lang] ?? schema?.title ?? key
 }
 
 function descriptionOf(schema: JsonSchema) {
   const i18n = schema?.['x-description-i18n']
-  const lang = typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh-CN' : 'en'
+  const lang = locale.value.startsWith('zh') ? 'zh-CN' : 'en'
   return i18n?.[lang] ?? schema?.description ?? ''
 }
 

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client';
-import { Plus, Minus, Close, ArrowDown, ArrowRight, Check, Operation } from '@element-plus/icons-vue'
+import { Plus, Check } from '@element-plus/icons-vue'
 import { cloneDeep } from 'lodash';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { hashColor, labelPluginId, keyPluginId } from '../utils';
 import PluginSelect from './PluginSelect.vue';
 import { PluginInstanceId } from 'spacegate-admin-client/dist/model';
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n();
+const { locale, t } = useI18n();
 const modelValue = defineModel<Model.PluginInstanceId[]>({
     default: []
 })
@@ -17,6 +17,11 @@ const formData = ref<Model.PluginInstanceId | undefined>(undefined)
 const plugins = ref<Model.PluginInstanceId[]>(modelValue.value)
 const selectRef = ref<InstanceType<typeof PluginSelect>>(null)
 const editIndex = ref(0);
+const texts = computed(() => locale.value.startsWith('zh') ? {
+    intro: '选择插件类型后，可以引用已有插件配置，也可以创建一份自定义配置并立即绑定到当前资源。',
+} : {
+    intro: 'After selecting a plugin type, you can reference an existing plugin configuration or create a custom configuration and bind it immediately.',
+})
 const open = (m: 'add' | 'edit', plugin?: Model.PluginInstanceId) => {
     mode.value = m;
     formData.value = plugin ? cloneDeep(plugin) : undefined;
@@ -76,10 +81,20 @@ const close = () => {
         <el-button :icon="Plus" size="small" @click="() => open('add')">{{ t('button.addPlugin') }}
         </el-button>
     </div>
-    <el-dialog v-model="isOpen" :title="mode === 'add' ? t('title.newPlugin') : t('title.editPlugin')">
+    <el-dialog
+        v-model="isOpen"
+        :title="mode === 'add' ? t('title.newPlugin') : t('title.editPlugin')"
+        width="640px"
+        class="plugin-bind-dialog"
+        destroy-on-close
+    >
+        <div class="plugin-bind-dialog__intro">
+            <strong>{{ t('title.newPlugin') }}</strong>
+            <span>{{ texts.intro }}</span>
+        </div>
         <plugin-select ref="selectRef" v-model="formData"></plugin-select>
         <template #footer>
-            <el-button type="primary" :icon="Check" @click="() => {
+            <el-button @click="() => {
                 close()
             }">
                 {{ t('button.cancel') }}
@@ -94,3 +109,27 @@ const close = () => {
         </template>
     </el-dialog>
 </template>
+
+<style scoped>
+.plugin-bind-dialog__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.plugin-bind-dialog__intro strong {
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.plugin-bind-dialog__intro span {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+</style>

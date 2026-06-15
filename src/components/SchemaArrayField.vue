@@ -1,4 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+const texts = computed(() => locale.value.startsWith('zh') ? {
+  add: '添加',
+  delete: '删除',
+} : {
+  add: 'Add',
+  delete: 'Delete',
+})
+
 const modelValue = defineModel<string[]>({
   required: true,
 })
@@ -16,9 +28,9 @@ const removeItem = (index: number) => {
   <div class="schema-array-field">
     <div v-for="(_, index) in modelValue" :key="index" class="schema-array-field__row">
       <el-input v-model="modelValue[index]" />
-      <el-button type="danger" text @click="removeItem(index)">删除</el-button>
+      <el-button type="danger" text @click="removeItem(index)">{{ texts.delete }}</el-button>
     </div>
-    <el-button type="primary" plain size="small" @click="addItem">添加</el-button>
+    <el-button type="primary" plain size="small" @click="addItem">{{ texts.add }}</el-button>
   </div>
 </template>
 
