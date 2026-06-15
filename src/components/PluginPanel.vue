@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
-import { AiGatewayQueueDrawer, PluginForm } from '.';
+import { AiGatewayQueueDrawer, PluginForm, ThirdPartyWasmDrawer } from '.';
 import { PluginConfig } from 'spacegate-admin-client/dist/model';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
@@ -46,6 +46,8 @@ const dialogMode = ref<'create' | 'edit'>('create');
 const formRef = ref<InstanceType<typeof PluginForm>>(null);
 const aiGatewayQueueVisible = ref(false);
 const aiGatewayQueueInstance = ref<Model.PluginConfig | undefined>();
+const thirdPartyWasmVisible = ref(false);
+const thirdPartyWasmInstance = ref<Model.PluginConfig | undefined>();
 
 /** 是否为 Wasm 类插件 code（归入 AI Tab） */
 function isWasmPluginCode(pluginCode: string): boolean {
@@ -64,6 +66,8 @@ function instancePluginName(inst: Model.PluginConfig): string {
 }
 
 function instanceTitle(inst: Model.PluginConfig): string {
+    const spec = inst.spec as Record<string, unknown> | null
+    if (typeof spec?.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
     const fromSpec = instancePluginName(inst)
     if (fromSpec) return fromSpec
     if (inst.kind === 'named') return inst.name
@@ -91,7 +95,9 @@ const aiPluginCards = computed((): AiPluginCard[] => {
     const cards: AiPluginCard[] = []
 
     for (const catalog of AI_WASM_CATALOG) {
-        const instance = wasmInstances.value.find((inst) => instanceMatchesCatalog(inst, catalog))
+        const instance = catalog.kind === 'generic'
+            ? undefined
+            : wasmInstances.value.find((inst) => instanceMatchesCatalog(inst, catalog))
         if (instance) {
             usedInstanceKeys.add(instance.kind === 'named' ? instKey(instance) : JSON.stringify(instance))
         }
@@ -209,6 +215,11 @@ async function configureAiCard(card: AiPluginCard) {
     if (isAiGatewayQueueCard(card)) {
         aiGatewayQueueInstance.value = card.instance;
         aiGatewayQueueVisible.value = true;
+        return;
+    }
+    if (card.catalog?.kind === 'generic' || card.instance) {
+        thirdPartyWasmInstance.value = card.instance;
+        thirdPartyWasmVisible.value = true;
         return;
     }
     code.value = WASM_PLUGIN_CODE
@@ -376,6 +387,10 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
 async function onAiGatewayQueueSaved() {
     await loadWasmInstances()
 }
+
+async function onThirdPartyWasmSaved() {
+    await loadWasmInstances()
+}
 </script>
 
 <template>
@@ -479,6 +494,11 @@ async function onAiGatewayQueueSaved() {
             v-model="aiGatewayQueueVisible"
             :instance="aiGatewayQueueInstance"
             @saved="onAiGatewayQueueSaved"
+        />
+        <third-party-wasm-drawer
+            v-model="thirdPartyWasmVisible"
+            :instance="thirdPartyWasmInstance"
+            @saved="onThirdPartyWasmSaved"
         />
     </div>
 

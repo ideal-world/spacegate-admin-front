@@ -15,6 +15,7 @@ import PluginPanel from './PluginPanel.vue'
 import Login from './Login.vue'
 import InstanceList from './InstanceList.vue'
 import AiGatewayQueueDrawer from './AiGatewayQueueDrawer.vue'
+import ThirdPartyWasmDrawer from './ThirdPartyWasmDrawer.vue'
 import PluginMarkdown from './PluginMarkdown.vue'
 import SchemaArrayField from './SchemaArrayField.vue'
 import SchemaForm from './SchemaForm.vue'
@@ -36,6 +37,7 @@ export {
   Login,
   InstanceList,
   AiGatewayQueueDrawer,
+  ThirdPartyWasmDrawer,
   PluginMarkdown,
   SchemaArrayField,
   SchemaForm,
