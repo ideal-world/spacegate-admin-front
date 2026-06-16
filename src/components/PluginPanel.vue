@@ -58,6 +58,13 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     description: '说明',
     searchConfigName: '搜索插件配置名称',
     emptyConfig: '暂无插件配置',
+    customWasmTitle: '自定义 Wasm 插件',
+    customWasmDesc: '按 Higress WasmPlugin 模型添加外部 proxy-wasm 插件。保存后需要在资源上绑定插件，并执行全局重载后生效。',
+    aiGatewayOps: '围绕 AI 请求的治理能力，包括排队限流、模型代理、安全和观测扩展。',
+    addCustomWasm: '添加自定义插件',
+    customWasmEmpty: '暂无自定义 Wasm 插件配置',
+    reloadRequired: 'Wasm 插件配置已更新。运行中的网关需要执行全局重载后才会重新创建插件实例。',
+    goInstances: '前往实例运维',
     deleteConfirm: '确认删除这个插件配置？删除后已引用该配置的资源可能无法正常加载插件。',
     deleteTitle: '删除插件配置',
     deleteFailed: (message: string) => `插件配置删除失败：${message}`,
@@ -73,12 +80,20 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     description: 'Description',
     searchConfigName: 'Search configuration name',
     emptyConfig: 'No plugin configurations',
+    customWasmTitle: 'Custom Wasm Plugins',
+    customWasmDesc: 'Add external proxy-wasm plugins using the Higress WasmPlugin model. Bind the plugin to a resource and run Global Reload to apply it.',
+    aiGatewayOps: 'Governance capabilities for AI traffic, including queueing, rate limiting, model proxy, security, and observability extensions.',
+    addCustomWasm: 'Add Custom Plugin',
+    customWasmEmpty: 'No custom Wasm plugin configurations',
+    reloadRequired: 'Wasm plugin configuration changed. Running gateways need Global Reload before plugin instances are recreated.',
+    goInstances: 'Go to Instances',
     deleteConfirm: 'Delete this plugin configuration? Resources referencing it may fail to load the plugin.',
     deleteTitle: 'Delete Plugin Configuration',
     deleteFailed: (message: string) => `Plugin configuration delete failed: ${message}`,
 })
 const thirdPartyWasmVisible = ref(false);
 const thirdPartyWasmInstance = ref<Model.PluginConfig | undefined>();
+const wasmReloadNoticeVisible = ref(false);
 
 /** 是否为 Wasm 类插件 code（归入 AI Tab） */
 function isWasmPluginCode(pluginCode: string): boolean {
@@ -125,7 +140,7 @@ const aiPluginCards = computed((): AiPluginCard[] => {
     const usedInstanceKeys = new Set<string>()
     const cards: AiPluginCard[] = []
 
-    for (const catalog of AI_WASM_CATALOG) {
+    for (const catalog of AI_WASM_CATALOG.filter((item) => item.kind !== 'generic')) {
         const instance = catalog.kind === 'generic'
             ? undefined
             : wasmInstances.value.find((inst) => instanceMatchesCatalog(inst, catalog))
@@ -171,6 +186,11 @@ function instKey(inst: Model.PluginConfig & { kind: 'named' }) {
 }
 
 const filteredNativePlugins = computed(() => filterBySearch(nativePluginAttrs.value))
+const customWasmInstances = computed(() =>
+    wasmInstances.value.filter((inst) => {
+        return !AI_WASM_CATALOG.some((catalog) => catalog.kind !== 'generic' && instanceMatchesCatalog(inst, catalog))
+    })
+)
 const filteredAiCards = computed(() => {
     const q = pluginSearchText.value.trim().toLowerCase()
     if (!q) return aiPluginCards.value
@@ -179,6 +199,15 @@ const filteredAiCards = computed(() => {
             c.title.toLowerCase().includes(q) ||
             c.description.toLowerCase().includes(q)
     )
+})
+const filteredCustomWasmInstances = computed(() => {
+    const q = pluginSearchText.value.trim().toLowerCase()
+    if (!q) return customWasmInstances.value
+    return customWasmInstances.value.filter((inst) => {
+        const spec = inst.spec as Record<string, unknown> | null
+        const description = typeof spec?.description === 'string' ? spec.description : ''
+        return instanceTitle(inst).toLowerCase().includes(q) || description.toLowerCase().includes(q)
+    })
 })
 
 function filterBySearch(list: Model.PluginAttributes[]) {
@@ -206,6 +235,13 @@ function iconStyle(pluginCode: string) {
 
 function aiIconStyle(title: string) {
     return { backgroundColor: hashColor(title, 'light') }
+}
+
+function customWasmDescription(instance: Model.PluginConfig) {
+    const spec = instance.spec as Record<string, unknown> | null
+    if (typeof spec?.description === 'string' && spec.description.trim()) return spec.description
+    if (typeof spec?.url === 'string' && spec.url.trim()) return spec.url
+    return texts.value.customWasmEmpty
 }
 
 async function loadWasmInstances() {
@@ -248,11 +284,7 @@ async function configureAiCard(card: AiPluginCard) {
         aiGatewayQueueVisible.value = true;
         return;
     }
-    if (card.catalog?.kind === 'generic' || card.instance) {
-        thirdPartyWasmInstance.value = card.instance;
-        thirdPartyWasmVisible.value = true;
-        return;
-    }
+    if (card.instance) return
     code.value = WASM_PLUGIN_CODE
     await ensureWasmAttr()
     if (card.instance) {
@@ -261,6 +293,16 @@ async function configureAiCard(card: AiPluginCard) {
         return
     }
   openCreateWasmFromCatalog(card)
+}
+
+function openCreateCustomWasm() {
+    thirdPartyWasmInstance.value = undefined
+    thirdPartyWasmVisible.value = true
+}
+
+function editCustomWasm(instance: Model.PluginConfig) {
+    thirdPartyWasmInstance.value = instance
+    thirdPartyWasmVisible.value = true
 }
 
 async function ensureWasmAttr() {
@@ -393,6 +435,26 @@ const deleteInstance = async (instance: Model.PluginConfig) => {
         ElMessage.error(texts.value.deleteFailed(message))
     }
 }
+
+const deleteCustomWasmInstance = async (instance: Model.PluginConfig) => {
+    try {
+        await ElMessageBox.confirm(texts.value.deleteConfirm, texts.value.deleteTitle, {
+            confirmButtonText: t('button.delete'),
+            cancelButtonText: t('button.cancel'),
+            type: 'warning',
+        });
+    } catch {
+        return
+    }
+    try {
+        await Api.deleteConfigPlugin(instance);
+        wasmReloadNoticeVisible.value = true
+        await loadWasmInstances();
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e)
+        ElMessage.error(texts.value.deleteFailed(message))
+    }
+}
 const createPlugin = async () => {
     if (formRef.value === null) {
         return;
@@ -427,7 +489,12 @@ async function onAiGatewayQueueSaved() {
 }
 
 async function onThirdPartyWasmSaved() {
+    wasmReloadNoticeVisible.value = true
     await loadWasmInstances()
+}
+
+function goInstances() {
+    window.location.assign('/instances')
 }
 </script>
 
@@ -501,32 +568,94 @@ async function onThirdPartyWasmSaved() {
         <div
             v-else
             v-loading="pluginsLoading"
-            class="plugin-panel__grid"
+            class="plugin-panel__ai"
         >
-            <div
-                v-for="card in filteredAiCards"
-                :key="card.key"
-                class="plugin-card plugin-card--ai"
+            <el-alert
+                v-if="wasmReloadNoticeVisible"
+                type="warning"
+                show-icon
+                :closable="true"
+                :title="texts.reloadRequired"
+                class="plugin-panel__reload-alert"
+                @close="wasmReloadNoticeVisible = false"
             >
-                <div class="plugin-card__header">
-                    <div class="plugin-card__icon" :style="aiIconStyle(card.title)">
-                        <el-icon :size="22" color="#f5a623">
-                            <Sunny />
-                        </el-icon>
-                    </div>
-                    <div class="plugin-card__title-wrap">
-                        <div class="plugin-card__title">{{ card.title }}</div>
-                        <div v-if="card.instance" class="plugin-card__badge">{{ t('hint.deployed') }}</div>
+                <template #default>
+                    <el-button size="small" type="warning" plain @click="goInstances">
+                        {{ texts.goInstances }}
+                    </el-button>
+                </template>
+            </el-alert>
+
+            <section class="plugin-panel__section">
+                <div class="plugin-panel__section-header">
+                    <div>
+                        <h3>AI Gateway</h3>
+                        <p>{{ texts.aiGatewayOps }}</p>
                     </div>
                 </div>
-                <div class="plugin-card__body">
-                    {{ card.description }}
+                <div class="plugin-panel__grid">
+                    <div
+                        v-for="card in filteredAiCards"
+                        :key="card.key"
+                        class="plugin-card plugin-card--ai"
+                    >
+                        <div class="plugin-card__header">
+                            <div class="plugin-card__icon" :style="aiIconStyle(card.title)">
+                                <el-icon :size="22" color="#f5a623">
+                                    <Sunny />
+                                </el-icon>
+                            </div>
+                            <div class="plugin-card__title-wrap">
+                                <div class="plugin-card__title">{{ card.title }}</div>
+                                <div v-if="card.instance" class="plugin-card__badge">{{ t('hint.deployed') }}</div>
+                            </div>
+                        </div>
+                        <div class="plugin-card__body">
+                            {{ card.description }}
+                        </div>
+                        <button type="button" class="plugin-card__footer" @click="configureAiCard(card)">
+                            {{ t('title.setting') }}
+                        </button>
+                    </div>
+                    <el-empty v-if="!pluginsLoading && filteredAiCards.length === 0" />
                 </div>
-                <button type="button" class="plugin-card__footer" @click="configureAiCard(card)">
-                    {{ t('title.setting') }}
-                </button>
-            </div>
-            <el-empty v-if="!pluginsLoading && filteredAiCards.length === 0" />
+            </section>
+
+            <section class="custom-wasm-panel">
+                <div class="custom-wasm-panel__header">
+                    <div>
+                        <h3>{{ texts.customWasmTitle }}</h3>
+                        <p>{{ texts.customWasmDesc }}</p>
+                    </div>
+                    <el-button :icon="Plus" type="primary" @click="openCreateCustomWasm">
+                        {{ texts.addCustomWasm }}
+                    </el-button>
+                </div>
+                <div class="custom-wasm-list">
+                    <div
+                        v-for="instance in filteredCustomWasmInstances"
+                        :key="instance.kind === 'named' ? instance.name : JSON.stringify(instance)"
+                        class="custom-wasm-row"
+                    >
+                        <div class="custom-wasm-row__main">
+                            <strong>{{ instanceTitle(instance) }}</strong>
+                            <span>{{ instance.kind === 'named' ? `wasm.${instance.name}` : instance.code }}</span>
+                        </div>
+                        <div class="custom-wasm-row__desc">
+                            {{ customWasmDescription(instance) }}
+                        </div>
+                        <div class="custom-wasm-row__actions">
+                            <el-button size="small" :icon="Edit" link type="primary" @click="editCustomWasm(instance)">
+                                {{ t('button.edit') }}
+                            </el-button>
+                            <el-button size="small" :icon="Delete" link type="danger" @click="deleteCustomWasmInstance(instance)">
+                                {{ t('button.delete') }}
+                            </el-button>
+                        </div>
+                    </div>
+                    <el-empty v-if="!pluginsLoading && filteredCustomWasmInstances.length === 0" :description="texts.customWasmEmpty" />
+                </div>
+            </section>
         </div>
         <ai-gateway-queue-drawer
             v-model="aiGatewayQueueVisible"
@@ -615,6 +744,99 @@ async function onThirdPartyWasmSaved() {
     margin-bottom: 16px;
 }
 
+.plugin-panel__ai,
+.plugin-panel__section,
+.custom-wasm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.plugin-panel__reload-alert {
+    margin-bottom: 2px;
+}
+
+.plugin-panel__section-header,
+.custom-wasm-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.plugin-panel__section-header h3,
+.custom-wasm-panel__header h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.plugin-panel__section-header p,
+.custom-wasm-panel__header p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.custom-wasm-panel {
+    margin-top: 4px;
+    padding: 16px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.custom-wasm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.custom-wasm-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.6fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.custom-wasm-row__main strong {
+    display: block;
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.custom-wasm-row__main span,
+.custom-wasm-row__desc {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.custom-wasm-row__main span {
+    display: block;
+    margin-top: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.custom-wasm-row__desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-wasm-row__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
 .plugin-panel__grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -632,11 +854,25 @@ async function onThirdPartyWasmSaved() {
     .plugin-panel__grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .custom-wasm-row {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+
+    .custom-wasm-row__desc {
+        white-space: normal;
+    }
 }
 
 @media (max-width: 640px) {
     .plugin-panel__grid {
         grid-template-columns: 1fr;
+    }
+
+    .plugin-panel__section-header,
+    .custom-wasm-panel__header {
+        flex-direction: column;
     }
 }
 

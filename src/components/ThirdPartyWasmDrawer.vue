@@ -2,6 +2,11 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Api, Model } from 'spacegate-admin-client'
 import { ElMessage } from 'element-plus'
+import {
+  buildThirdPartyWasmPluginConfig,
+  normalizeWasmPluginId,
+  parseImageReference,
+} from '../utils/wasmPlugin'
 
 const props = defineProps<{
   instance?: Model.PluginConfig
@@ -83,7 +88,7 @@ watch(() => props.instance, () => {
 
 watch(() => form.instance_name, (next) => {
   if (isEdit.value) return
-  const id = normalizeId(next)
+  const id = normalizeWasmPluginId(next)
   if (!form.display_name) {
     form.display_name = id
   }
@@ -142,15 +147,6 @@ function stringifyJson(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2)
 }
 
-function normalizeId(value: string) {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9.-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return normalized || 'custom-wasm-plugin'
-}
-
 function parseJson(text: string, field: string, options: { objectOnly?: boolean; arrayOnly?: boolean } = {}) {
   const raw = text.trim()
   if (!raw) return options.arrayOnly ? [] : {}
@@ -169,71 +165,20 @@ function parseJson(text: string, field: string, options: { objectOnly?: boolean;
   }
 }
 
-function optionalString(value: string) {
-  const trimmed = value.trim()
-  return trimmed ? trimmed : undefined
-}
-
 function buildImageUrlFromSpec(spec: Record<string, any>) {
-  const repository = optionalString(String(spec.image_repository ?? ''))
+  const repository = String(spec.image_repository ?? '').trim()
   if (!repository) return ''
-  const version = optionalString(String(spec.image_version ?? ''))
+  const version = String(spec.image_version ?? '').trim()
   return version ? `${repository}:${version}` : repository
 }
 
-function parseImageReference(imageUrl: string) {
-  const value = imageUrl.trim()
-  if (!value) {
-    return { image_repository: '', image_version: '' }
-  }
-
-  const schemeIndex = value.indexOf('://')
-  const lastColon = value.lastIndexOf(':')
-  const versionCandidate = value.slice(lastColon + 1)
-  const hasTagLikeSuffix = Boolean(versionCandidate) && !versionCandidate.includes('/')
-  if (hasTagLikeSuffix && lastColon > schemeIndex + 2 && (schemeIndex < 0 || value.startsWith('oci://'))) {
-    return {
-      image_repository: value.slice(0, lastColon),
-      image_version: value.slice(lastColon + 1),
-    }
-  }
-  return {
-    image_repository: value,
-    image_version: '',
-  }
-}
-
-function valueToObject(value: any) {
-  if (value && !Array.isArray(value) && typeof value === 'object') return { ...value }
-  if (value == null) return {}
-  return { _config_: value }
-}
-
-function buildRuntimePluginConfig(defaultConfig: any, matchRules: any[]) {
-  const config = form.default_config_disable ? {} : valueToObject(defaultConfig)
-  if (matchRules.length > 0) {
-    config._rules_ = matchRules
-  }
-  return config
-}
-
 function buildOciAuth() {
-  const auth = {
-    registry: optionalString(form.oci_registry),
-    username: optionalString(form.oci_username),
-    password: optionalString(form.oci_password),
-    bearer_token: optionalString(form.oci_bearer_token),
-    identity_token: optionalString(form.oci_identity_token),
-  }
-  return Object.fromEntries(Object.entries(auth).filter(([, value]) => value !== undefined))
-}
-
-function setOptional(target: Record<string, any>, key: string, value: string) {
-  const next = optionalString(value)
-  if (next) {
-    target[key] = next
-  } else {
-    delete target[key]
+  return {
+    registry: form.oci_registry.trim(),
+    username: form.oci_username.trim(),
+    password: form.oci_password.trim(),
+    bearer_token: form.oci_bearer_token.trim(),
+    identity_token: form.oci_identity_token.trim(),
   }
 }
 
@@ -246,65 +191,47 @@ function validateForm(instanceName: string, imageUrl: string) {
   }
 }
 
+function normalizeInstanceNameInput() {
+  form.instance_name = normalizeWasmPluginId(form.instance_name)
+}
+
 function buildPluginConfig(): Model.PluginConfig {
   const instance = existingInstance.value
   const instanceName = isEdit.value && instance?.kind === 'named'
     ? instance.name
-    : normalizeId(form.instance_name)
+    : normalizeWasmPluginId(form.instance_name)
   const imageUrl = form.image_url.trim()
   validateForm(instanceName, imageUrl)
 
   const defaultConfig = parseJson(form.default_config_text, 'Default Config')
   const matchRules = parseJson(form.match_rules_text, 'Match Rules', { arrayOnly: true })
-  const imageRef = parseImageReference(imageUrl)
 
-  const spec: Record<string, any> = {
-    ...((instance?.spec ?? {}) as Record<string, any>),
-    version: 0,
-    category: 'custom',
-    built_in: false,
-    title: form.display_name.trim() || instanceName,
-    url: imageUrl,
-    image_url: imageUrl,
-    image_repository: imageRef.image_repository,
-    image_version: imageRef.image_version,
+  return buildThirdPartyWasmPluginConfig({
+    instance,
+    instanceName,
+    imageUrl,
+    displayName: form.display_name,
+    description: form.description,
     phase: form.phase,
     priority: Number(form.priority ?? 0),
-    image_pull_policy: form.image_pull_policy,
-    default_config_disable: form.default_config_disable,
-    default_config: defaultConfig,
-    match_rules: matchRules,
-    plugin_config: buildRuntimePluginConfig(defaultConfig, matchRules),
-    plugin_name: form.plugin_name.trim() || instanceName,
-    plugin_root_id: form.plugin_root_id.trim() || `${instanceName}-root`,
-    plugin_vm_id: form.plugin_vm_id.trim() || `${instanceName}-vm`,
-    fail_strategy: form.fail_strategy,
-    use_cache: form.use_cache,
-    vm_pool_size: form.vm_pool_size,
-    wait_vm_pool_size: form.wait_vm_pool_size,
+    imagePullPolicy: form.image_pull_policy,
+    imagePullSecret: form.image_pull_secret,
+    pluginName: form.plugin_name,
+    failStrategy: form.fail_strategy,
+    sha256: form.sha256,
+    defaultConfigDisable: form.default_config_disable,
+    defaultConfig,
+    matchRules,
+    pluginRootId: form.plugin_root_id,
+    pluginVmId: form.plugin_vm_id,
+    moduleCacheKey: form.module_cache_key,
+    useCache: form.use_cache,
+    vmPoolSize: form.vm_pool_size,
+    waitVmPoolSize: form.wait_vm_pool_size,
+    ociAuth: buildOciAuth(),
     clusters: parseJson(form.clusters_text, 'Cluster 映射', { objectOnly: true }),
     limits: parseJson(form.limits_text, '资源限制', { objectOnly: true }),
-  }
-
-  setOptional(spec, 'display_name', form.display_name)
-  setOptional(spec, 'description', form.description)
-  setOptional(spec, 'sha256', form.sha256)
-  setOptional(spec, 'image_pull_secret', form.image_pull_secret)
-  setOptional(spec, 'module_cache_key', form.module_cache_key)
-
-  const ociAuth = buildOciAuth()
-  if (Object.keys(ociAuth).length > 0) {
-    spec.oci_auth = ociAuth
-  } else {
-    delete spec.oci_auth
-  }
-
-  return {
-    code: 'wasm',
-    kind: 'named',
-    name: instanceName,
-    spec,
-  } as Model.PluginConfig
+  }).config
 }
 
 async function save() {
@@ -316,7 +243,7 @@ async function save() {
     } else {
       await Api.postConfigPlugin(config)
     }
-    ElMessage.success('Wasm 插件已保存')
+    ElMessage.success('Wasm 插件配置已保存，请执行全局重载后生效')
     emit('saved')
     visible.value = false
   } catch (e) {
@@ -343,7 +270,7 @@ async function save() {
         type="info"
         :closable="false"
         title="按 Higress 自定义 Wasm 插件模型保存"
-        description="主字段与 Higress WasmPlugin 对齐；保存后会生成 SpaceGate 可挂载的 wasm 插件实例，后续可在 Gateway、Route 或 Backend 上启用。"
+        description="主字段与 Higress WasmPlugin 对齐；保存后会生成可挂载的 wasm 插件实例。绑定到 Gateway、Route 或 Backend 后，需要执行全局重载才会在运行实例中生效。"
         class="third-party-wasm__intro"
       />
 
@@ -359,8 +286,8 @@ async function save() {
               </template>
               <div class="third-party-wasm__grid">
                 <el-form-item label="插件名称 name">
-                  <el-input v-model="form.instance_name" :disabled="isEdit" placeholder="custom-authz" />
-                  <div class="third-party-wasm__hint">保存为 wasm.{name}.json，创建后不可修改。</div>
+                  <el-input v-model="form.instance_name" :disabled="isEdit" placeholder="custom-authz" @blur="normalizeInstanceNameInput" />
+                  <div class="third-party-wasm__hint">保存为 wasm.{name}.json，仅支持小写字母、数字和中划线；创建后不可修改。</div>
                 </el-form-item>
                 <el-form-item label="显示名称">
                   <el-input v-model="form.display_name" placeholder="自定义鉴权插件" />
