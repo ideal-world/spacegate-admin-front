@@ -19,7 +19,7 @@ const filters = reactive({
   tenant: '',
   model: '',
   path: '',
-  policy: '',
+  policy: '' as TenantRateLimitRule['policy'],
 })
 
 const editing = reactive<TenantRateLimitRule>({
@@ -267,8 +267,8 @@ onMounted(refresh)
       <el-table-column prop="key" :label="texts.key" min-width="260" show-overflow-tooltip />
       <el-table-column :label="texts.operation" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button type="primary" link @click="openEdit(row)">{{ texts.edit }}</el-button>
-          <el-button type="danger" link @click="removeRule(row)">{{ texts.delete }}</el-button>
+          <el-button type="primary" link @click="openEdit(row as TenantRateLimitRuleView)">{{ texts.edit }}</el-button>
+          <el-button type="danger" link @click="removeRule(row as TenantRateLimitRuleView)">{{ texts.delete }}</el-button>
         </template>
       </el-table-column>
     </el-table>

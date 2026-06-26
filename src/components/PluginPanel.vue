@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
+import { nativePluginDisplayName } from '../utils/pluginDisplay'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
 import { AiGatewayQueueDrawer, PluginForm, ThirdPartyWasmDrawer } from '.';
-import { PluginConfig } from 'spacegate-admin-client/dist/model';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
-import { AI_WASM_CATALOG, type AiWasmCatalogItem } from '../constants/aiWasmCatalog'
+import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
 
 const { locale, t } = useI18n();
+
+const emit = defineEmits<{
+    changed: []
+}>()
 
 type PluginTab = 'native' | 'ai'
 
@@ -18,23 +22,49 @@ type AiPluginCard = {
     key: string
     title: string
     description: string
-    catalog?: AiWasmCatalogItem
-    instance?: Model.PluginConfig
+    catalogId?: string
+    instance?: WasmPluginView
 }
 
 const WASM_PLUGIN_CODE = 'wasm'
+type AiWasmCatalogView = {
+    id: string
+    title: string
+    description: string
+}
+type PluginSpecRecord = Record<string, unknown>
+type PluginConfigLite = {
+    code: string
+    kind: 'anon' | 'named' | 'mono'
+    uid?: string
+    name?: string
+    spec: PluginSpecRecord
+}
+type WasmPluginView = {
+    code: string
+    kind: 'anon' | 'named' | 'mono'
+    uid?: string
+    name?: string
+    spec: PluginSpecRecord
+    pluginName: string
+    title: string
+    description: string
+    key: string
+}
 
 const activeTab = ref<PluginTab>('native')
 const pluginAttrs = ref<Model.PluginAttributes[]>([]);
-const wasmInstances = ref<Model.PluginConfig[]>([]);
+const wasmInstances = shallowRef<PluginConfigLite[]>([]);
+const wasmInstanceViews = shallowRef<WasmPluginView[]>([]);
+const wasmInstanceRawByKey = new Map<string, PluginConfigLite>();
 const pluginsLoading = ref(true);
 const pluginSearchText = ref('');
 
 const code = ref<string | undefined>();
 const attr = ref<Model.PluginAttributes | undefined>();
-const instances = ref<Model.PluginConfig[]>();
+const instances = shallowRef<PluginConfigLite[] | undefined>();
 const searchText = ref<string>('');
-const formPluginConfig = ref<PluginConfig>({
+const formPluginConfig = ref<PluginConfigLite>({
     code: '',
     kind: 'named',
     name: '',
@@ -43,7 +73,7 @@ const formPluginConfig = ref<PluginConfig>({
 const dialogVisible = ref(false);
 const dialogTitle = ref('');
 const dialogMode = ref<'create' | 'edit'>('create');
-const formRef = ref<InstanceType<typeof PluginForm>>(null);
+const formRef = ref<InstanceType<typeof PluginForm> | null>(null);
 const aiGatewayQueueVisible = ref(false);
 const aiGatewayQueueInstance = ref<Model.PluginConfig | undefined>();
 const texts = computed(() => locale.value.startsWith('zh') ? {
@@ -58,6 +88,12 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     description: '说明',
     searchConfigName: '搜索插件配置名称',
     emptyConfig: '暂无插件配置',
+    pluginInstanceListTitle: '插件实例',
+    pluginInstanceListDesc: '插件实例是一份可复用的插件配置。创建后可在 Gateway、Route、Rule 或 Backend 上绑定引用。',
+    createPluginInstance: '创建插件实例',
+    editPluginInstance: '编辑插件实例',
+    pluginDrawerIntroTitle: '配置原生插件实例',
+    pluginDrawerIntroDesc: '这里保存的是插件配置数据，不会立即改变流量处理链路。需要在资源上绑定该实例，并按需执行网关重载后生效。',
     customWasmTitle: '自定义 Wasm 插件',
     customWasmDesc: '按 Higress WasmPlugin 模型添加外部 proxy-wasm 插件。保存后需要在资源上绑定插件，并执行全局重载后生效。',
     aiGatewayOps: '围绕 AI 请求的治理能力，包括排队限流、模型代理、安全和观测扩展。',
@@ -80,6 +116,12 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     description: 'Description',
     searchConfigName: 'Search configuration name',
     emptyConfig: 'No plugin configurations',
+    pluginInstanceListTitle: 'Plugin Instances',
+    pluginInstanceListDesc: 'A plugin instance is a reusable plugin configuration. After creation, bind it to Gateway, Route, Rule, or Backend.',
+    createPluginInstance: 'Create Plugin Instance',
+    editPluginInstance: 'Edit Plugin Instance',
+    pluginDrawerIntroTitle: 'Configure Native Plugin Instance',
+    pluginDrawerIntroDesc: 'This saves plugin configuration data only. Bind the instance to a resource and reload the gateway when needed.',
     customWasmTitle: 'Custom Wasm Plugins',
     customWasmDesc: 'Add external proxy-wasm plugins using the Higress WasmPlugin model. Bind the plugin to a resource and run Global Reload to apply it.',
     aiGatewayOps: 'Governance capabilities for AI traffic, including queueing, rate limiting, model proxy, security, and observability extensions.',
@@ -105,34 +147,119 @@ const nativePluginAttrs = computed(() =>
     pluginAttrs.value.filter((item) => !isWasmPluginCode(item.code))
 )
 
+const managedAiWasmCatalog: AiWasmCatalogView[] = AI_WASM_CATALOG
+    .filter((item) => item.kind !== 'generic')
+    .map(({ id, title, description }) => ({ id, title, description }))
+const aiWasmCatalogIds = new Set(AI_WASM_CATALOG.map((item) => item.id))
+
 /** 从 spec 读取 Wasm 插件逻辑名（与 plugin/wasm.{name}.json 对应） */
-function instancePluginName(inst: Model.PluginConfig): string {
-    const spec = inst.spec as Record<string, unknown> | null
-    return typeof spec?.plugin_name === 'string' ? spec.plugin_name.trim() : ''
+function pluginNameFromSpec(spec: PluginSpecRecord): string {
+    return typeof spec.plugin_name === 'string' ? spec.plugin_name.trim() : ''
 }
 
-function instanceTitle(inst: Model.PluginConfig): string {
-    const spec = inst.spec as Record<string, unknown> | null
-    if (typeof spec?.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
-    const fromSpec = instancePluginName(inst)
-    if (fromSpec) return fromSpec
+function titleFromConfig(inst: PluginConfigLite, spec: PluginSpecRecord, pluginName: string): string {
+    if (typeof spec.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
+    if (pluginName) return pluginName
     if (inst.kind === 'named') return inst.name
     return WASM_PLUGIN_CODE
 }
 
+function descriptionFromSpec(spec: PluginSpecRecord): string {
+    if (typeof spec.description === 'string' && spec.description.trim()) return spec.description
+    if (typeof spec.url === 'string' && spec.url.trim()) return spec.url
+    return ''
+}
+
+function toSpecRecord(value: unknown): PluginSpecRecord {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as PluginSpecRecord
+    }
+    return {}
+}
+
+function toPluginConfigLite(value: unknown): PluginConfigLite | null {
+    if (!value || typeof value !== 'object') return null
+    const item = value as Record<string, unknown>
+    if (typeof item.code !== 'string') return null
+    if (item.kind !== 'anon' && item.kind !== 'named' && item.kind !== 'mono') return null
+    const config: PluginConfigLite = {
+        code: item.code,
+        kind: item.kind,
+        spec: toSpecRecord(item.spec),
+    }
+    if (item.kind === 'named') {
+        if (typeof item.name !== 'string') return null
+        config.name = item.name
+    }
+    if (item.kind === 'anon') {
+        if (typeof item.uid !== 'string') return null
+        config.uid = item.uid
+    }
+    return config
+}
+
+function toPluginConfigLiteList(value: unknown): PluginConfigLite[] {
+    if (!Array.isArray(value)) return []
+    return value.map(toPluginConfigLite).filter((item): item is PluginConfigLite => item !== null)
+}
+
+function asPluginConfig(config: PluginConfigLite): Model.PluginConfig {
+    return config as unknown as Model.PluginConfig
+}
+
+function toWasmPluginView(inst: PluginConfigLite): WasmPluginView {
+    const spec = toSpecRecord(inst.spec)
+    const pluginName = pluginNameFromSpec(spec)
+    const title = titleFromConfig(inst, spec, pluginName)
+    const description = descriptionFromSpec(spec)
+    const name = inst.kind === 'named' ? inst.name : undefined
+    const uid = inst.kind === 'anon' ? inst.uid : undefined
+    const key = name ? `${inst.code}:${name}` : `${inst.code}:${inst.kind}:${uid ?? ''}:${JSON.stringify(spec)}`
+    return {
+        code: inst.code,
+        kind: inst.kind,
+        name,
+        uid,
+        spec,
+        pluginName,
+        title,
+        description,
+        key,
+    }
+}
+
+function syncWasmInstanceViews(list: PluginConfigLite[]) {
+    wasmInstanceRawByKey.clear()
+    wasmInstanceViews.value = list.map((inst) => {
+        const view = toWasmPluginView(inst)
+        wasmInstanceRawByKey.set(view.key, inst)
+        return view
+    })
+}
+
+function rawWasmInstance(view: WasmPluginView): PluginConfigLite | undefined {
+    return wasmInstanceRawByKey.get(view.key)
+}
+
 /** 目录项与已部署 wasm 实例是否同一插件 */
-function instanceMatchesCatalog(inst: Model.PluginConfig, catalog: AiWasmCatalogItem): boolean {
-    const pluginName = instancePluginName(inst)
+function instanceMatchesCatalog(inst: WasmPluginView, catalog: AiWasmCatalogView): boolean {
+    const pluginName = inst.pluginName
     if (pluginName && pluginName === catalog.id) return true
-    if (inst.kind === 'named' && inst.name === catalog.id) return true
-    const title = instanceTitle(inst)
-    return title === catalog.title || title === catalog.id
+    if (inst.name === catalog.id) return true
+    return inst.title === catalog.title || inst.title === catalog.id
 }
 
 function isAiGatewayQueueCard(card: AiPluginCard): boolean {
-    if (card.catalog?.id === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') return true
+    if (card.catalogId === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') return true
     const inst = card.instance
-    return !!inst && instancePluginName(inst) === 'ai-gateway-queue'
+    return !!inst && inst.pluginName === 'ai-gateway-queue'
+}
+
+function isManagedAiWasmInstance(inst: WasmPluginView): boolean {
+    for (const catalog of managedAiWasmCatalog) {
+        if (instanceMatchesCatalog(inst, catalog)) return true
+    }
+    return false
 }
 
 /** 合并目录与已配置的 wasm 实例为 AI 卡片列表 */
@@ -140,40 +267,29 @@ const aiPluginCards = computed((): AiPluginCard[] => {
     const usedInstanceKeys = new Set<string>()
     const cards: AiPluginCard[] = []
 
-    for (const catalog of AI_WASM_CATALOG.filter((item) => item.kind !== 'generic')) {
-        const instance = catalog.kind === 'generic'
-            ? undefined
-            : wasmInstances.value.find((inst) => instanceMatchesCatalog(inst, catalog))
+    for (const catalog of managedAiWasmCatalog) {
+        const instance = wasmInstanceViews.value.find((inst) => instanceMatchesCatalog(inst, catalog))
         if (instance) {
-            usedInstanceKeys.add(instance.kind === 'named' ? instKey(instance) : JSON.stringify(instance))
+            usedInstanceKeys.add(instance.key)
         }
         cards.push({
             key: catalog.id,
             title: catalog.title,
             description: catalog.description,
-            catalog,
+            catalogId: catalog.id,
             instance,
         })
     }
 
-    for (const inst of wasmInstances.value) {
-        const key = inst.kind === 'named' ? instKey(inst) : JSON.stringify(inst)
-        if (usedInstanceKeys.has(key)) continue
+    for (const inst of wasmInstanceViews.value) {
+        if (usedInstanceKeys.has(inst.key)) continue
         // 已在目录中的 plugin_name 不再重复展示（避免 wasm.json 等错误文件名导致双卡片）
-        const pluginName = instancePluginName(inst)
-        if (pluginName && AI_WASM_CATALOG.some((c) => c.id === pluginName)) continue
-        const spec = inst.spec as Record<string, unknown> | null
-        const title = instanceTitle(inst)
-        const desc =
-            typeof spec?.description === 'string' && spec.description
-                ? spec.description
-                : typeof spec?.url === 'string' && spec.url
-                  ? String(spec.url)
-                  : t('hint.wasmInstance')
+        const pluginName = inst.pluginName
+        if (pluginName && aiWasmCatalogIds.has(pluginName)) continue
         cards.push({
-            key,
-            title,
-            description: desc,
+            key: inst.key,
+            title: inst.title,
+            description: inst.description || t('hint.wasmInstance'),
             instance: inst,
         })
     }
@@ -181,15 +297,9 @@ const aiPluginCards = computed((): AiPluginCard[] => {
     return cards
 })
 
-function instKey(inst: Model.PluginConfig & { kind: 'named' }) {
-    return `${inst.code}:${inst.name}`
-}
-
 const filteredNativePlugins = computed(() => filterBySearch(nativePluginAttrs.value))
 const customWasmInstances = computed(() =>
-    wasmInstances.value.filter((inst) => {
-        return !AI_WASM_CATALOG.some((catalog) => catalog.kind !== 'generic' && instanceMatchesCatalog(inst, catalog))
-    })
+    wasmInstanceViews.value.filter((inst) => !isManagedAiWasmInstance(inst))
 )
 const filteredAiCards = computed(() => {
     const q = pluginSearchText.value.trim().toLowerCase()
@@ -204,9 +314,7 @@ const filteredCustomWasmInstances = computed(() => {
     const q = pluginSearchText.value.trim().toLowerCase()
     if (!q) return customWasmInstances.value
     return customWasmInstances.value.filter((inst) => {
-        const spec = inst.spec as Record<string, unknown> | null
-        const description = typeof spec?.description === 'string' ? spec.description : ''
-        return instanceTitle(inst).toLowerCase().includes(q) || description.toLowerCase().includes(q)
+        return inst.title.toLowerCase().includes(q) || inst.description.toLowerCase().includes(q)
     })
 })
 
@@ -229,6 +337,10 @@ function pluginDescription(item: Model.PluginAttributes): string {
     return item.code
 }
 
+function pluginDisplayName(item: Model.PluginAttributes): string {
+    return nativePluginDisplayName(item.code, locale.value)
+}
+
 function iconStyle(pluginCode: string) {
     return { backgroundColor: hashColor(pluginCode, 'light') }
 }
@@ -237,21 +349,20 @@ function aiIconStyle(title: string) {
     return { backgroundColor: hashColor(title, 'light') }
 }
 
-function customWasmDescription(instance: Model.PluginConfig) {
-    const spec = instance.spec as Record<string, unknown> | null
-    if (typeof spec?.description === 'string' && spec.description.trim()) return spec.description
-    if (typeof spec?.url === 'string' && spec.url.trim()) return spec.url
+function customWasmDescription(instance: WasmPluginView) {
+    if (instance.description) return instance.description
     return texts.value.customWasmEmpty
 }
 
 async function loadWasmInstances() {
     try {
-        wasmInstances.value = unwrapResponse<Model.PluginConfig[]>(
+        wasmInstances.value = toPluginConfigLiteList(unwrapResponse<unknown>(
             await Api.getConfigPluginsByCode(WASM_PLUGIN_CODE)
-        )
+        ))
     } catch {
         wasmInstances.value = []
     }
+    syncWasmInstanceViews(wasmInstances.value)
 }
 
 onMounted(async () => {
@@ -280,7 +391,8 @@ async function selectNativePlugin(pluginCode: string) {
 /** 配置 AI Wasm：有实例则进入编辑，否则按目录创建新实例 */
 async function configureAiCard(card: AiPluginCard) {
     if (isAiGatewayQueueCard(card)) {
-        aiGatewayQueueInstance.value = card.instance;
+        const raw = card.instance ? rawWasmInstance(card.instance) : undefined
+        aiGatewayQueueInstance.value = raw ? asPluginConfig(raw) : undefined;
         aiGatewayQueueVisible.value = true;
         return;
     }
@@ -288,8 +400,10 @@ async function configureAiCard(card: AiPluginCard) {
     code.value = WASM_PLUGIN_CODE
     await ensureWasmAttr()
     if (card.instance) {
+        const raw = rawWasmInstance(card.instance)
+        if (!raw) return
         await refreshPluginInstancesList(WASM_PLUGIN_CODE)
-        await editInstance(card.instance)
+        await editInstance(raw)
         return
     }
   openCreateWasmFromCatalog(card)
@@ -305,6 +419,16 @@ function editCustomWasm(instance: Model.PluginConfig) {
     thirdPartyWasmVisible.value = true
 }
 
+function editCustomWasmView(instance: WasmPluginView) {
+    const raw = rawWasmInstance(instance)
+    if (raw) editCustomWasm(asPluginConfig(raw))
+}
+
+function deleteCustomWasmView(instance: WasmPluginView) {
+    const raw = rawWasmInstance(instance)
+    if (raw) deleteCustomWasmInstance(asPluginConfig(raw))
+}
+
 async function ensureWasmAttr() {
     if (attr.value?.code === WASM_PLUGIN_CODE) return
     const cached = pluginAttrs.value.find((p) => p.code === WASM_PLUGIN_CODE)
@@ -318,7 +442,7 @@ async function ensureWasmAttr() {
 
 function openCreateWasmFromCatalog(card: AiPluginCard) {
     if (!attr.value) return
-    const catalogId = card.catalog?.id ?? card.key
+    const catalogId = card.catalogId ?? card.key
     formPluginConfig.value = {
         code: WASM_PLUGIN_CODE,
         kind: 'named',
@@ -345,7 +469,7 @@ function backToPluginList() {
 }
 
 const refreshPluginInstancesList = async (pluginCode: string) => {
-    instances.value = unwrapResponse<Model.PluginConfig[]>(await Api.getConfigPluginsByCode(pluginCode))
+    instances.value = toPluginConfigLiteList(unwrapResponse<unknown>(await Api.getConfigPluginsByCode(pluginCode)))
     if (pluginCode === WASM_PLUGIN_CODE) {
         await loadWasmInstances()
     }
@@ -386,12 +510,19 @@ const openCreateDialog = () => {
         }
     }
     dialogMode.value = 'create';
-    dialogTitle.value = t('title.newPlugin');
+    dialogTitle.value = texts.value.createPluginInstance;
     dialogVisible.value = true;
 }
 const closeDialog = async (action: 'save' | 'cancel') => {
     if (action === 'save') {
         try {
+            if (formRef.value) {
+                const errors = formRef.value.validate?.() ?? []
+                if (errors.length) {
+                    ElMessage.warning(t('hint.requiredFieldsMissing'))
+                    return
+                }
+            }
             await savePlugin();
             dialogVisible.value = false;
             await refreshPluginInstancesList(code.value!);
@@ -411,13 +542,13 @@ const savePlugin = async () => {
         await updatePlugin();
     }
 }
-const editInstance = async (instance: Model.PluginConfig) => {
+const editInstance = async (instance: PluginConfigLite) => {
     dialogMode.value = 'edit';
-    dialogTitle.value = t('title.editPlugin');
-    formPluginConfig.value = instance;
+    dialogTitle.value = texts.value.editPluginInstance;
+    formPluginConfig.value = { ...instance, spec: { ...instance.spec } };
     dialogVisible.value = true;
 }
-const deleteInstance = async (instance: Model.PluginConfig) => {
+const deleteInstance = async (instance: PluginConfigLite) => {
     try {
         await ElMessageBox.confirm(texts.value.deleteConfirm, texts.value.deleteTitle, {
             confirmButtonText: t('button.delete'),
@@ -428,7 +559,7 @@ const deleteInstance = async (instance: Model.PluginConfig) => {
         return
     }
     try {
-        await Api.deleteConfigPlugin(instance);
+        await Api.deleteConfigPlugin(asPluginConfig(instance));
         await refreshPluginInstancesList(code.value!);
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e)
@@ -450,6 +581,7 @@ const deleteCustomWasmInstance = async (instance: Model.PluginConfig) => {
         await Api.deleteConfigPlugin(instance);
         wasmReloadNoticeVisible.value = true
         await loadWasmInstances();
+        emit('changed')
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e)
         ElMessage.error(texts.value.deleteFailed(message))
@@ -459,21 +591,23 @@ const createPlugin = async () => {
     if (formRef.value === null) {
         return;
     }
-    const config = <Model.PluginConfig>{
+    const config = <PluginConfigLite>{
         ...formPluginConfig.value,
         spec: formRef.value.getJson(),
     }
-    await Api.postConfigPlugin(config);
+    await Api.postConfigPlugin(asPluginConfig(config));
+    emit('changed')
 }
 const updatePlugin = async () => {
     if (formRef.value === null) {
         return;
     }
-    const config = <Model.PluginConfig>{
+    const config = <PluginConfigLite>{
         ...formPluginConfig.value,
         spec: formRef.value.getJson(),
     }
-    await Api.putConfigPlugin(config);
+    await Api.putConfigPlugin(asPluginConfig(config));
+    emit('changed')
 }
 
 async function onCardMenu(command: string, item: Model.PluginAttributes) {
@@ -486,11 +620,13 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
 
 async function onAiGatewayQueueSaved() {
     await loadWasmInstances()
+    emit('changed')
 }
 
 async function onThirdPartyWasmSaved() {
     wasmReloadNoticeVisible.value = true
     await loadWasmInstances()
+    emit('changed')
 }
 
 function goInstances() {
@@ -531,7 +667,8 @@ function goInstances() {
                         </el-icon>
                     </div>
                     <div class="plugin-card__title-wrap">
-                        <div class="plugin-card__title">{{ item.code }}</div>
+                        <div class="plugin-card__title">{{ pluginDisplayName(item) }}</div>
+                        <div class="plugin-card__code">{{ item.code }}</div>
                         <div v-if="item.meta.version" class="plugin-card__version">
                             v{{ item.meta.version }}
                         </div>
@@ -638,17 +775,17 @@ function goInstances() {
                         class="custom-wasm-row"
                     >
                         <div class="custom-wasm-row__main">
-                            <strong>{{ instanceTitle(instance) }}</strong>
+                            <strong>{{ instance.title }}</strong>
                             <span>{{ instance.kind === 'named' ? `wasm.${instance.name}` : instance.code }}</span>
                         </div>
                         <div class="custom-wasm-row__desc">
                             {{ customWasmDescription(instance) }}
                         </div>
                         <div class="custom-wasm-row__actions">
-                            <el-button size="small" :icon="Edit" link type="primary" @click="editCustomWasm(instance)">
+                            <el-button size="small" :icon="Edit" link type="primary" @click="editCustomWasmView(instance)">
                                 {{ t('button.edit') }}
                             </el-button>
-                            <el-button size="small" :icon="Delete" link type="danger" @click="deleteCustomWasmInstance(instance)">
+                            <el-button size="small" :icon="Delete" link type="danger" @click="deleteCustomWasmView(instance)">
                                 {{ t('button.delete') }}
                             </el-button>
                         </div>
@@ -697,7 +834,11 @@ function goInstances() {
         <div v-if="attr !== undefined && !attr.mono && instances !== undefined">
             <div class="plugin-detail__actions">
                 <el-input v-model="searchText" :placeholder="texts.searchConfigName"></el-input>
-                <el-button :icon="Plus" type="primary" @click="openCreateDialog">{{ t('button.create') }}</el-button>
+                <el-button :icon="Plus" type="primary" @click="openCreateDialog">{{ texts.createPluginInstance }}</el-button>
+            </div>
+            <div class="plugin-detail__instance-intro">
+                <strong>{{ texts.pluginInstanceListTitle }}</strong>
+                <span>{{ texts.pluginInstanceListDesc }}</span>
             </div>
             <div class="plugin-instance-list">
                 <div v-for="instance in instances.filter((c) => {
@@ -717,19 +858,32 @@ function goInstances() {
                 </div>
                 <el-empty v-if="instances.filter((c) => c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))).length === 0" :description="texts.emptyConfig" />
             </div>
-            <el-dialog v-model="dialogVisible" :title="dialogTitle" width="720px" class="plugin-config-dialog" destroy-on-close>
-                <template #title>
-                    <div class="plugin-config-dialog__title">
+            <el-drawer v-model="dialogVisible" size="72%" class="plugin-config-drawer" destroy-on-close>
+                <template #header>
+                    <div class="plugin-config-drawer__title">
                         <code>{{ attr.code }}</code>
                         <span>{{ dialogTitle }}</span>
                     </div>
                 </template>
-                <plugin-form ref="formRef" :attr="attr" v-model="formPluginConfig"></plugin-form>
+
+                <div class="plugin-config-drawer__body">
+                    <el-alert
+                        type="info"
+                        :closable="false"
+                        :title="texts.pluginDrawerIntroTitle"
+                        :description="texts.pluginDrawerIntroDesc"
+                        class="plugin-config-drawer__intro"
+                    />
+                    <el-card shadow="never" class="plugin-config-drawer__card">
+                        <plugin-form ref="formRef" :attr="attr" v-model="formPluginConfig"></plugin-form>
+                    </el-card>
+                </div>
+
                 <template #footer>
                     <el-button @click="() => closeDialog('cancel')">{{ t('button.cancel') }}</el-button>
                     <el-button :icon="Check" type="primary" @click="() => closeDialog('save')">{{ t('button.save') }}</el-button>
                 </template>
-            </el-dialog>
+            </el-drawer>
         </div>
     </div>
 </template>
@@ -919,6 +1073,13 @@ function goInstances() {
     word-break: break-all;
 }
 
+.plugin-card__code {
+    margin-top: 2px;
+    color: #64748b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+}
+
 .plugin-card__version {
     margin-top: 2px;
     font-size: 12px;
@@ -947,6 +1108,7 @@ function goInstances() {
     color: #666;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 58px;
@@ -957,14 +1119,14 @@ function goInstances() {
     padding: 10px;
     border: none;
     border-top: 1px solid #e5e5e5;
-    background: #fafafa;
+    background-color: #fafafa;
     font-size: 14px;
     color: #1a1a1a;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background-color 0.15s ease;
 
     &:hover {
-        background: #f0f0f0;
+        background-color: #f0f0f0;
     }
 }
 
@@ -993,6 +1155,28 @@ function goInstances() {
     .el-input {
         max-width: 320px;
     }
+}
+
+.plugin-detail__instance-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.plugin-detail__instance-intro strong {
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.plugin-detail__instance-intro span {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .plugin-instance-list {
@@ -1032,18 +1216,41 @@ function goInstances() {
     flex-shrink: 0;
 }
 
-.plugin-config-dialog__title {
+.plugin-config-drawer__title {
     display: inline-flex;
     align-items: center;
     gap: 10px;
 }
 
-.plugin-config-dialog__title code {
+.plugin-config-drawer__title code {
     padding: 3px 8px;
     border: 1px solid #dbe3ef;
     border-radius: 6px;
     color: #0f766e;
     background: #ecfdf5;
     font-size: 12px;
+}
+
+.plugin-config-drawer__title span {
+    display: block;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.plugin-config-drawer__body {
+    min-height: 420px;
+}
+
+.plugin-config-drawer__intro {
+    margin-bottom: 12px;
+}
+
+.plugin-config-drawer__card {
+    border-radius: 8px;
+}
+
+:deep(.plugin-config-drawer .el-drawer__footer) {
+    border-top: 1px solid #e5e7eb;
 }
 </style>

@@ -9,13 +9,12 @@ import { PluginInstanceId } from 'spacegate-admin-client/dist/model';
 import { useI18n } from 'vue-i18n'
 const { locale, t } = useI18n();
 const modelValue = defineModel<Model.PluginInstanceId[]>({
-    default: []
+    required: true,
 })
 const isOpen = ref(false)
 const mode = ref<'add' | 'edit' | undefined>('add')
 const formData = ref<Model.PluginInstanceId | undefined>(undefined)
-const plugins = ref<Model.PluginInstanceId[]>(modelValue.value)
-const selectRef = ref<InstanceType<typeof PluginSelect>>(null)
+const selectRef = ref<InstanceType<typeof PluginSelect> | null>(null)
 const editIndex = ref(0);
 const texts = computed(() => locale.value.startsWith('zh') ? {
     intro: '选择插件类型后，可以引用已有插件配置，也可以创建一份自定义配置并立即绑定到当前资源。',
@@ -26,6 +25,10 @@ const open = (m: 'add' | 'edit', plugin?: Model.PluginInstanceId) => {
     mode.value = m;
     formData.value = plugin ? cloneDeep(plugin) : undefined;
     isOpen.value = true;
+}
+const openEdit = (plugin: Model.PluginInstanceId, index: number) => {
+    editIndex.value = index
+    open('edit', plugin)
 }
 const getFormData = (): PluginInstanceId => {
     switch (formData.value.kind) {
@@ -46,9 +49,13 @@ const getFormData = (): PluginInstanceId => {
     }
 }
 const addPlugin = () => {
-
     if (formData.value) {
-        modelValue.value.push(getFormData())
+        const next = getFormData()
+        if (mode.value === 'edit') {
+            modelValue.value.splice(editIndex.value, 1, next)
+        } else {
+            modelValue.value.push(next)
+        }
     }
 }
 const draggedIndex = ref(null);
@@ -70,9 +77,9 @@ const close = () => {
 </script>
 <template>
     <div class="flex space-x-1">
-        <el-tag v-for="(plugin, index) in plugins" :key="keyPluginId(plugin)" closable
+        <el-tag v-for="(plugin, index) in modelValue" :key="`${keyPluginId(plugin)}-${index}`" closable
             @close="modelValue.splice(index, 1)" :color="hashColor(plugin.code, 'light')"
-            @click="() => open('edit', plugin)" class="hover:cursor-pointer hover:brightness-110">
+            @click="() => openEdit(plugin, index)" class="hover:cursor-pointer hover:brightness-110">
             <span class="mx-1 text-gray-900" draggable="true" @dragstart="dragstart(index)" @dragover.prevent
                 @drop="drop(index)">:::</span>
             <code class="rounded bg-black text-white bg-opacity-60 px-1">{{ plugin.code }}</code>
@@ -100,7 +107,7 @@ const close = () => {
                 {{ t('button.cancel') }}
             </el-button>
             <el-button type="primary" :icon="Check" @click="async () => {
-                await selectRef.save()
+                await selectRef?.save()
                 addPlugin()
                 close()
             }">

@@ -23,16 +23,16 @@ const visible = defineModel<boolean>({
 const saving = ref(false)
 
 const PHASE_OPTIONS = [
-  { label: 'UNSPECIFIED_PHASE', value: 'UNSPECIFIED_PHASE' },
-  { label: 'AUTHN', value: 'AUTHN' },
-  { label: 'AUTHZ', value: 'AUTHZ' },
-  { label: 'STATS', value: 'STATS' },
+  { label: '默认', value: 'UNSPECIFIED_PHASE' },
+  { label: '认证', value: 'AUTHN' },
+  { label: '授权', value: 'AUTHZ' },
+  { label: '统计', value: 'STATS' },
 ]
 
 const IMAGE_PULL_POLICY_OPTIONS = [
-  { label: 'UNSPECIFIED_POLICY', value: 'UNSPECIFIED_POLICY' },
-  { label: 'IfNotPresent', value: 'IfNotPresent' },
-  { label: 'Always', value: 'Always' },
+  { label: '默认', value: 'UNSPECIFIED_POLICY' },
+  { label: '不存在时拉取', value: 'IfNotPresent' },
+  { label: '始终拉取', value: 'Always' },
 ]
 
 const form = reactive({
@@ -187,7 +187,7 @@ function validateForm(instanceName: string, imageUrl: string) {
     throw new Error('插件名称不能为空')
   }
   if (!imageUrl) {
-    throw new Error('Image URL 不能为空')
+    throw new Error('镜像地址不能为空')
   }
 }
 
@@ -285,7 +285,7 @@ async function save() {
                 </div>
               </template>
               <div class="third-party-wasm__grid">
-                <el-form-item label="插件名称 name">
+                <el-form-item label="插件名称">
                   <el-input v-model="form.instance_name" :disabled="isEdit" placeholder="custom-authz" @blur="normalizeInstanceNameInput" />
                   <div class="third-party-wasm__hint">保存为 wasm.{name}.json，仅支持小写字母、数字和中划线；创建后不可修改。</div>
                 </el-form-item>
@@ -293,10 +293,10 @@ async function save() {
                   <el-input v-model="form.display_name" placeholder="自定义鉴权插件" />
                 </el-form-item>
               </div>
-              <el-form-item label="描述 description">
+              <el-form-item label="描述">
                 <el-input v-model="form.description" type="textarea" :rows="2" />
               </el-form-item>
-              <el-form-item label="Image URL">
+              <el-form-item label="镜像地址L">
                 <el-input v-model="form.image_url" placeholder="oci://registry.example.com/plugins/authz:v1" />
                 <div class="third-party-wasm__hint">{{ imageHelpText }}</div>
               </el-form-item>
@@ -306,11 +306,11 @@ async function save() {
               <template #header>
                 <div class="third-party-wasm__card-title">
                   <span>调度与拉取</span>
-                  <small>对应 Higress WasmPlugin 的 phase、priority、imagePullPolicy、imagePullSecret。</small>
+                  <small>对应 phase、priority、imagePullPolicy、imagePullSecret。</small>
                 </div>
               </template>
               <div class="third-party-wasm__grid third-party-wasm__grid--three">
-                <el-form-item label="Phase">
+                <el-form-item label="生效阶段">
                   <el-select v-model="form.phase">
                     <el-option
                       v-for="item in PHASE_OPTIONS"
@@ -320,10 +320,10 @@ async function save() {
                     />
                   </el-select>
                 </el-form-item>
-                <el-form-item label="Priority">
+                <el-form-item label="优先级">
                   <el-input-number v-model="form.priority" :min="-100000" :max="100000" />
                 </el-form-item>
-                <el-form-item label="Image Pull Policy">
+                <el-form-item label="镜像拉取策略">
                   <el-select v-model="form.image_pull_policy">
                     <el-option
                       v-for="item in IMAGE_PULL_POLICY_OPTIONS"
@@ -335,7 +335,7 @@ async function save() {
                 </el-form-item>
               </div>
               <div class="third-party-wasm__grid">
-                <el-form-item label="Image Pull Secret">
+                <el-form-item label="拉取凭证">
                   <el-input v-model="form.image_pull_secret" placeholder="private-registry-secret" />
                 </el-form-item>
                 <el-form-item label="SHA-256">
@@ -343,7 +343,7 @@ async function save() {
                 </el-form-item>
               </div>
               <div class="third-party-wasm__grid">
-                <el-form-item label="插件名称 pluginName">
+                <el-form-item label="插件名称">
                   <el-input v-model="form.plugin_name" placeholder="authz" />
                 </el-form-item>
                 <el-form-item label="失败策略">

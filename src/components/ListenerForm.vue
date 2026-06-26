@@ -41,6 +41,7 @@ watch(() => modelValue.value.protocol.type, (type, prevType) => {
                 mode: "Terminate",
                 key: "",
                 cert: "",
+                http2: false,
             }
         }
     }

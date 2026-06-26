@@ -3,7 +3,8 @@
     "target": "esnext",
     "useDefineForClassFields": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "rootDir": ".",
     "strict": false,
     "sourceMap": true,
     "resolveJsonModule": true,
@@ -30,6 +31,7 @@
     "src/index.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/**/*.test.ts"
   ]
 }

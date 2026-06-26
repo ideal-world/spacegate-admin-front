@@ -2,7 +2,7 @@
 import { Model, Api } from 'spacegate-admin-client'
 import { Delete, Plus, Close, Download, Upload, Check } from '@element-plus/icons-vue'
 
-import { ref, onMounted, defineProps } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ValidError, downloadConfigItem, unwrapResponse, uploadConfigItem } from '../utils';
 import { ElMessageBox, ElMessage, } from 'element-plus';
 import { cloneDeep } from 'lodash';

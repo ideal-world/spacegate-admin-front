@@ -46,7 +46,7 @@ export const unwrapResponse = <T extends unknown>(response: AxiosResponse<T>): T
       type: 'error',
     })
     throw new ResponseError(response);
-  } else if (response.headers['content-type']?.includes('application/json') === false) {
+  } else if (typeof response.headers['content-type'] === 'string' && !response.headers['content-type'].includes('application/json')) {
     ElMessage({
       message: 'Response is not json data.',
       type: 'error',
@@ -108,7 +108,7 @@ export const saveJson = <T extends unknown>(value: T, name: string, target: 'fil
     a.download = filename;
     a.click();
   } else if (target === 'clipboard') {
-    navigator.permissions.query({ name: "clipboard-write" }).then((result) => {
+    navigator.permissions.query({ name: "clipboard-write" as PermissionName }).then((result) => {
       if (result.state == "granted" || result.state == "prompt") {
         /* write to the clipboard now */
       }
@@ -173,7 +173,7 @@ export const fetchJson = <T extends unknown>(source: 'file' | 'clipboard'): Prom
         })
         reject(new ValidError());
       } else {
-        navigator.permissions.query({ name: "clipboard-read" }).then((result) => {
+        navigator.permissions.query({ name: "clipboard-read" as PermissionName }).then((result) => {
           if (result.state == "granted" || result.state == "prompt") {
             navigator.clipboard.readText().then((content) => resolve(onFulfilled(content))).catch(reject);
           }

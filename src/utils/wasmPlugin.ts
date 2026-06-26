@@ -101,8 +101,8 @@ function valueToObject(value: unknown) {
   return { _config_: value }
 }
 
-function buildRuntimePluginConfig(defaultConfigDisable: boolean, defaultConfig: unknown, matchRules: unknown[]) {
-  const config = defaultConfigDisable ? {} : valueToObject(defaultConfig)
+function buildRuntimePluginConfig(defaultConfigDisable: boolean, defaultConfig: unknown, matchRules: unknown[]): Record<string, unknown> {
+  const config: Record<string, unknown> = defaultConfigDisable ? {} : valueToObject(defaultConfig)
   if (matchRules.length > 0) {
     config._rules_ = matchRules
   }

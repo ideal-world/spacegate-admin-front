@@ -60,7 +60,6 @@ const openDialog = async (name: string, mode: 'create' | 'edit') => {
                 rule.plugins = rule.plugins ?? [];
                 rule.backends = rule.backends ?? [];
                 rule.matches = rule.matches ?? [];
-                rule.backends.plugins = rule.backends.plugins ?? [];
             })
             dialogModel.value = resp;
             console.debug(dialogModel.value)

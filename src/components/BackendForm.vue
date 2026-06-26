@@ -23,16 +23,18 @@ const modelValue = defineModel<Model.SgBackendRef>({
     }
 })
 
-const discoveredBackends = ref<Array<Model.BackendHost>>([]);
+type BackendHostView = Model.BackendHost & { label: string }
+
+const discoveredBackends = ref<BackendHostView[]>([]);
 
 onMounted(async () => {
-    const backendHosts = unwrapResponse(await Api.instanceBackends())
-    discoveredBackends.value = backendHosts
-    discoveredBackends.value.forEach(e => {
-        e.label = labelHost(e)
-    });
-    if (backendHosts[0] !== undefined) {
-        selectedDiscoveredBackends.value = backendHosts[0]
+    const backendHosts = unwrapResponse<Model.BackendHost[]>(await Api.discoveryBackends())
+    discoveredBackends.value = backendHosts.map((backend) => ({
+        ...backend,
+        label: labelHost(backend),
+    }))
+    if (discoveredBackends.value[0] !== undefined) {
+        selectedDiscoveredBackends.value = discoveredBackends.value[0]
     }
 })
 const hostCategory: Model.BackendHost['kind'][] = ['File', 'Host', 'K8sService'];
@@ -52,11 +54,12 @@ const labelHost = (host: Model.BackendHost) => {
     }
 }
 const backendDialogVisible = ref(false);
-const selectedDiscoveredBackends = ref<Model.BackendHost | undefined>(undefined);
+const selectedDiscoveredBackends = ref<BackendHostView | undefined>(undefined);
 const doSelectDiscoveredBackend = () => {
     const backend = selectedDiscoveredBackends.value;
     if (backend) {
-        modelValue.value.host = backend;
+        const { label: _, ...host } = backend
+        modelValue.value.host = host;
     }
     backendDialogVisible.value = false;
 }
