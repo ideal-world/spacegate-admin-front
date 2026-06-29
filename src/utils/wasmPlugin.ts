@@ -40,6 +40,18 @@ export type ThirdPartyWasmPluginConfigBuildResult = {
   requiresGlobalReload: boolean
 }
 
+export type BoundWasmConfigMode = 'default' | 'schema' | 'xml'
+
+export type BuildBoundWasmPluginConfigInput = {
+  baseConfig: Model.PluginConfig
+  existingConfig?: Model.PluginConfig
+  bindingName: string
+  bindingScope: 'gateway' | 'route' | 'rule' | 'backend'
+  configMode: BoundWasmConfigMode
+  schemaConfig: unknown
+  xmlConfig: string
+}
+
 export function normalizeWasmPluginId(value: string) {
   const normalized = value
     .trim()
@@ -107,6 +119,66 @@ function buildRuntimePluginConfig(defaultConfigDisable: boolean, defaultConfig: 
     config._rules_ = matchRules
   }
   return config
+}
+
+function cloneSpec(value: unknown): Record<string, unknown> {
+  if (value && !Array.isArray(value) && typeof value === 'object') {
+    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>
+  }
+  return {}
+}
+
+function defaultConfigFromSpec(spec: Record<string, unknown>) {
+  if (spec.plugin_config !== undefined) return spec.plugin_config
+  if (spec.default_config !== undefined) return spec.default_config
+  return {}
+}
+
+function runtimeConfigForMode(input: BuildBoundWasmPluginConfigInput, baseSpec: Record<string, unknown>) {
+  if (input.configMode === 'xml') {
+    return input.xmlConfig.trim()
+  }
+  if (input.configMode === 'schema') {
+    return valueToObject(input.schemaConfig)
+  }
+  return defaultConfigFromSpec(baseSpec)
+}
+
+export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInput): ThirdPartyWasmPluginConfigBuildResult {
+  const baseSpec = cloneSpec(input.baseConfig.spec)
+  const existingSpec = cloneSpec(input.existingConfig?.spec)
+  const baseName = input.baseConfig.kind === 'named' ? input.baseConfig.name : 'wasm'
+  const instanceName = input.existingConfig?.kind === 'named'
+    ? input.existingConfig.name
+    : normalizeWasmPluginId(input.bindingName || `${input.bindingScope}-${baseName}-binding`)
+  validateWasmPluginId(instanceName)
+
+  const runtimeConfig = runtimeConfigForMode(input, baseSpec)
+  const spec: Record<string, unknown> = {
+    ...baseSpec,
+    ...existingSpec,
+    default_config_disable: false,
+    default_config: runtimeConfig,
+    plugin_config: runtimeConfig,
+    binding_config_mode: input.configMode,
+    binding_scope: input.bindingScope,
+    binding_base_plugin: input.baseConfig.kind === 'named'
+      ? input.baseConfig.name
+      : input.baseConfig.kind === 'anon'
+        ? input.baseConfig.uid
+        : input.baseConfig.code,
+    binding_display_name: input.bindingName.trim() || instanceName,
+  }
+
+  return {
+    requiresGlobalReload: true,
+    config: {
+      code: input.baseConfig.code || 'wasm',
+      kind: 'named',
+      name: instanceName,
+      spec,
+    } as Model.PluginConfig,
+  }
 }
 
 function compactObject<T extends Record<string, unknown>>(value: T) {

@@ -10,7 +10,7 @@ import { unwrapResponse } from "../utils";
 
 const { t } = useI18n();
 const modelValue = defineModel<Model.SgBackendRef>({
-    default: {
+    default: (): Model.SgBackendRef => ({
         host: {
             kind: "Host",
             host: "example.com",
@@ -18,9 +18,10 @@ const modelValue = defineModel<Model.SgBackendRef>({
         port: 80,
         timeout_ms: null,
         protocol: "http",
+        downgrade_http2: null,
         weight: 1,
-        filters: [],
-    }
+        plugins: [],
+    })
 })
 
 type BackendHostView = Model.BackendHost & { label: string }
@@ -154,8 +155,8 @@ const doSelectDiscoveredBackend = () => {
                 </el-form-item>
             </el-col>
         </el-row>
-        <el-form-item :label="t('label.plugins')" prop="filters">
-            <PluginListForm v-model="modelValue.plugins"></PluginListForm>
+        <el-form-item :label="t('label.plugins')" prop="plugins">
+            <PluginListForm v-model="modelValue.plugins" binding-scope="backend" binding-name="route-backend"></PluginListForm>
         </el-form-item>
     </el-form>
 </template>

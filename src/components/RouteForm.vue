@@ -120,7 +120,7 @@ const uploadVisible = ref(false)
                 :max="5000"></el-input-number>
         </el-form-item>
         <el-form-item :label="t('label.plugins')" prop="plugins">
-            <plugin-list-form v-model="modelValue.plugins"></plugin-list-form>
+            <plugin-list-form v-model="modelValue.plugins" binding-scope="route" binding-name="route"></plugin-list-form>
         </el-form-item>
         <el-form-item :label="t('label.rules')" prop="rules">
 

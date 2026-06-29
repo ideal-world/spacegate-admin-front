@@ -4,10 +4,19 @@ import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { unwrapResponse, keyPluginId, labelPluginId, randomUid } from '../utils';
 import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
+import { buildBoundWasmPluginConfig, type BoundWasmConfigMode } from '../utils/wasmPlugin'
 import PluginForm from './PluginForm.vue';
 import { useI18n } from 'vue-i18n'
 
 const { locale, t } = useI18n();
+
+const props = withDefaults(defineProps<{
+    bindingScope?: 'gateway' | 'route' | 'rule' | 'backend'
+    bindingName?: string
+}>(), {
+    bindingScope: 'route',
+    bindingName: '',
+})
 
 type PluginCategory = 'native' | 'ai'
 type PluginSpecRecord = Record<string, unknown>
@@ -43,6 +52,11 @@ const instances = shallowRef<PluginConfigLite[]>([])
 const attr = ref<Model.PluginAttributes | undefined>()
 const formRef = ref<InstanceType<typeof PluginForm> | null>(null)
 const loading = ref(false)
+const wasmConfigMode = ref<BoundWasmConfigMode>('default')
+const wasmBindingName = ref('')
+const wasmSchemaConfigText = ref('{}')
+const wasmXmlConfigText = ref('')
+const existingWasmBinding = ref<PluginConfigLite | undefined>()
 
 const texts = computed(() => locale.value.startsWith('zh') ? {
     native: '原生插件',
@@ -55,7 +69,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     referenceConfig: '引用已有配置',
     customConfig: '新建原生插件配置',
     nativeHint: '原生插件由网关内置，支持直接新建配置或引用已有配置。',
-    aiHint: 'AI/Wasm 插件先在插件中心创建配置实例，这里只负责绑定引用。',
+    aiHint: 'AI/Wasm 插件从插件中心选择默认配置，绑定时会为当前资源新增或更新一份专属配置。',
     referenceHint: '选择一份已经保存的插件配置，绑定到当前资源。',
     customHint: '创建一份新的 named 原生插件配置，保存后立即绑定到当前资源。',
     selectPluginType: '请选择原生插件',
@@ -63,6 +77,19 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     emptyConfig: '当前插件还没有可引用的 named 配置。',
     emptyAiConfig: '暂无可绑定的 AI/Wasm 插件配置，请先到插件中心创建。',
     loadFailed: '插件列表加载失败，请确认 admin-server 和网关实例已启动。',
+    wasmBinding: '绑定配置',
+    wasmBindingName: '绑定配置名称',
+    wasmBindingNameHint: '保存为 wasm.{name}.json。建议表达绑定位置，避免覆盖插件中心默认配置。',
+    wasmDefaultMode: '使用默认配置',
+    wasmSchemaMode: '自定义 Schema 配置',
+    wasmXmlMode: 'XML 配置',
+    wasmDefaultHint: '复制插件中心默认配置，后续可独立编辑当前绑定。',
+    wasmSchemaHint: '填写 JSON object，保存后写入当前绑定实例的 plugin_config。',
+    wasmXmlHint: '填写 XML 文本，保存后作为当前绑定实例的 plugin_config 文本。',
+    wasmSchemaPlaceholder: '{\n  \"key\": \"value\"\n}',
+    wasmXmlPlaceholder: '<config>\n  <key>value</key>\n</config>',
+    invalidJson: 'Schema 配置必须是 JSON object',
+    selectWasmBase: '请选择插件中心默认配置',
 } : {
     native: 'Native Plugin',
     ai: 'AI/Wasm Plugin',
@@ -74,7 +101,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     referenceConfig: 'Reference Existing Configuration',
     customConfig: 'Create Native Plugin Configuration',
     nativeHint: 'Native plugins are built into the gateway. You can create a new configuration or reference an existing one.',
-    aiHint: 'Create AI/Wasm plugin configurations in Plugin Center first. This selector only binds existing configurations.',
+    aiHint: 'Select the default AI/Wasm config from Plugin Center. Binding creates or updates a config dedicated to this resource.',
     referenceHint: 'Select an existing plugin configuration and bind it to this resource.',
     customHint: 'Create a new named native plugin configuration and bind it to this resource immediately.',
     selectPluginType: 'Select a native plugin',
@@ -82,12 +109,28 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     emptyConfig: 'This plugin has no named configuration to reference.',
     emptyAiConfig: 'No AI/Wasm plugin configuration is available. Create one in Plugin Center first.',
     loadFailed: 'Failed to load plugins. Make sure admin-server and gateway instance are running.',
+    wasmBinding: 'Binding Configuration',
+    wasmBindingName: 'Binding Config Name',
+    wasmBindingNameHint: 'Saved as wasm.{name}.json. Use a resource-specific name to avoid overwriting Plugin Center defaults.',
+    wasmDefaultMode: 'Use Default Config',
+    wasmSchemaMode: 'Custom Schema Config',
+    wasmXmlMode: 'XML Config',
+    wasmDefaultHint: 'Copy the Plugin Center default config. This binding can be edited independently later.',
+    wasmSchemaHint: 'Enter a JSON object. It will be saved to this binding instance plugin_config.',
+    wasmXmlHint: 'Enter XML text. It will be saved as this binding instance plugin_config text.',
+    wasmSchemaPlaceholder: '{\n  \"key\": \"value\"\n}',
+    wasmXmlPlaceholder: '<config>\n  <key>value</key>\n</config>',
+    invalidJson: 'Schema config must be a JSON object',
+    selectWasmBase: 'Select a Plugin Center default config.',
 })
 
 defineExpose({
     save(): Promise<void> {
         if (category.value === 'native' && configMode.value === 'custom') {
             return save()
+        }
+        if (category.value === 'ai') {
+            return saveWasmBinding()
         }
         return Promise.resolve()
     }
@@ -174,7 +217,7 @@ const nativePluginOptions = computed<NativePluginOption[]>(() =>
 
 const aiPluginOptions = computed<AiPluginOption[]>(() =>
     wasmPluginConfigs.value
-        .filter((item) => item.kind === 'named' && isWasmCode(item.code))
+        .filter((item) => item.kind === 'named' && isWasmCode(item.code) && item.spec.binding_scope === undefined)
         .map((item) => ({
             key: `${item.code}:${item.name ?? ''}`,
             code: item.code,
@@ -184,6 +227,12 @@ const aiPluginOptions = computed<AiPluginOption[]>(() =>
         }))
         .sort((a, b) => a.name.localeCompare(b.name))
 )
+
+const selectedWasmBaseConfig = computed(() => {
+    const option = aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)
+    if (!option) return undefined
+    return wasmPluginConfigs.value.find((item) => item.code === option.code && item.kind === 'named' && item.name === option.configName)
+})
 
 const currentPluginHint = computed(() => category.value === 'native' ? texts.value.nativeHint : texts.value.aiHint)
 const referenceIds = computed(() => {
@@ -219,6 +268,55 @@ async function refreshWasmPluginInstances() {
     }
 }
 
+function configByPluginId(id: Model.PluginInstanceId | undefined) {
+    if (!id) return undefined
+    return wasmPluginConfigs.value.find((item) => {
+        if (item.code !== id.code || item.kind !== id.kind) return false
+        if (id.kind === 'named') return item.name === id.name
+        if (id.kind === 'anon') return item.uid === id.uid
+        return true
+    })
+}
+
+function defaultWasmBindingName(option: AiPluginOption) {
+    const raw = props.bindingName.trim()
+        ? `${props.bindingName}-${option.configName || option.name}`
+        : `${props.bindingScope}-${option.configName || option.name}-binding`
+    return raw
+}
+
+function hydrateWasmBinding(config: PluginConfigLite | undefined) {
+    existingWasmBinding.value = config
+    const spec = config?.spec ?? {}
+    wasmConfigMode.value = (spec.binding_config_mode === 'xml' || spec.binding_config_mode === 'schema' || spec.binding_config_mode === 'default')
+        ? spec.binding_config_mode
+        : 'default'
+    wasmBindingName.value = config?.kind === 'named' ? config.name ?? '' : ''
+    const pluginConfig = spec.plugin_config ?? spec.default_config
+    if (wasmConfigMode.value === 'xml') {
+        wasmXmlConfigText.value = typeof pluginConfig === 'string' ? pluginConfig : ''
+        wasmSchemaConfigText.value = '{}'
+    } else if (wasmConfigMode.value === 'schema') {
+        wasmSchemaConfigText.value = JSON.stringify(pluginConfig ?? {}, null, 2)
+        wasmXmlConfigText.value = ''
+    } else {
+        wasmSchemaConfigText.value = JSON.stringify(pluginConfig ?? {}, null, 2)
+        wasmXmlConfigText.value = ''
+    }
+}
+
+function parseSchemaConfig() {
+    try {
+        const parsed = JSON.parse(wasmSchemaConfigText.value.trim() || '{}')
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+            throw new Error(texts.value.invalidJson)
+        }
+        return parsed
+    } catch (e) {
+        throw new Error(texts.value.invalidJson)
+    }
+}
+
 async function loadNativeAttr(pluginCode: string) {
     attr.value = undefined
     try {
@@ -243,7 +341,7 @@ async function setCode(pluginCode: string | undefined) {
     await refreshPluginInstancesList(pluginCode)
 }
 
-async function setAiPlugin(key: string | undefined) {
+async function setAiPlugin(key: string | undefined, options: { keepExisting?: boolean } = {}) {
     if (wasmPluginConfigs.value.length === 0) {
         await refreshWasmPluginInstances()
     }
@@ -254,6 +352,13 @@ async function setAiPlugin(key: string | undefined) {
         return
     }
     await setCode(option.code)
+    if (!options.keepExisting) {
+        existingWasmBinding.value = undefined
+        wasmConfigMode.value = 'default'
+        wasmSchemaConfigText.value = JSON.stringify(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {}, null, 2)
+        wasmXmlConfigText.value = ''
+        wasmBindingName.value = defaultWasmBindingName(option)
+    }
     modelValue.value = {
         code: option.code,
         kind: 'named',
@@ -283,6 +388,35 @@ async function save() {
     }
 }
 
+async function saveWasmBinding() {
+    const baseConfig = selectedWasmBaseConfig.value
+    if (!baseConfig) {
+        throw new Error(texts.value.selectWasmBase)
+    }
+    const configMode = wasmConfigMode.value
+    const result = buildBoundWasmPluginConfig({
+        baseConfig: baseConfig as Model.PluginConfig,
+        existingConfig: existingWasmBinding.value as Model.PluginConfig | undefined,
+        bindingName: wasmBindingName.value || defaultWasmBindingName(aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)!),
+        bindingScope: props.bindingScope,
+        configMode,
+        schemaConfig: configMode === 'schema' ? parseSchemaConfig() : {},
+        xmlConfig: configMode === 'xml' ? wasmXmlConfigText.value : '',
+    })
+    if (existingWasmBinding.value) {
+        await Api.putConfigPlugin(result.config)
+    } else {
+        await Api.postConfigPlugin(result.config)
+    }
+    await refreshWasmPluginInstances()
+    existingWasmBinding.value = result.config as PluginConfigLite
+    modelValue.value = {
+        code: result.config.code,
+        kind: 'named',
+        name: result.config.kind === 'named' ? result.config.name : '',
+    }
+}
+
 watch(category, async () => {
     const next = category.value === 'native'
         ? nativePluginOptions.value[0]?.code
@@ -300,7 +434,17 @@ watch(modelValue, async (newValue) => {
     if (!newValue) return
     const nextCategory: PluginCategory = isWasmCode(newValue.code) ? 'ai' : 'native'
     if (nextCategory === 'ai') {
-        aiSelectedKey.value = `${newValue.code}:${newValue.kind === 'named' ? newValue.name : ''}`
+        if (wasmPluginConfigs.value.length === 0) {
+            await refreshWasmPluginInstances()
+        }
+        const current = configByPluginId(newValue)
+        const baseName = current?.spec.binding_base_plugin
+        if (typeof baseName === 'string' && baseName.trim()) {
+            aiSelectedKey.value = `${newValue.code}:${baseName}`
+            hydrateWasmBinding(current)
+        } else {
+            aiSelectedKey.value = `${newValue.code}:${newValue.kind === 'named' ? newValue.name : ''}`
+        }
     }
     if (category.value !== nextCategory) {
         category.value = nextCategory
@@ -311,6 +455,20 @@ watch(modelValue, async (newValue) => {
         await refreshPluginInstancesList(newValue.code)
     }
 })
+
+async function hydrateInitialWasmValue() {
+    const current = configByPluginId(modelValue.value)
+    if (!current) return false
+    const baseName = current.spec.binding_base_plugin
+    if (typeof baseName === 'string' && baseName.trim()) {
+        const baseKey = `${current.code}:${baseName}`
+        await setAiPlugin(baseKey, { keepExisting: true })
+        hydrateWasmBinding(current)
+        return true
+    }
+    await setAiPlugin(`${current.code}:${current.kind === 'named' ? current.name ?? '' : ''}`)
+    return true
+}
 
 onMounted(async () => {
     loading.value = true
@@ -332,7 +490,11 @@ onMounted(async () => {
     if (initialCode) {
         category.value = isWasmCode(initialCode) ? 'ai' : 'native'
         if (category.value === 'ai') {
-            aiSelectedKey.value = `${initialCode}:${modelValue.value?.kind === 'named' ? modelValue.value.name : ''}`
+            const hydrated = await hydrateInitialWasmValue()
+            if (!hydrated) {
+                await setAiPlugin(`${initialCode}:${modelValue.value?.kind === 'named' ? modelValue.value.name : ''}`)
+            }
+            return
         }
         await setCode(initialCode)
     } else {
@@ -409,7 +571,7 @@ onMounted(async () => {
                 :title="texts.selectPluginType"
                 :description="texts.selectPluginTypeDesc"
             />
-            <el-form-item v-else :label="texts.pluginConfig">
+            <el-form-item v-else-if="category === 'native'" :label="texts.pluginConfig">
                 <el-select filterable v-model="modelValue">
                     <el-option
                         v-for="item in referenceIds"
@@ -419,9 +581,50 @@ onMounted(async () => {
                     />
                 </el-select>
                 <div class="plugin-select__empty-hint" v-if="code && referenceIds.length === 0">
-                    {{ category === 'ai' ? texts.emptyAiConfig : texts.emptyConfig }}
+                    {{ texts.emptyConfig }}
                 </div>
             </el-form-item>
+
+            <section v-else class="plugin-select__section plugin-select__section--binding">
+                <div class="plugin-select__section-title">{{ texts.wasmBinding }}</div>
+                <el-form-item :label="texts.wasmBindingName">
+                    <el-input v-model="wasmBindingName" placeholder="route-catch-all-auth" />
+                    <div class="plugin-select__empty-hint">{{ texts.wasmBindingNameHint }}</div>
+                </el-form-item>
+                <div class="plugin-select__section-title">{{ texts.configMode }}</div>
+                <el-segmented
+                    v-model="wasmConfigMode"
+                    class="plugin-select__mode"
+                    :options="[
+                        { label: texts.wasmDefaultMode, value: 'default' },
+                        { label: texts.wasmSchemaMode, value: 'schema' },
+                        { label: texts.wasmXmlMode, value: 'xml' },
+                    ]"
+                />
+                <div class="plugin-select__mode-hint">
+                    {{ wasmConfigMode === 'xml' ? texts.wasmXmlHint : wasmConfigMode === 'schema' ? texts.wasmSchemaHint : texts.wasmDefaultHint }}
+                </div>
+                <el-input
+                    v-if="wasmConfigMode === 'schema'"
+                    v-model="wasmSchemaConfigText"
+                    type="textarea"
+                    :rows="8"
+                    :placeholder="texts.wasmSchemaPlaceholder"
+                    class="plugin-select__textarea"
+                />
+                <el-input
+                    v-else-if="wasmConfigMode === 'xml'"
+                    v-model="wasmXmlConfigText"
+                    type="textarea"
+                    :rows="8"
+                    :placeholder="texts.wasmXmlPlaceholder"
+                    class="plugin-select__textarea"
+                />
+                <pre v-else class="plugin-select__preview">{{ JSON.stringify(selectedWasmBaseConfig?.spec.plugin_config ?? selectedWasmBaseConfig?.spec.default_config ?? {}, null, 2) }}</pre>
+                <div class="plugin-select__empty-hint" v-if="category === 'ai' && aiPluginOptions.length === 0">
+                    {{ texts.emptyAiConfig }}
+                </div>
+            </section>
 
             <el-alert
                 v-if="!loading && nativePluginOptions.length === 0 && aiPluginOptions.length === 0"
@@ -445,6 +648,12 @@ onMounted(async () => {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     background: #f8fafc;
+}
+
+.plugin-select__section--binding {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .plugin-select__section-title {
@@ -495,5 +704,23 @@ onMounted(async () => {
     background: #eef2ff;
     color: #475569;
     font-size: 12px;
+}
+
+.plugin-select__textarea {
+    width: 100%;
+}
+
+.plugin-select__preview {
+    max-height: 220px;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
 }
 </style>

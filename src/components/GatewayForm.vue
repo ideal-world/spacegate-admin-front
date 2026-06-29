@@ -219,7 +219,11 @@ const listenerEndpoint = (listener: Model.SgListener) => {
                         <p>{{ texts.pluginsDesc }}</p>
                     </div>
                 </div>
-                <PluginListForm v-model="modelValue.plugins" />
+                <PluginListForm
+                    v-model="modelValue.plugins"
+                    binding-scope="gateway"
+                    :binding-name="`${modelValue.name || 'gateway'}-gateway`"
+                />
             </section>
 
             <section class="gateway-section gateway-section--muted">

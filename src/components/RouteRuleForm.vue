@@ -121,7 +121,7 @@ const collapse = ref({
         </el-collapse-transition>
 
         <el-form-item :label="t('label.plugins')">
-            <PluginListForm v-model="modelValue.plugins"></PluginListForm>
+            <PluginListForm v-model="modelValue.plugins" binding-scope="rule" binding-name="route-rule"></PluginListForm>
         </el-form-item>
         <el-form-item :label="t('label.backends')">
             <div class="flex flex-col flex-grow">

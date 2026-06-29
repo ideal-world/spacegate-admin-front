@@ -3,11 +3,19 @@ import { Model } from 'spacegate-admin-client';
 import { Plus, Check } from '@element-plus/icons-vue'
 import { cloneDeep } from 'lodash';
 import { computed, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import { hashColor, labelPluginId, keyPluginId } from '../utils';
 import PluginSelect from './PluginSelect.vue';
 import { PluginInstanceId } from 'spacegate-admin-client/dist/model';
 import { useI18n } from 'vue-i18n'
 const { locale, t } = useI18n();
+const props = withDefaults(defineProps<{
+    bindingScope?: 'gateway' | 'route' | 'rule' | 'backend'
+    bindingName?: string
+}>(), {
+    bindingScope: 'route',
+    bindingName: '',
+})
 const modelValue = defineModel<Model.PluginInstanceId[]>({
     required: true,
 })
@@ -88,10 +96,10 @@ const close = () => {
         <el-button :icon="Plus" size="small" @click="() => open('add')">{{ t('button.addPlugin') }}
         </el-button>
     </div>
-    <el-dialog
+    <el-drawer
         v-model="isOpen"
         :title="mode === 'add' ? t('title.newPlugin') : t('title.editPlugin')"
-        width="640px"
+        size="640px"
         class="plugin-bind-dialog"
         destroy-on-close
     >
@@ -99,7 +107,12 @@ const close = () => {
             <strong>{{ t('title.newPlugin') }}</strong>
             <span>{{ texts.intro }}</span>
         </div>
-        <plugin-select ref="selectRef" v-model="formData"></plugin-select>
+        <plugin-select
+            ref="selectRef"
+            v-model="formData"
+            :binding-scope="props.bindingScope"
+            :binding-name="props.bindingName"
+        ></plugin-select>
         <template #footer>
             <el-button @click="() => {
                 close()
@@ -107,14 +120,18 @@ const close = () => {
                 {{ t('button.cancel') }}
             </el-button>
             <el-button type="primary" :icon="Check" @click="async () => {
-                await selectRef?.save()
-                addPlugin()
-                close()
+                try {
+                    await selectRef?.save()
+                    addPlugin()
+                    close()
+                } catch (e) {
+                    ElMessage.error(e instanceof Error ? e.message : String(e))
+                }
             }">
                 {{ t('button.save') }}
             </el-button>
         </template>
-    </el-dialog>
+    </el-drawer>
 </template>
 
 <style scoped>
