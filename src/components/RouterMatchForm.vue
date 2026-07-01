@@ -9,12 +9,12 @@ function notEmpty<T>(x: T | null | undefined): x is T {
     return x !== null && x !== undefined
 }
 const modelValue = defineModel<Model.SgHttpRouteMatch>({
-    default: {
+    default: (): Model.SgHttpRouteMatch => ({
         path: null,
         header: null,
         query: null,
         method: null,
-    },
+    }),
 })
 const DEFAULT_HEADER_MATCH = <Model.SgHttpHeaderMatch>{
     kind: "exact" as const,

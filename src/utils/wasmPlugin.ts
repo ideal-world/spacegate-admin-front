@@ -1,4 +1,5 @@
 import type { Model } from 'spacegate-admin-client'
+import { parse as parseYaml } from 'yaml'
 
 export type OciAuthInput = {
   registry?: string
@@ -21,6 +22,7 @@ export type BuildThirdPartyWasmPluginConfigInput = {
   pluginName: string
   failStrategy: string
   sha256: string
+  schemaPath: string
   defaultConfigDisable: boolean
   defaultConfig: unknown
   matchRules: unknown[]
@@ -40,7 +42,7 @@ export type ThirdPartyWasmPluginConfigBuildResult = {
   requiresGlobalReload: boolean
 }
 
-export type BoundWasmConfigMode = 'default' | 'schema' | 'xml'
+export type BoundWasmConfigMode = 'default' | 'schema' | 'yaml' | 'xml'
 
 export type BuildBoundWasmPluginConfigInput = {
   baseConfig: Model.PluginConfig
@@ -49,7 +51,7 @@ export type BuildBoundWasmPluginConfigInput = {
   bindingScope: 'gateway' | 'route' | 'rule' | 'backend'
   configMode: BoundWasmConfigMode
   schemaConfig: unknown
-  xmlConfig: string
+  yamlConfig: string
 }
 
 export function normalizeWasmPluginId(value: string) {
@@ -134,9 +136,22 @@ function defaultConfigFromSpec(spec: Record<string, unknown>) {
   return {}
 }
 
+export function parseYamlConfigText(text: string) {
+  const raw = text.trim()
+  if (!raw) return {}
+  const parsed = parseYaml(raw)
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+    throw new Error('YAML config must be an object')
+  }
+  return parsed as Record<string, unknown>
+}
+
 function runtimeConfigForMode(input: BuildBoundWasmPluginConfigInput, baseSpec: Record<string, unknown>) {
+  if (input.configMode === 'yaml') {
+    return parseYamlConfigText(input.yamlConfig)
+  }
   if (input.configMode === 'xml') {
-    return input.xmlConfig.trim()
+    return input.yamlConfig.trim()
   }
   if (input.configMode === 'schema') {
     return valueToObject(input.schemaConfig)
@@ -225,6 +240,7 @@ export function buildThirdPartyWasmPluginConfig(input: BuildThirdPartyWasmPlugin
   setOptional(spec, 'display_name', input.displayName)
   setOptional(spec, 'description', input.description)
   setOptional(spec, 'sha256', input.sha256)
+  setOptional(spec, 'schema_path', input.schemaPath)
   setOptional(spec, 'image_pull_secret', input.imagePullSecret)
   setOptional(spec, 'module_cache_key', input.moduleCacheKey)
 

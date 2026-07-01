@@ -51,7 +51,8 @@
     "monaco-editor": "^0.45.0",
     "nanoid": "^5.0.7",
     "qs": "^6.12.0",
-    "spacegate-admin-client": "0.2.0-alpha.25",
-    "vue-i18n": "^9.13.1"
+    "spacegate-admin-client": "file:../spacegate/sdk/admin-client",
+    "vue-i18n": "^9.13.1",
+    "yaml": "^2.9.0"
   }
 }

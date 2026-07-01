@@ -1,5 +1,11 @@
 export type JsonSchema = Record<string, any>
 
+export interface WasmImageSchemaRequest {
+  image_url: string
+  schema_path?: string
+  oci_auth?: Record<string, any>
+}
+
 export interface TenantRateLimitRule {
   tenant: string
   model?: string
@@ -18,7 +24,10 @@ export interface TenantRateLimitRuleView extends TenantRateLimitRule {
 
 const baseUrl = (() => {
   const env = (import.meta as any).env?.VITE_AI_GATEWAY_BASE_URL
-  return typeof env === 'string' && env.length > 0 ? env.replace(/\/$/, '') : ''
+  if (typeof env === 'string' && env.length > 0) {
+    return env.replace(/\/$/, '')
+  }
+  return typeof window !== 'undefined' && window.location.port === '3000' ? '' : '/api'
 })()
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -42,6 +51,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getAiGatewayPluginSchema(plugin = 'ai-gateway-queue') {
   return request<JsonSchema>(`/v1/admin/plugins/${plugin}/schema`)
+}
+
+export function getWasmPluginImageSchema(payload: WasmImageSchemaRequest) {
+  return request<JsonSchema>('/plugin/wasm/schema', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
 
 export function getAiGatewayPluginReadme(plugin = 'ai-gateway-queue') {

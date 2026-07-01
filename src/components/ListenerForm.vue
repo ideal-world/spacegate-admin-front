@@ -15,7 +15,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
 })
 
 const modelValue = defineModel<Model.SgListener>({
-    default: {
+    default: (): Model.SgListener => ({
         name: null,
         ip: null,
         port: 8080,
@@ -23,7 +23,7 @@ const modelValue = defineModel<Model.SgListener>({
             type: "http",
         },
         hostname: null,
-    },
+    }),
 })
 
 watch(() => modelValue.value.protocol.type, (type, prevType) => {

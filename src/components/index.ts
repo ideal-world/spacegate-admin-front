@@ -7,6 +7,7 @@ import GatewayForm from './GatewayForm.vue'
 import ListenerForm from './ListenerForm.vue'
 import OptionalField from './OptionalField.vue'
 import RouteForm from './RouteForm.vue'
+import McpRouteForm from './McpRouteForm.vue'
 import RouterMatchForm from './RouterMatchForm.vue'
 import RouteRuleForm from './RouteRuleForm.vue'
 import SelectGateway from './SelectGateway.vue'
@@ -29,6 +30,7 @@ export {
   ListenerForm,
   OptionalField,
   RouteForm,
+  McpRouteForm,
   RouterMatchForm,
   RouteRuleForm,
   SelectGateway,

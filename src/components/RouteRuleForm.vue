@@ -9,12 +9,14 @@ import OptionalField from "./OptionalField.vue";
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
 const modelValue = defineModel<Model.SgHttpRouteRule>({
-    default: {
+    default: (): Model.SgHttpRouteRule => ({
         matches: null,
-        filters: [],
+        plugins: [],
         backends: [],
         timeout_ms: null,
-    },
+        timeout_mode: null,
+        balance_policy: null,
+    }),
 })
 const DEFAULT_NEW_MATCH = <Model.SgHttpRouteMatch>{
     path: null,
@@ -144,7 +146,7 @@ const collapse = ref({
                             <el-button class="w-full" :icon="Plus" @click="() => modelValue.backends.push({
                                 host: {
                                     kind: 'Host', host: 'example.com',
-                                }, port: 80, timeout_ms: null, protocol: null, weight:
+                                }, port: 80, timeout_ms: null, timeout_mode: null, protocol: null, weight:
                                     1, plugins: [],
                                     downgrade_http2: false
                             })" type="primary">{{ t('button.addBackend') }}</el-button>

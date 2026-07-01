@@ -6,6 +6,7 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { catchAdminServerError, unwrapResponse } from '../utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import RouteForm from '../components/RouteForm.vue';
+import McpRouteForm from '../components/McpRouteForm.vue';
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n();
 
@@ -14,6 +15,7 @@ const props = defineProps<{
 }>()
 
 const routeNames = ref<string[]>([])
+const routes = ref<Record<string, Model.SgRoute>>({})
 const search = ref<string>()
 const showRouteNames = computed(() => {
     if (search.value === undefined) {
@@ -29,21 +31,65 @@ const showRouteNames = computed(() => {
 })
 const routeNamesPending = ref(true)
 const dialogOpen = ref(false);
-const dialogModel = ref<Model.SgHttpRoute>({
-    route_name: 'new route',
+const isMcpRoute = (route: Model.SgRoute): route is Model.SgMcpRoute => {
+    return (route as Model.SgMcpRoute).kind === 'MCPRoute'
+}
+const newBackend = (): Model.SgBackendRef => ({
+    host: {
+        kind: 'Host',
+        host: 'example.com',
+    },
+    port: 80,
+    timeout_ms: null,
+    timeout_mode: null,
+    protocol: 'http',
+    downgrade_http2: null,
+    weight: 1,
+    plugins: [],
+})
+const newHttpRoute = (name: string): Model.SgHttpRoute => ({
+    route_name: name,
     hostnames: null,
     plugins: [],
     rules: [],
     priority: 1,
 })
+const newMcpRoute = (name: string): Model.SgMcpRoute => ({
+    kind: 'MCPRoute',
+    route_name: name,
+    hostnames: null,
+    transport: 'streamable_http',
+    path: '/mcp',
+    legacy_sse: null,
+    backends: [newBackend()],
+    plugins: [],
+    timeout_mode: 'disabled',
+    session_affinity: 'mcp_session',
+})
+const dialogModel = ref<Model.SgRoute>(newHttpRoute('new route'))
+const dialogRouteType = ref<'http' | 'mcp'>('http')
+const httpDialogModel = computed<Model.SgHttpRoute>({
+    get: () => dialogModel.value as Model.SgHttpRoute,
+    set: (value) => dialogModel.value = value,
+})
+const mcpDialogModel = computed<Model.SgMcpRoute>({
+    get: () => dialogModel.value as Model.SgMcpRoute,
+    set: (value) => dialogModel.value = value,
+})
 const resetDialogModel = () => {
-    dialogModel.value = {
-        route_name: 'new route',
-        hostnames: null,
-        plugins: [],
-        rules: [],
-        priority: 1,
+    dialogModel.value = dialogRouteType.value === 'mcp' ? newMcpRoute('new route') : newHttpRoute('new route')
+}
+const routeTypeLabel = (routeName: string) => {
+    const route = routes.value[routeName];
+    if (route === undefined) {
+        return 'HTTPRoute'
     }
+    return isMcpRoute(route) ? 'MCPRoute' : 'HTTPRoute'
+}
+const setDialogRouteType = (type: 'http' | 'mcp') => {
+    dialogRouteType.value = type;
+    const routeName = dialogModel.value.route_name;
+    dialogModel.value = type === 'mcp' ? newMcpRoute(routeName) : newHttpRoute(routeName);
 }
 const dialogMode = ref<'create' | 'edit'>('create');
 const openDialog = async (name: string, mode: 'create' | 'edit') => {
@@ -54,17 +100,27 @@ const openDialog = async (name: string, mode: 'create' | 'edit') => {
         if (resp === null) {
             ElMessage.error('route not found');
         } else {
+            dialogRouteType.value = isMcpRoute(resp) ? 'mcp' : 'http';
             resp.plugins = resp.plugins ?? [];
-            resp.rules = resp.rules ?? [];
-            resp.rules.forEach(rule => {
-                rule.plugins = rule.plugins ?? [];
-                rule.backends = rule.backends ?? [];
-                rule.matches = rule.matches ?? [];
-            })
+            if (isMcpRoute(resp)) {
+                resp.backends = resp.backends ?? [];
+                resp.backends.forEach(backend => {
+                    backend.plugins = backend.plugins ?? [];
+                    backend.timeout_mode = backend.timeout_mode ?? resp.timeout_mode;
+                })
+            } else {
+                resp.rules = resp.rules ?? [];
+                resp.rules.forEach(rule => {
+                    rule.plugins = rule.plugins ?? [];
+                    rule.backends = rule.backends ?? [];
+                    rule.matches = rule.matches ?? [];
+                })
+            }
             dialogModel.value = resp;
             console.debug(dialogModel.value)
         }
     } else if (mode === 'create') {
+        dialogRouteType.value = 'http';
         resetDialogModel()
     }
     dialogOpen.value = true;
@@ -79,13 +135,14 @@ const refresh = () => {
 const getRouteNames = async () => {
     routeNamesPending.value = true
     try {
-        const resp = await Api.getConfigItemRouteNames(props.gatewayName).then(unwrapResponse);
-        routeNames.value = resp;
+        const resp = await Api.getConfigItemAllRoutes(props.gatewayName).then(unwrapResponse);
+        routes.value = resp;
+        routeNames.value = Object.keys(resp);
     } finally {
         routeNamesPending.value = false;
     }
 }
-const putRoute = async (name: string, route: Model.SgHttpRoute) => {
+const putRoute = async (name: string, route: Model.SgRoute) => {
     await Api.putConfigItemRoute(props.gatewayName, name, route).catch(catchAdminServerError)
     await getRouteNames();
 }
@@ -94,7 +151,7 @@ class UserCancel extends Error {
         super('user cancel');
     }
 }
-const postRoute = async (name: string, route: Model.SgHttpRoute) => {
+const postRoute = async (name: string, route: Model.SgRoute) => {
     if (routeNames.value.includes(name)) {
         const action = await ElMessageBox.confirm(`route name \`${name}\` already exists`, {
             confirmButtonText: 'Overwrite',
@@ -130,7 +187,14 @@ watch(() => props.gatewayName, refresh)
 <template>
     <div class="flex flex-col space-y-2">
         <el-dialog width="90%" :title="dialogMode === 'create' ? t('title.createRoute') : t('title.editRoute')" v-model="dialogOpen" destroy-on-close>
-            <RouteForm v-model="dialogModel" :name="dialogModel.route_name" :mode="dialogMode"></RouteForm>
+            <el-form-item v-if="dialogMode === 'create'" label="Route Type" label-suffix=":">
+                <el-radio-group :model-value="dialogRouteType" @change="(value) => setDialogRouteType(value as 'http' | 'mcp')">
+                    <el-radio-button label="http">HTTPRoute</el-radio-button>
+                    <el-radio-button label="mcp">MCPRoute</el-radio-button>
+                </el-radio-group>
+            </el-form-item>
+            <RouteForm v-if="dialogRouteType === 'http'" v-model="httpDialogModel" :name="dialogModel.route_name" :mode="dialogMode"></RouteForm>
+            <McpRouteForm v-else v-model="mcpDialogModel" :name="dialogModel.route_name"></McpRouteForm>
             <template #footer>
                 <el-button :icon="Close" @click="closeDialog">
                     {{ t('button.cancel') }}
@@ -174,7 +238,12 @@ watch(() => props.gatewayName, refresh)
             <div class="flex flex-wrap items-start space-y-2 space-x-2">
                 <el-card shadow="hover" v-for="routeName, idx in showRouteNames"
                     class="inline-block flex justify-between border-b border-gray-300 p-2 my-2">
-                    <span class="flex-grow mx-2">{{ routeName }}</span>
+                    <div class="flex-grow mx-2 flex items-center space-x-2">
+                        <span>{{ routeName }}</span>
+                        <el-tag size="small" :type="routeTypeLabel(routeName) === 'MCPRoute' ? 'success' : 'info'">
+                            {{ routeTypeLabel(routeName) }}
+                        </el-tag>
+                    </div>
                     <el-button-group>
                         <el-button :icon="Edit" size="small" @click="() => openDialog(routeName, 'edit')">
                             {{ t('button.edit') }}

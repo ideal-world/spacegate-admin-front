@@ -5,6 +5,7 @@ import {
   buildBoundWasmPluginConfig,
   buildThirdPartyWasmPluginConfig,
   normalizeWasmPluginId,
+  parseYamlConfigText,
   validateWasmPluginId,
 } from './wasmPlugin.ts'
 
@@ -29,6 +30,7 @@ test('builds wasm named plugin config and reports reload requirement outside spe
     pluginName: 'auth',
     failStrategy: 'fail_open',
     sha256: '',
+    schemaPath: '',
     defaultConfigDisable: false,
     defaultConfig: { enabled: true },
     matchRules: [],
@@ -66,6 +68,7 @@ test('builds a bound wasm plugin config from a default config and schema values'
     pluginName: 'hai',
     failStrategy: 'fail_open',
     sha256: '',
+    schemaPath: 'schema/plugin.schema.json',
     defaultConfigDisable: false,
     defaultConfig: { defaultTenant: 'base' },
     matchRules: [],
@@ -86,7 +89,7 @@ test('builds a bound wasm plugin config from a default config and schema values'
     bindingScope: 'route',
     configMode: 'schema',
     schemaConfig: { tenant: 'route-a' },
-    xmlConfig: '',
+    yamlConfig: '',
   })
 
   assert.equal(result.config.code, 'wasm')
@@ -100,30 +103,65 @@ test('builds a bound wasm plugin config from a default config and schema values'
   assert.equal(defaults.spec.plugin_config.defaultTenant, 'base')
 })
 
-test('builds a bound wasm plugin config with xml text config', () => {
+test('parses yaml config text as a JSON-compatible object', () => {
+  assert.deepEqual(parseYamlConfigText('enabled: true\nlimit: 10\n'), {
+    enabled: true,
+    limit: 10,
+  })
+  assert.deepEqual(parseYamlConfigText(''), {})
+  assert.throws(() => parseYamlConfigText('- item'), /YAML config must be an object/)
+})
+
+test('builds a bound wasm plugin config with yaml text config', () => {
   const baseConfig = {
     code: 'wasm',
     kind: 'named',
-    name: 'xml-auth',
+    name: 'yaml-auth',
     spec: {
-      url: 'file:///plugins/xml-auth.wasm',
-      plugin_name: 'xml-auth',
-      plugin_root_id: 'xml-auth-root',
-      plugin_vm_id: 'xml-auth-vm',
+      url: 'file:///plugins/yaml-auth.wasm',
+      plugin_name: 'yaml-auth',
+      plugin_root_id: 'yaml-auth-root',
+      plugin_vm_id: 'yaml-auth-vm',
       plugin_config: { enabled: true },
     },
   } as const
 
   const result = buildBoundWasmPluginConfig({
     baseConfig,
-    bindingName: 'Rule #1 XML Auth',
+    bindingName: 'Rule #1 YAML Auth',
+    bindingScope: 'rule',
+    configMode: 'yaml',
+    schemaConfig: {},
+    yamlConfig: 'enabled: true\nmode: strict\n',
+  })
+
+  assert.equal(result.config.name, 'rule-1-yaml-auth')
+  assert.equal(result.config.spec.binding_config_mode, 'yaml')
+  assert.deepEqual(result.config.spec.plugin_config, { enabled: true, mode: 'strict' })
+  assert.deepEqual(result.config.spec.default_config, { enabled: true, mode: 'strict' })
+})
+
+test('keeps legacy xml binding mode compatible while storing new writes as raw text', () => {
+  const baseConfig = {
+    code: 'wasm',
+    kind: 'named',
+    name: 'legacy-xml-auth',
+    spec: {
+      url: 'file:///plugins/legacy-xml-auth.wasm',
+      plugin_name: 'legacy-xml-auth',
+      plugin_config: { enabled: true },
+    },
+  } as const
+
+  const result = buildBoundWasmPluginConfig({
+    baseConfig,
+    bindingName: 'Legacy XML Auth',
     bindingScope: 'rule',
     configMode: 'xml',
     schemaConfig: {},
-    xmlConfig: '<config><enabled>true</enabled></config>',
+    yamlConfig: '<config><enabled>true</enabled></config>',
   })
 
-  assert.equal(result.config.name, 'rule-1-xml-auth')
   assert.equal(result.config.spec.binding_config_mode, 'xml')
   assert.equal(result.config.spec.plugin_config, '<config><enabled>true</enabled></config>')
   assert.equal(result.config.spec.default_config, '<config><enabled>true</enabled></config>')
@@ -147,7 +185,7 @@ test('default bound wasm config copies runtime plugin_config before editor defau
     bindingScope: 'gateway',
     configMode: 'default',
     schemaConfig: {},
-    xmlConfig: '',
+    yamlConfig: '',
   })
 
   assert.deepEqual(result.config.spec.plugin_config, { issuer: 'runtime', _rules_: [{ _match_route_: ['api-route'] }] })

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Api, Model } from 'spacegate-admin-client'
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 import { unwrapResponse, keyPluginId, labelPluginId, randomUid } from '../utils';
 import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
 import { buildBoundWasmPluginConfig, type BoundWasmConfigMode } from '../utils/wasmPlugin'
+import { getWasmPluginImageSchema, type JsonSchema } from '../api/aiGateway'
 import PluginForm from './PluginForm.vue';
+import SchemaForm from './SchemaForm.vue';
 import { useI18n } from 'vue-i18n'
 
 const { locale, t } = useI18n();
@@ -54,8 +56,12 @@ const formRef = ref<InstanceType<typeof PluginForm> | null>(null)
 const loading = ref(false)
 const wasmConfigMode = ref<BoundWasmConfigMode>('default')
 const wasmBindingName = ref('')
-const wasmSchemaConfigText = ref('{}')
-const wasmXmlConfigText = ref('')
+const wasmSchemaConfig = ref<Record<string, any>>({})
+const wasmYamlConfigText = ref('')
+const wasmImageSchema = shallowRef<JsonSchema | undefined>()
+const wasmSchemaLoading = ref(false)
+const wasmSchemaError = ref('')
+const schemaFormRef = ref<InstanceType<typeof SchemaForm> | null>(null)
 const existingWasmBinding = ref<PluginConfigLite | undefined>()
 
 const texts = computed(() => locale.value.startsWith('zh') ? {
@@ -81,14 +87,15 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     wasmBindingName: '绑定配置名称',
     wasmBindingNameHint: '保存为 wasm.{name}.json。建议表达绑定位置，避免覆盖插件中心默认配置。',
     wasmDefaultMode: '使用默认配置',
-    wasmSchemaMode: '自定义 Schema 配置',
-    wasmXmlMode: 'XML 配置',
+    wasmSchemaMode: '镜像 Schema 表单',
+    wasmYamlMode: 'YAML 配置',
     wasmDefaultHint: '复制插件中心默认配置，后续可独立编辑当前绑定。',
-    wasmSchemaHint: '填写 JSON object，保存后写入当前绑定实例的 plugin_config。',
-    wasmXmlHint: '填写 XML 文本，保存后作为当前绑定实例的 plugin_config 文本。',
-    wasmSchemaPlaceholder: '{\n  \"key\": \"value\"\n}',
-    wasmXmlPlaceholder: '<config>\n  <key>value</key>\n</config>',
-    invalidJson: 'Schema 配置必须是 JSON object',
+    wasmSchemaHint: '从插件 OCI 镜像读取 schema 文件，并按 schema 生成当前绑定实例的配置表单。',
+    wasmYamlHint: '填写 YAML object，保存后会解析为当前绑定实例的 plugin_config。',
+    wasmYamlPlaceholder: 'enabled: true\nkey: value',
+    schemaPathHint: '默认读取镜像内的 schema.json；可在插件中心配置 schema_path 覆盖。',
+    schemaLoadFailed: '镜像 Schema 加载失败',
+    schemaEmpty: '镜像中不存在 schema 配置；可以切换到 YAML 配置继续填写。',
     selectWasmBase: '请选择插件中心默认配置',
 } : {
     native: 'Native Plugin',
@@ -113,14 +120,15 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     wasmBindingName: 'Binding Config Name',
     wasmBindingNameHint: 'Saved as wasm.{name}.json. Use a resource-specific name to avoid overwriting Plugin Center defaults.',
     wasmDefaultMode: 'Use Default Config',
-    wasmSchemaMode: 'Custom Schema Config',
-    wasmXmlMode: 'XML Config',
+    wasmSchemaMode: 'Image Schema Form',
+    wasmYamlMode: 'YAML Config',
     wasmDefaultHint: 'Copy the Plugin Center default config. This binding can be edited independently later.',
-    wasmSchemaHint: 'Enter a JSON object. It will be saved to this binding instance plugin_config.',
-    wasmXmlHint: 'Enter XML text. It will be saved as this binding instance plugin_config text.',
-    wasmSchemaPlaceholder: '{\n  \"key\": \"value\"\n}',
-    wasmXmlPlaceholder: '<config>\n  <key>value</key>\n</config>',
-    invalidJson: 'Schema config must be a JSON object',
+    wasmSchemaHint: 'Read the schema file from the plugin OCI image and generate this binding config form from it.',
+    wasmYamlHint: 'Enter a YAML object. It will be parsed into this binding instance plugin_config.',
+    wasmYamlPlaceholder: 'enabled: true\nkey: value',
+    schemaPathHint: 'Defaults to schema.json inside the image. Override schema_path in Plugin Center if needed.',
+    schemaLoadFailed: 'Failed to load image schema',
+    schemaEmpty: 'No schema config exists in the image. Switch to YAML config to continue.',
     selectWasmBase: 'Select a Plugin Center default config.',
 })
 
@@ -233,6 +241,10 @@ const selectedWasmBaseConfig = computed(() => {
     if (!option) return undefined
     return wasmPluginConfigs.value.find((item) => item.code === option.code && item.kind === 'named' && item.name === option.configName)
 })
+const hasWasmSchemaForm = computed(() => {
+    const schema = wasmImageSchema.value
+    return !!schema && Object.keys(schema.properties ?? {}).length > 0
+})
 
 const currentPluginHint = computed(() => category.value === 'native' ? texts.value.nativeHint : texts.value.aiHint)
 const referenceIds = computed(() => {
@@ -288,32 +300,68 @@ function defaultWasmBindingName(option: AiPluginOption) {
 function hydrateWasmBinding(config: PluginConfigLite | undefined) {
     existingWasmBinding.value = config
     const spec = config?.spec ?? {}
-    wasmConfigMode.value = (spec.binding_config_mode === 'xml' || spec.binding_config_mode === 'schema' || spec.binding_config_mode === 'default')
+    wasmConfigMode.value = (spec.binding_config_mode === 'xml' || spec.binding_config_mode === 'yaml' || spec.binding_config_mode === 'schema' || spec.binding_config_mode === 'default')
         ? spec.binding_config_mode
         : 'default'
     wasmBindingName.value = config?.kind === 'named' ? config.name ?? '' : ''
     const pluginConfig = spec.plugin_config ?? spec.default_config
     if (wasmConfigMode.value === 'xml') {
-        wasmXmlConfigText.value = typeof pluginConfig === 'string' ? pluginConfig : ''
-        wasmSchemaConfigText.value = '{}'
+        wasmYamlConfigText.value = typeof pluginConfig === 'string' ? pluginConfig : ''
+        wasmSchemaConfig.value = {}
+    } else if (wasmConfigMode.value === 'yaml') {
+        wasmYamlConfigText.value = typeof pluginConfig === 'string'
+            ? pluginConfig
+            : stringifyYamlLike(pluginConfig ?? {})
+        wasmSchemaConfig.value = {}
     } else if (wasmConfigMode.value === 'schema') {
-        wasmSchemaConfigText.value = JSON.stringify(pluginConfig ?? {}, null, 2)
-        wasmXmlConfigText.value = ''
+        wasmSchemaConfig.value = toPlainObject(pluginConfig)
+        wasmYamlConfigText.value = ''
     } else {
-        wasmSchemaConfigText.value = JSON.stringify(pluginConfig ?? {}, null, 2)
-        wasmXmlConfigText.value = ''
+        wasmSchemaConfig.value = toPlainObject(pluginConfig)
+        wasmYamlConfigText.value = ''
     }
 }
 
-function parseSchemaConfig() {
+function toPlainObject(value: unknown): Record<string, any> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return JSON.parse(JSON.stringify(value))
+    }
+    return {}
+}
+
+function stringifyYamlLike(value: unknown) {
+    const object = toPlainObject(value)
+    return Object.entries(object)
+        .map(([key, next]) => `${key}: ${typeof next === 'string' ? next : JSON.stringify(next)}`)
+        .join('\n')
+}
+
+async function loadSelectedWasmSchema() {
+    const baseConfig = selectedWasmBaseConfig.value
+    wasmImageSchema.value = undefined
+    wasmSchemaError.value = ''
+    if (!baseConfig || wasmConfigMode.value !== 'schema') return
+    const spec = baseConfig.spec
+    const imageUrl = String(spec.image_url ?? spec.url ?? '')
+    if (!imageUrl.trim()) {
+        wasmSchemaError.value = 'missing image_url'
+        return
+    }
+    wasmSchemaLoading.value = true
     try {
-        const parsed = JSON.parse(wasmSchemaConfigText.value.trim() || '{}')
-        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-            throw new Error(texts.value.invalidJson)
-        }
-        return parsed
+        wasmImageSchema.value = await getWasmPluginImageSchema({
+            image_url: imageUrl,
+            schema_path: typeof spec.schema_path === 'string' ? spec.schema_path : undefined,
+            oci_auth: toPlainObject(spec.oci_auth),
+        })
     } catch (e) {
-        throw new Error(texts.value.invalidJson)
+        wasmSchemaError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+        wasmSchemaLoading.value = false
+    }
+    if (wasmImageSchema.value) {
+        await nextTick()
+        schemaFormRef.value?.initDefaults(wasmImageSchema.value, wasmSchemaConfig.value)
     }
 }
 
@@ -355,8 +403,8 @@ async function setAiPlugin(key: string | undefined, options: { keepExisting?: bo
     if (!options.keepExisting) {
         existingWasmBinding.value = undefined
         wasmConfigMode.value = 'default'
-        wasmSchemaConfigText.value = JSON.stringify(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {}, null, 2)
-        wasmXmlConfigText.value = ''
+        wasmSchemaConfig.value = toPlainObject(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {})
+        wasmYamlConfigText.value = stringifyYamlLike(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {})
         wasmBindingName.value = defaultWasmBindingName(option)
     }
     modelValue.value = {
@@ -400,8 +448,8 @@ async function saveWasmBinding() {
         bindingName: wasmBindingName.value || defaultWasmBindingName(aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)!),
         bindingScope: props.bindingScope,
         configMode,
-        schemaConfig: configMode === 'schema' ? parseSchemaConfig() : {},
-        xmlConfig: configMode === 'xml' ? wasmXmlConfigText.value : '',
+        schemaConfig: configMode === 'schema' ? wasmSchemaConfig.value : {},
+        yamlConfig: configMode === 'yaml' || configMode === 'xml' ? wasmYamlConfigText.value : '',
     })
     if (existingWasmBinding.value) {
         await Api.putConfigPlugin(result.config)
@@ -428,6 +476,10 @@ watch(category, async () => {
     } else {
         await setCode(next)
     }
+})
+
+watch([wasmConfigMode, selectedWasmBaseConfig], () => {
+    void loadSelectedWasmSchema()
 })
 
 watch(modelValue, async (newValue) => {
@@ -598,26 +650,41 @@ onMounted(async () => {
                     :options="[
                         { label: texts.wasmDefaultMode, value: 'default' },
                         { label: texts.wasmSchemaMode, value: 'schema' },
-                        { label: texts.wasmXmlMode, value: 'xml' },
+                        { label: texts.wasmYamlMode, value: 'yaml' },
                     ]"
                 />
                 <div class="plugin-select__mode-hint">
-                    {{ wasmConfigMode === 'xml' ? texts.wasmXmlHint : wasmConfigMode === 'schema' ? texts.wasmSchemaHint : texts.wasmDefaultHint }}
+                    {{ wasmConfigMode === 'yaml' || wasmConfigMode === 'xml' ? texts.wasmYamlHint : wasmConfigMode === 'schema' ? texts.wasmSchemaHint : texts.wasmDefaultHint }}
+                </div>
+                <div v-if="wasmConfigMode === 'schema'" class="plugin-select__schema">
+                    <div class="plugin-select__empty-hint">{{ texts.schemaPathHint }}</div>
+                    <el-skeleton v-if="wasmSchemaLoading" :rows="4" animated />
+                    <SchemaForm
+                        v-else-if="hasWasmSchemaForm"
+                        ref="schemaFormRef"
+                        :schema="wasmImageSchema!"
+                        v-model="wasmSchemaConfig"
+                    />
+                    <el-alert
+                        v-else-if="wasmImageSchema"
+                        type="info"
+                        :closable="false"
+                        :title="texts.schemaEmpty"
+                    />
+                    <el-alert
+                        v-else
+                        type="warning"
+                        :closable="false"
+                        :title="texts.schemaLoadFailed"
+                        :description="wasmSchemaError"
+                    />
                 </div>
                 <el-input
-                    v-if="wasmConfigMode === 'schema'"
-                    v-model="wasmSchemaConfigText"
+                    v-else-if="wasmConfigMode === 'yaml' || wasmConfigMode === 'xml'"
+                    v-model="wasmYamlConfigText"
                     type="textarea"
                     :rows="8"
-                    :placeholder="texts.wasmSchemaPlaceholder"
-                    class="plugin-select__textarea"
-                />
-                <el-input
-                    v-else-if="wasmConfigMode === 'xml'"
-                    v-model="wasmXmlConfigText"
-                    type="textarea"
-                    :rows="8"
-                    :placeholder="texts.wasmXmlPlaceholder"
+                    :placeholder="texts.wasmYamlPlaceholder"
                     class="plugin-select__textarea"
                 />
                 <pre v-else class="plugin-select__preview">{{ JSON.stringify(selectedWasmBaseConfig?.spec.plugin_config ?? selectedWasmBaseConfig?.spec.default_config ?? {}, null, 2) }}</pre>
@@ -708,6 +775,12 @@ onMounted(async () => {
 
 .plugin-select__textarea {
     width: 100%;
+}
+
+.plugin-select__schema {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .plugin-select__preview {

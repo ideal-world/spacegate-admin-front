@@ -47,6 +47,7 @@ const form = reactive({
   plugin_name: '',
   fail_strategy: 'fail_open',
   sha256: '',
+  schema_path: 'schema.json',
   default_config_disable: false,
   default_config_text: '{}',
   match_rules_text: '[]',
@@ -122,6 +123,7 @@ function loadInstance(instance: Model.PluginConfig | undefined) {
   form.plugin_name = pluginName
   form.fail_strategy = String(spec.fail_strategy ?? 'fail_open')
   form.sha256 = String(spec.sha256 ?? '')
+  form.schema_path = String(spec.schema_path ?? 'schema.json')
   form.default_config_disable = Boolean(spec.default_config_disable ?? false)
   form.default_config_text = stringifyJson(spec.default_config ?? spec.plugin_config ?? {})
   form.match_rules_text = stringifyJson(spec.match_rules ?? [])
@@ -219,6 +221,7 @@ function buildPluginConfig(): Model.PluginConfig {
     pluginName: form.plugin_name,
     failStrategy: form.fail_strategy,
     sha256: form.sha256,
+    schemaPath: form.schema_path,
     defaultConfigDisable: form.default_config_disable,
     defaultConfig,
     matchRules,
@@ -299,6 +302,10 @@ async function save() {
               <el-form-item label="镜像地址L">
                 <el-input v-model="form.image_url" placeholder="oci://registry.example.com/plugins/authz:v1" />
                 <div class="third-party-wasm__hint">{{ imageHelpText }}</div>
+              </el-form-item>
+              <el-form-item label="Schema 文件路径">
+                <el-input v-model="form.schema_path" placeholder="schema.json" />
+                <div class="third-party-wasm__hint">绑定插件时会从 OCI 镜像文件系统读取该 schema，并动态生成配置表单。</div>
               </el-form-item>
             </el-card>
 

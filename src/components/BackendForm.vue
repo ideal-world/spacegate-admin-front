@@ -17,6 +17,7 @@ const modelValue = defineModel<Model.SgBackendRef>({
         },
         port: 80,
         timeout_ms: null,
+        timeout_mode: null,
         protocol: "http",
         downgrade_http2: null,
         weight: 1,

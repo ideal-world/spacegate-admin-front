@@ -22,6 +22,24 @@ const DEFAULT_NEW_GATEWAY: Model.SgGateway = {
         lang: null,
         enable_x_request_id: false,
         ignore_tls_verification: null,
+        observability: {
+            enabled: false,
+            service_name: 'spacegate',
+            otlp_endpoint: 'http://localhost:4317',
+            protocol: 'grpc',
+            traces: {
+                enabled: false,
+                sample_ratio: 1,
+            },
+            metrics: {
+                enabled: false,
+                export_interval_ms: 60000n,
+            },
+            logs: {
+                enabled: false,
+                level: 'info',
+            },
+        },
     },
     listeners: [],
     plugins: [],

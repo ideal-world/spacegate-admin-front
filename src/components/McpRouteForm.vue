@@ -1,47 +1,77 @@
 <script setup lang="ts">
 import { Model } from 'spacegate-admin-client'
-import { computed, onMounted, ref } from 'vue';
 import { Plus, Minus, Close, Download, Upload } from '@element-plus/icons-vue'
-import RouterMatchForm from './RouterMatchForm.vue';
+import { ref, watch } from 'vue';
 import BackendForm from './BackendForm.vue';
 import PluginListForm from './PluginListForm.vue';
-import RouteRuleForm from './RouteRuleForm.vue';
 import OptionalField from './OptionalField.vue';
 import { fetchJson, saveJson } from '../utils';
 import { useI18n } from 'vue-i18n'
+
 const { t } = useI18n();
 const props = defineProps<{
-    mode: "create" | "edit",
     name: string
 }>()
 
-const modelValue = defineModel<Model.SgHttpRoute>({
-    default: (): Model.SgHttpRoute => ({
+const defaultBackend = (): Model.SgBackendRef => ({
+    host: {
+        kind: "Host",
+        host: "example.com",
+    },
+    port: 80,
+    timeout_ms: null,
+    timeout_mode: "disabled",
+    protocol: "http",
+    downgrade_http2: null,
+    weight: 1,
+    plugins: [],
+})
+
+const modelValue = defineModel<Model.SgMcpRoute>({
+    default: (): Model.SgMcpRoute => ({
+        kind: "MCPRoute",
         route_name: "",
         hostnames: null,
+        transport: "streamable_http",
+        path: "/mcp",
+        legacy_sse: null,
+        backends: [{
+            host: {
+                kind: "Host",
+                host: "example.com",
+            },
+            port: 80,
+            timeout_ms: null,
+            timeout_mode: "disabled",
+            protocol: "http",
+            downgrade_http2: null,
+            weight: 1,
+            plugins: [],
+        }],
         plugins: [],
-        rules: [],
-        priority: 1,
+        timeout_mode: "disabled",
+        session_affinity: "mcp_session",
     }),
 });
 
-const addRule = () => {
-    if (modelValue.value.rules !== null) {
-        modelValue.value.rules.push({
-            matches: null,
-            plugins: [],
-            backends: [],
-            timeout_ms: null,
-            timeout_mode: null,
-            balance_policy: null,
-        })
+watch(() => modelValue.value.transport, (transport) => {
+    if (transport === 'legacy_sse' && modelValue.value.legacy_sse === null) {
+        modelValue.value.legacy_sse = {
+            sse_path: '/sse',
+            message_path: '/message',
+        }
     }
+    if (transport === 'streamable_http') {
+        modelValue.value.legacy_sse = null;
+    }
+}, { immediate: true })
+
+const addBackend = () => {
+    modelValue.value.backends.push(defaultBackend())
 }
 
-const removeRule = (idx: number) => {
-    if (modelValue.value.rules !== null) {
-        modelValue.value.rules.splice(idx, 1)
-    }
+const removeBackend = (idx: number) => {
+    modelValue.value.backends.splice(idx, 1)
 }
 
 const downloadConfig = (target: 'file' | 'clipboard') => {
@@ -51,7 +81,7 @@ const downloadConfig = (target: 'file' | 'clipboard') => {
 const uploadConfig = (target: 'file' | 'clipboard') => {
     fetchJson(target).then((json) => {
         modelValue.value = {
-            ...json as Model.SgHttpRoute,
+            ...json as Model.SgMcpRoute,
         }
     })
 }
@@ -104,7 +134,6 @@ const uploadVisible = ref(false)
         </el-form-item>
         <el-form-item :label="t('label.hostname')" prop="hostnames">
             <OptionalField v-model="modelValue.hostnames" :default="[]" class="flex flex-col flex-grow space-y-1">
-
                 <template #some>
                     <div v-for="hostname, idx in modelValue.hostnames!" class="flex flex-row">
                         <el-input v-model="modelValue.hostnames![idx]" placeholder="Hostnames">
@@ -117,26 +146,55 @@ const uploadVisible = ref(false)
                 </template>
             </OptionalField>
         </el-form-item>
-        <el-form-item :label="t('label.priority')" prop="priority">
-            <el-input-number v-model="modelValue.priority" placeholder="Priority" :min="-5000"
-                :max="5000"></el-input-number>
+        <el-form-item label="Transport" prop="transport">
+            <el-segmented v-model="modelValue.transport" :options="[
+                { label: 'Streamable HTTP', value: 'streamable_http' },
+                { label: 'Legacy SSE', value: 'legacy_sse' },
+            ]"></el-segmented>
         </el-form-item>
+        <el-form-item v-if="modelValue.transport === 'streamable_http'" label="Path" prop="path">
+            <el-input v-model="modelValue.path" placeholder="/mcp"></el-input>
+        </el-form-item>
+        <template v-if="modelValue.transport === 'legacy_sse' && modelValue.legacy_sse !== null">
+            <el-form-item label="SSE Path" prop="legacy_sse.sse_path">
+                <el-input v-model="modelValue.legacy_sse.sse_path" placeholder="/sse"></el-input>
+            </el-form-item>
+            <el-form-item label="Message Path" prop="legacy_sse.message_path">
+                <el-input v-model="modelValue.legacy_sse.message_path" placeholder="/message"></el-input>
+            </el-form-item>
+        </template>
+        <el-row>
+            <el-col :span="12">
+                <el-form-item label="Timeout Mode" prop="timeout_mode">
+                    <el-select v-model="modelValue.timeout_mode">
+                        <el-option label="disabled" value="disabled"></el-option>
+                        <el-option label="request" value="request"></el-option>
+                    </el-select>
+                </el-form-item>
+            </el-col>
+            <el-col :span="12">
+                <el-form-item label="Session Affinity" prop="session_affinity">
+                    <el-select v-model="modelValue.session_affinity">
+                        <el-option label="mcp_session" value="mcp_session"></el-option>
+                        <el-option label="none" value="none"></el-option>
+                    </el-select>
+                </el-form-item>
+            </el-col>
+        </el-row>
         <el-form-item :label="t('label.plugins')" prop="plugins">
-            <plugin-list-form v-model="modelValue.plugins" binding-scope="route" binding-name="route"></plugin-list-form>
+            <plugin-list-form v-model="modelValue.plugins" binding-scope="route" binding-name="mcp-route"></plugin-list-form>
         </el-form-item>
-        <el-form-item :label="t('label.rules')" prop="rules">
-
+        <el-form-item :label="t('label.backends')" prop="backends">
             <div class="space-y-2 flex-grow overflow-auto">
-                <el-card v-for="(rule, idx) in modelValue.rules" :name="idx" :key="idx" class="relative pt-6 flex-grow"
+                <el-card v-for="(backend, idx) in modelValue.backends" :name="idx" :key="idx" class="relative pt-6 flex-grow"
                     shadow="hover">
-                    <el-button text circle @click="removeRule(idx)" :icon="Close" class="absolute top-0 right-0 m-2">
-
+                    <el-button text circle @click="removeBackend(idx)" :icon="Close" class="absolute top-0 right-0 m-2">
                     </el-button>
                     <span class="absolute top-0 left-4 m-2 text-gray-500"> #{{ idx }}</span>
-                    <route-rule-form v-model="modelValue.rules[idx]"></route-rule-form>
+                    <backend-form v-model="modelValue.backends[idx]"></backend-form>
                 </el-card>
-                <el-button type="primary" @click="addRule" :icon="Plus" class="w-full">
-                    <span>{{t('button.addRule')}}</span>
+                <el-button type="primary" @click="addBackend" :icon="Plus" class="w-full">
+                    <span>{{ t('button.addBackend') }}</span>
                 </el-button>
             </div>
         </el-form-item>
