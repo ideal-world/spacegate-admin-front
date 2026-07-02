@@ -4,10 +4,17 @@ import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
-import { AiGatewayQueueDrawer, PluginForm, ThirdPartyWasmDrawer } from '.';
+import { PluginForm, ThirdPartyWasmDrawer } from '.';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
-import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
+import {
+    hasPluginInstanceRef,
+    isWasmPluginCenterConfig,
+    isWasmPluginCode,
+    pluginConfigToInstanceRef,
+    setPluginInstanceRefEnabled,
+    sortWasmPluginCenterConfigs,
+} from '../utils/wasmPlugin'
 
 const { locale, t } = useI18n();
 
@@ -15,23 +22,21 @@ const emit = defineEmits<{
     changed: []
 }>()
 
+const props = defineProps<{
+    gatewayName?: string
+}>()
+
 type PluginTab = 'native' | 'ai'
 
-/** AI 卡片：目录项 + 可选已部署实例 */
+/** Wasm 扩展卡片：插件中心默认配置 + 当前网关启用状态 */
 type AiPluginCard = {
     key: string
     title: string
     description: string
-    catalogId?: string
-    instance?: WasmPluginView
+    instance: WasmPluginView
 }
 
 const WASM_PLUGIN_CODE = 'wasm'
-type AiWasmCatalogView = {
-    id: string
-    title: string
-    description: string
-}
 type PluginSpecRecord = Record<string, unknown>
 type PluginConfigLite = {
     code: string
@@ -57,6 +62,8 @@ const pluginAttrs = ref<Model.PluginAttributes[]>([]);
 const wasmInstances = shallowRef<PluginConfigLite[]>([]);
 const wasmInstanceViews = shallowRef<WasmPluginView[]>([]);
 const wasmInstanceRawByKey = new Map<string, PluginConfigLite>();
+const currentGateway = ref<Model.SgGateway | undefined>();
+const gatewayLoading = ref(false);
 const pluginsLoading = ref(true);
 const pluginSearchText = ref('');
 
@@ -74,8 +81,6 @@ const dialogVisible = ref(false);
 const dialogTitle = ref('');
 const dialogMode = ref<'create' | 'edit'>('create');
 const formRef = ref<InstanceType<typeof PluginForm> | null>(null);
-const aiGatewayQueueVisible = ref(false);
-const aiGatewayQueueInstance = ref<Model.PluginConfig | undefined>();
 const texts = computed(() => locale.value.startsWith('zh') ? {
     homepage: '主页',
     repository: '仓库',
@@ -94,11 +99,14 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     editPluginInstance: '编辑插件实例',
     pluginDrawerIntroTitle: '配置原生插件实例',
     pluginDrawerIntroDesc: '这里保存的是插件配置数据，不会立即改变流量处理链路。需要在资源上绑定该实例，并按需执行网关重载后生效。',
-    customWasmTitle: '自定义 Wasm 插件',
-    customWasmDesc: '按 Higress WasmPlugin 模型添加外部 proxy-wasm 插件。保存后需要在资源上绑定插件，并执行全局重载后生效。',
-    aiGatewayOps: '围绕 AI 请求的治理能力，包括排队限流、模型代理、安全和观测扩展。',
+    aiGatewayOps: '管理自定义 Wasm 插件定义。开启后会绑定到当前网关，对经过该网关的请求全局生效。',
     addCustomWasm: '添加自定义插件',
     customWasmEmpty: '暂无自定义 Wasm 插件配置',
+    globalEnabled: '当前网关启用',
+    globalDisabled: '当前网关未启用',
+    gatewayMissing: '请先在顶部选择网关，才能切换全局启用状态。',
+    gatewayLoadFailed: '当前网关配置加载失败，无法切换全局插件。',
+    gatewayUpdated: '网关插件绑定已更新，请执行全局重载后生效。',
     reloadRequired: 'Wasm 插件配置已更新。运行中的网关需要执行全局重载后才会重新创建插件实例。',
     goInstances: '前往实例运维',
     deleteConfirm: '确认删除这个插件配置？删除后已引用该配置的资源可能无法正常加载插件。',
@@ -122,11 +130,14 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     editPluginInstance: 'Edit Plugin Instance',
     pluginDrawerIntroTitle: 'Configure Native Plugin Instance',
     pluginDrawerIntroDesc: 'This saves plugin configuration data only. Bind the instance to a resource and reload the gateway when needed.',
-    customWasmTitle: 'Custom Wasm Plugins',
-    customWasmDesc: 'Add external proxy-wasm plugins using the Higress WasmPlugin model. Bind the plugin to a resource and run Global Reload to apply it.',
-    aiGatewayOps: 'Governance capabilities for AI traffic, including queueing, rate limiting, model proxy, security, and observability extensions.',
+    aiGatewayOps: 'Manage custom Wasm plugin definitions. When enabled, the plugin is bound to the current gateway and applies globally.',
     addCustomWasm: 'Add Custom Plugin',
     customWasmEmpty: 'No custom Wasm plugin configurations',
+    globalEnabled: 'Enabled on current gateway',
+    globalDisabled: 'Disabled on current gateway',
+    gatewayMissing: 'Select a gateway in the top bar before toggling global enablement.',
+    gatewayLoadFailed: 'Failed to load current gateway config. Cannot toggle the global plugin.',
+    gatewayUpdated: 'Gateway plugin binding updated. Run Global Reload to apply it.',
     reloadRequired: 'Wasm plugin configuration changed. Running gateways need Global Reload before plugin instances are recreated.',
     goInstances: 'Go to Instances',
     deleteConfirm: 'Delete this plugin configuration? Resources referencing it may fail to load the plugin.',
@@ -137,20 +148,9 @@ const thirdPartyWasmVisible = ref(false);
 const thirdPartyWasmInstance = ref<Model.PluginConfig | undefined>();
 const wasmReloadNoticeVisible = ref(false);
 
-/** 是否为 Wasm 类插件 code（归入 AI Tab） */
-function isWasmPluginCode(pluginCode: string): boolean {
-    const c = pluginCode.toLowerCase()
-    return c === WASM_PLUGIN_CODE || c.startsWith('wasm.') || c.startsWith('wasm-')
-}
-
 const nativePluginAttrs = computed(() =>
     pluginAttrs.value.filter((item) => !isWasmPluginCode(item.code))
 )
-
-const managedAiWasmCatalog: AiWasmCatalogView[] = AI_WASM_CATALOG
-    .filter((item) => item.kind !== 'generic')
-    .map(({ id, title, description }) => ({ id, title, description }))
-const aiWasmCatalogIds = new Set(AI_WASM_CATALOG.map((item) => item.id))
 
 /** 从 spec 读取 Wasm 插件逻辑名（与 plugin/wasm.{name}.json 对应） */
 function pluginNameFromSpec(spec: PluginSpecRecord): string {
@@ -241,66 +241,22 @@ function rawWasmInstance(view: WasmPluginView): PluginConfigLite | undefined {
     return wasmInstanceRawByKey.get(view.key)
 }
 
-/** 目录项与已部署 wasm 实例是否同一插件 */
-function instanceMatchesCatalog(inst: WasmPluginView, catalog: AiWasmCatalogView): boolean {
-    const pluginName = inst.pluginName
-    if (pluginName && pluginName === catalog.id) return true
-    if (inst.name === catalog.id) return true
-    return inst.title === catalog.title || inst.title === catalog.id
-}
-
-function isAiGatewayQueueCard(card: AiPluginCard): boolean {
-    if (card.catalogId === 'ai-gateway-queue' || card.key === 'ai-gateway-queue') return true
-    const inst = card.instance
-    return !!inst && inst.pluginName === 'ai-gateway-queue'
-}
-
-function isManagedAiWasmInstance(inst: WasmPluginView): boolean {
-    for (const catalog of managedAiWasmCatalog) {
-        if (instanceMatchesCatalog(inst, catalog)) return true
-    }
-    return false
-}
-
-/** 合并目录与已配置的 wasm 实例为 AI 卡片列表 */
+/** 只展示插件中心定义；路由/网关/后端绑定生成的 binding config 不进入卡片列表。 */
 const aiPluginCards = computed((): AiPluginCard[] => {
-    const usedInstanceKeys = new Set<string>()
-    const cards: AiPluginCard[] = []
-
-    for (const catalog of managedAiWasmCatalog) {
-        const instance = wasmInstanceViews.value.find((inst) => instanceMatchesCatalog(inst, catalog))
-        if (instance) {
-            usedInstanceKeys.add(instance.key)
+    return sortWasmPluginCenterConfigs(
+        wasmInstances.value.filter((inst) => isWasmPluginCenterConfig(inst))
+    ).map((inst) => {
+        const view = toWasmPluginView(inst)
+        return {
+            key: view.key,
+            title: view.title,
+            description: view.description || t('hint.wasmInstance'),
+            instance: view,
         }
-        cards.push({
-            key: catalog.id,
-            title: catalog.title,
-            description: catalog.description,
-            catalogId: catalog.id,
-            instance,
-        })
-    }
-
-    for (const inst of wasmInstanceViews.value) {
-        if (usedInstanceKeys.has(inst.key)) continue
-        // 已在目录中的 plugin_name 不再重复展示（避免 wasm.json 等错误文件名导致双卡片）
-        const pluginName = inst.pluginName
-        if (pluginName && aiWasmCatalogIds.has(pluginName)) continue
-        cards.push({
-            key: inst.key,
-            title: inst.title,
-            description: inst.description || t('hint.wasmInstance'),
-            instance: inst,
-        })
-    }
-
-    return cards
+    })
 })
 
 const filteredNativePlugins = computed(() => filterBySearch(nativePluginAttrs.value))
-const customWasmInstances = computed(() =>
-    wasmInstanceViews.value.filter((inst) => !isManagedAiWasmInstance(inst))
-)
 const filteredAiCards = computed(() => {
     const q = pluginSearchText.value.trim().toLowerCase()
     if (!q) return aiPluginCards.value
@@ -309,13 +265,6 @@ const filteredAiCards = computed(() => {
             c.title.toLowerCase().includes(q) ||
             c.description.toLowerCase().includes(q)
     )
-})
-const filteredCustomWasmInstances = computed(() => {
-    const q = pluginSearchText.value.trim().toLowerCase()
-    if (!q) return customWasmInstances.value
-    return customWasmInstances.value.filter((inst) => {
-        return inst.title.toLowerCase().includes(q) || inst.description.toLowerCase().includes(q)
-    })
 })
 
 function filterBySearch(list: Model.PluginAttributes[]) {
@@ -349,11 +298,6 @@ function aiIconStyle(title: string) {
     return { backgroundColor: hashColor(title, 'light') }
 }
 
-function customWasmDescription(instance: WasmPluginView) {
-    if (instance.description) return instance.description
-    return texts.value.customWasmEmpty
-}
-
 async function loadWasmInstances() {
     try {
         wasmInstances.value = toPluginConfigLiteList(unwrapResponse<unknown>(
@@ -363,6 +307,20 @@ async function loadWasmInstances() {
         wasmInstances.value = []
     }
     syncWasmInstanceViews(wasmInstances.value)
+}
+
+async function loadCurrentGateway() {
+    const gatewayName = props.gatewayName?.trim()
+    currentGateway.value = undefined
+    if (!gatewayName) return
+    gatewayLoading.value = true
+    try {
+        currentGateway.value = unwrapResponse<Model.SgGateway>(await Api.getConfigItemGateway(gatewayName))
+    } catch {
+        currentGateway.value = undefined
+    } finally {
+        gatewayLoading.value = false
+    }
 }
 
 onMounted(async () => {
@@ -380,33 +338,63 @@ onMounted(async () => {
         pluginAttrs.value = attrs.filter((a): a is Model.PluginAttributes => a != null);
     } finally {
         await loadWasmInstances()
+        await loadCurrentGateway()
         pluginsLoading.value = false;
     }
 });
+
+watch(() => props.gatewayName, () => {
+    void loadCurrentGateway()
+})
 
 async function selectNativePlugin(pluginCode: string) {
     code.value = pluginCode;
 }
 
-/** 配置 AI Wasm：有实例则进入编辑，否则按目录创建新实例 */
+/** 配置 Wasm 扩展：进入插件定义编辑抽屉 */
 async function configureAiCard(card: AiPluginCard) {
-    if (isAiGatewayQueueCard(card)) {
-        const raw = card.instance ? rawWasmInstance(card.instance) : undefined
-        aiGatewayQueueInstance.value = raw ? asPluginConfig(raw) : undefined;
-        aiGatewayQueueVisible.value = true;
-        return;
-    }
-    if (card.instance) return
-    code.value = WASM_PLUGIN_CODE
-    await ensureWasmAttr()
-    if (card.instance) {
-        const raw = rawWasmInstance(card.instance)
-        if (!raw) return
-        await refreshPluginInstancesList(WASM_PLUGIN_CODE)
-        await editInstance(raw)
+    editCustomWasmView(card.instance)
+}
+
+function cardPluginRef(card: AiPluginCard): Model.PluginInstanceId | undefined {
+    const raw = rawWasmInstance(card.instance)
+    return raw ? pluginConfigToInstanceRef(raw) : undefined
+}
+
+function isCardEnabledOnGateway(card: AiPluginCard) {
+    const ref = cardPluginRef(card)
+    if (!ref) return false
+    return hasPluginInstanceRef(currentGateway.value?.plugins, ref)
+}
+
+async function setCardEnabledOnGateway(card: AiPluginCard, enabled: boolean) {
+    const gatewayName = props.gatewayName?.trim()
+    if (!gatewayName) {
+        ElMessage.warning(texts.value.gatewayMissing)
         return
     }
-  openCreateWasmFromCatalog(card)
+    const ref = cardPluginRef(card)
+    if (!ref) return
+    if (!currentGateway.value) {
+        await loadCurrentGateway()
+    }
+    if (!currentGateway.value) {
+        ElMessage.error(texts.value.gatewayLoadFailed)
+        return
+    }
+    const nextGateway = {
+        ...currentGateway.value,
+        plugins: setPluginInstanceRefEnabled(currentGateway.value.plugins, ref, enabled),
+    }
+    try {
+        await Api.putConfigItemGateway(gatewayName, nextGateway)
+        currentGateway.value = nextGateway
+        wasmReloadNoticeVisible.value = true
+        ElMessage.success(texts.value.gatewayUpdated)
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e)
+        ElMessage.error(message)
+    }
 }
 
 function openCreateCustomWasm() {
@@ -427,39 +415,6 @@ function editCustomWasmView(instance: WasmPluginView) {
 function deleteCustomWasmView(instance: WasmPluginView) {
     const raw = rawWasmInstance(instance)
     if (raw) deleteCustomWasmInstance(asPluginConfig(raw))
-}
-
-async function ensureWasmAttr() {
-    if (attr.value?.code === WASM_PLUGIN_CODE) return
-    const cached = pluginAttrs.value.find((p) => p.code === WASM_PLUGIN_CODE)
-    if (cached) {
-        attr.value = cached
-        return
-    }
-    const response = await Api.pluginAttr(WASM_PLUGIN_CODE)
-    attr.value = unwrapResponse<Model.PluginAttributes>(response)
-}
-
-function openCreateWasmFromCatalog(card: AiPluginCard) {
-    if (!attr.value) return
-    const catalogId = card.catalogId ?? card.key
-    formPluginConfig.value = {
-        code: WASM_PLUGIN_CODE,
-        kind: 'named',
-        name: catalogId,
-        spec: {
-            url: '',
-            plugin_name: card.title,
-            plugin_root_id: `${catalogId}-root`,
-            plugin_vm_id: `${catalogId}-vm`,
-            plugin_config: {},
-            clusters: {},
-            fail_strategy: 'fail_open',
-        },
-    }
-    dialogMode.value = 'create'
-    dialogTitle.value = t('title.createWasmPlugin')
-    dialogVisible.value = true
 }
 
 function backToPluginList() {
@@ -618,11 +573,6 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
     }
 }
 
-async function onAiGatewayQueueSaved() {
-    await loadWasmInstances()
-    emit('changed')
-}
-
 async function onThirdPartyWasmSaved() {
     wasmReloadNoticeVisible.value = true
     await loadWasmInstances()
@@ -701,7 +651,7 @@ function goInstances() {
             <el-empty v-if="!pluginsLoading && filteredNativePlugins.length === 0" />
         </div>
 
-        <!-- AI / Wasm 插件 -->
+        <!-- Wasm 扩展 -->
         <div
             v-else
             v-loading="pluginsLoading"
@@ -726,9 +676,12 @@ function goInstances() {
             <section class="plugin-panel__section">
                 <div class="plugin-panel__section-header">
                     <div>
-                        <h3>AI Gateway</h3>
+                        <h3>Wasm 扩展</h3>
                         <p>{{ texts.aiGatewayOps }}</p>
                     </div>
+                    <el-button :icon="Plus" type="primary" @click="openCreateCustomWasm">
+                        {{ texts.addCustomWasm }}
+                    </el-button>
                 </div>
                 <div class="plugin-panel__grid">
                     <div
@@ -744,61 +697,35 @@ function goInstances() {
                             </div>
                             <div class="plugin-card__title-wrap">
                                 <div class="plugin-card__title">{{ card.title }}</div>
-                                <div v-if="card.instance" class="plugin-card__badge">{{ t('hint.deployed') }}</div>
+                                <div class="plugin-card__badge">{{ t('hint.deployed') }}</div>
                             </div>
                         </div>
                         <div class="plugin-card__body">
                             {{ card.description }}
                         </div>
-                        <button type="button" class="plugin-card__footer" @click="configureAiCard(card)">
-                            {{ t('title.setting') }}
-                        </button>
-                    </div>
-                    <el-empty v-if="!pluginsLoading && filteredAiCards.length === 0" />
-                </div>
-            </section>
-
-            <section class="custom-wasm-panel">
-                <div class="custom-wasm-panel__header">
-                    <div>
-                        <h3>{{ texts.customWasmTitle }}</h3>
-                        <p>{{ texts.customWasmDesc }}</p>
-                    </div>
-                    <el-button :icon="Plus" type="primary" @click="openCreateCustomWasm">
-                        {{ texts.addCustomWasm }}
-                    </el-button>
-                </div>
-                <div class="custom-wasm-list">
-                    <div
-                        v-for="instance in filteredCustomWasmInstances"
-                        :key="instance.kind === 'named' ? instance.name : JSON.stringify(instance)"
-                        class="custom-wasm-row"
-                    >
-                        <div class="custom-wasm-row__main">
-                            <strong>{{ instance.title }}</strong>
-                            <span>{{ instance.kind === 'named' ? `wasm.${instance.name}` : instance.code }}</span>
-                        </div>
-                        <div class="custom-wasm-row__desc">
-                            {{ customWasmDescription(instance) }}
-                        </div>
-                        <div class="custom-wasm-row__actions">
-                            <el-button size="small" :icon="Edit" link type="primary" @click="editCustomWasmView(instance)">
-                                {{ t('button.edit') }}
-                            </el-button>
-                            <el-button size="small" :icon="Delete" link type="danger" @click="deleteCustomWasmView(instance)">
-                                {{ t('button.delete') }}
-                            </el-button>
+                        <div class="plugin-card__actions">
+                            <div class="plugin-card__switch">
+                                <el-switch
+                                    :model-value="isCardEnabledOnGateway(card)"
+                                    :loading="gatewayLoading"
+                                    @change="(value: boolean | string | number) => setCardEnabledOnGateway(card, Boolean(value))"
+                                />
+                                <span>{{ isCardEnabledOnGateway(card) ? texts.globalEnabled : texts.globalDisabled }}</span>
+                            </div>
+                            <div>
+                                <el-button size="small" :icon="Edit" link type="primary" @click="configureAiCard(card)">
+                                    {{ t('button.edit') }}
+                                </el-button>
+                                <el-button size="small" :icon="Delete" link type="danger" @click="deleteCustomWasmView(card.instance)">
+                                    {{ t('button.delete') }}
+                                </el-button>
+                            </div>
                         </div>
                     </div>
-                    <el-empty v-if="!pluginsLoading && filteredCustomWasmInstances.length === 0" :description="texts.customWasmEmpty" />
+                    <el-empty v-if="!pluginsLoading && filteredAiCards.length === 0" :description="texts.customWasmEmpty" />
                 </div>
             </section>
         </div>
-        <ai-gateway-queue-drawer
-            v-model="aiGatewayQueueVisible"
-            :instance="aiGatewayQueueInstance"
-            @saved="onAiGatewayQueueSaved"
-        />
         <third-party-wasm-drawer
             v-model="thirdPartyWasmVisible"
             :instance="thirdPartyWasmInstance"
@@ -899,8 +826,7 @@ function goInstances() {
 }
 
 .plugin-panel__ai,
-.plugin-panel__section,
-.custom-wasm-panel {
+.plugin-panel__section {
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -910,85 +836,25 @@ function goInstances() {
     margin-bottom: 2px;
 }
 
-.plugin-panel__section-header,
-.custom-wasm-panel__header {
+.plugin-panel__section-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
 }
 
-.plugin-panel__section-header h3,
-.custom-wasm-panel__header h3 {
+.plugin-panel__section-header h3 {
     margin: 0;
     color: #0f172a;
     font-size: 15px;
     font-weight: 650;
 }
 
-.plugin-panel__section-header p,
-.custom-wasm-panel__header p {
+.plugin-panel__section-header p {
     margin: 4px 0 0;
     color: #64748b;
     font-size: 12px;
     line-height: 1.5;
-}
-
-.custom-wasm-panel {
-    margin-top: 4px;
-    padding: 16px;
-    border: 1px solid #dbe3ef;
-    border-radius: 8px;
-    background: #f8fafc;
-}
-
-.custom-wasm-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.custom-wasm-row {
-    display: grid;
-    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.6fr) auto;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.custom-wasm-row__main strong {
-    display: block;
-    color: #0f172a;
-    font-size: 14px;
-}
-
-.custom-wasm-row__main span,
-.custom-wasm-row__desc {
-    color: #64748b;
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.custom-wasm-row__main span {
-    display: block;
-    margin-top: 3px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.custom-wasm-row__desc {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.custom-wasm-row__actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    justify-content: flex-end;
 }
 
 .plugin-panel__grid {
@@ -1008,15 +874,6 @@ function goInstances() {
     .plugin-panel__grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
-    .custom-wasm-row {
-        grid-template-columns: 1fr;
-        align-items: flex-start;
-    }
-
-    .custom-wasm-row__desc {
-        white-space: normal;
-    }
 }
 
 @media (max-width: 640px) {
@@ -1024,8 +881,7 @@ function goInstances() {
         grid-template-columns: 1fr;
     }
 
-    .plugin-panel__section-header,
-    .custom-wasm-panel__header {
+    .plugin-panel__section-header {
         flex-direction: column;
     }
 }
@@ -1128,6 +984,25 @@ function goInstances() {
     &:hover {
         background-color: #f0f0f0;
     }
+}
+
+.plugin-card__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid #e5e5e5;
+    background: #fafafa;
+}
+
+.plugin-card__switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #64748b;
+    font-size: 12px;
 }
 
 .plugin-detail__toolbar {

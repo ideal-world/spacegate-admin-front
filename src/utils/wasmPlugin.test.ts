@@ -4,8 +4,15 @@ import test from 'node:test'
 import {
   buildBoundWasmPluginConfig,
   buildThirdPartyWasmPluginConfig,
+  hasPluginInstanceRef,
+  isWasmPluginBindingConfig,
+  isWasmPluginCenterConfig,
   normalizeWasmPluginId,
   parseYamlConfigText,
+  pluginInstanceDisplayName,
+  setPluginInstanceRefEnabled,
+  sortWasmPluginCenterConfigs,
+  stableWasmBindingId,
   validateWasmPluginId,
 } from './wasmPlugin.ts'
 
@@ -15,6 +22,12 @@ test('normalizes custom wasm plugin id without dots', () => {
 
 test('rejects ids that cannot round-trip through wasm.{name}.json', () => {
   assert.throws(() => validateWasmPluginId('custom.auth'), /lowercase letters, numbers, and hyphens/)
+})
+
+test('generates short stable wasm binding ids from association dimensions', () => {
+  const id = stableWasmBindingId('route', 'Route: catch-all / HAI', 'hai-mix-process')
+  assert.match(id, /^bind-[a-f0-9]{8}$/)
+  assert.equal(id, stableWasmBindingId('route', 'route: catch-all / hai', 'HAI-MIX-PROCESS'))
 })
 
 test('builds wasm named plugin config and reports reload requirement outside spec', () => {
@@ -85,7 +98,9 @@ test('builds a bound wasm plugin config from a default config and schema values'
 
   const result = buildBoundWasmPluginConfig({
     baseConfig: defaults,
-    bindingName: 'Route: catch-all / HAI',
+    bindingName: stableWasmBindingId('route', 'Route: catch-all / HAI', 'hai-mix-process'),
+    bindingOwner: 'Route: catch-all / HAI',
+    bindingDisplayName: 'route / Route: catch-all / HAI / hai-mix-process',
     bindingScope: 'route',
     configMode: 'schema',
     schemaConfig: { tenant: 'route-a' },
@@ -94,12 +109,14 @@ test('builds a bound wasm plugin config from a default config and schema values'
 
   assert.equal(result.config.code, 'wasm')
   assert.equal(result.config.kind, 'named')
-  assert.equal(result.config.name, 'route-catch-all-hai')
+  assert.equal(result.config.name, stableWasmBindingId('route', 'Route: catch-all / HAI', 'hai-mix-process'))
   assert.equal(result.config.spec.url, defaults.spec.url)
   assert.deepEqual(result.config.spec.default_config, { tenant: 'route-a' })
   assert.deepEqual(result.config.spec.plugin_config, { tenant: 'route-a' })
   assert.equal(result.config.spec.binding_config_mode, 'schema')
   assert.equal(result.config.spec.binding_scope, 'route')
+  assert.equal(result.config.spec.binding_owner, 'Route: catch-all / HAI')
+  assert.equal(result.config.spec.binding_display_name, 'route / Route: catch-all / HAI / hai-mix-process')
   assert.equal(defaults.spec.plugin_config.defaultTenant, 'base')
 })
 
@@ -128,15 +145,19 @@ test('builds a bound wasm plugin config with yaml text config', () => {
 
   const result = buildBoundWasmPluginConfig({
     baseConfig,
-    bindingName: 'Rule #1 YAML Auth',
+    bindingName: stableWasmBindingId('rule', 'Rule #1', 'yaml-auth'),
+    bindingOwner: 'Rule #1',
+    bindingDisplayName: 'rule / Rule #1 / yaml-auth',
     bindingScope: 'rule',
     configMode: 'yaml',
     schemaConfig: {},
     yamlConfig: 'enabled: true\nmode: strict\n',
   })
 
-  assert.equal(result.config.name, 'rule-1-yaml-auth')
+  assert.equal(result.config.name, stableWasmBindingId('rule', 'Rule #1', 'yaml-auth'))
   assert.equal(result.config.spec.binding_config_mode, 'yaml')
+  assert.equal(result.config.spec.binding_owner, 'Rule #1')
+  assert.equal(result.config.spec.binding_display_name, 'rule / Rule #1 / yaml-auth')
   assert.deepEqual(result.config.spec.plugin_config, { enabled: true, mode: 'strict' })
   assert.deepEqual(result.config.spec.default_config, { enabled: true, mode: 'strict' })
 })
@@ -190,4 +211,123 @@ test('default bound wasm config copies runtime plugin_config before editor defau
 
   assert.deepEqual(result.config.spec.plugin_config, { issuer: 'runtime', _rules_: [{ _match_route_: ['api-route'] }] })
   assert.deepEqual(result.config.spec.default_config, { issuer: 'runtime', _rules_: [{ _match_route_: ['api-route'] }] })
+})
+
+test('distinguishes plugin center wasm configs from resource binding configs', () => {
+  const centerConfig = {
+    code: 'wasm',
+    kind: 'named',
+    name: 'hai-mix-process',
+    spec: {
+      plugin_name: 'hai-mix-process',
+      image_url: 'oci://registry.example.com/plugins/hai:v1',
+    },
+  } as const
+  const bindingConfig = {
+    code: 'wasm',
+    kind: 'named',
+    name: 'route-hai-mix-process',
+    spec: {
+      plugin_name: 'hai-mix-process',
+      binding_scope: 'route',
+      binding_base_plugin: 'hai-mix-process',
+    },
+  } as const
+  const queueConfig = {
+    code: 'wasm',
+    kind: 'named',
+    name: 'ai-gateway-queue',
+    spec: {
+      plugin_name: 'ai-gateway-queue',
+    },
+  } as const
+
+  assert.equal(isWasmPluginCenterConfig(centerConfig), true)
+  assert.equal(isWasmPluginBindingConfig(centerConfig), false)
+  assert.equal(isWasmPluginCenterConfig(bindingConfig), false)
+  assert.equal(isWasmPluginBindingConfig(bindingConfig), true)
+  assert.equal(isWasmPluginCenterConfig(queueConfig), false)
+})
+
+test('displays a bound wasm plugin by its base plugin name instead of the binding id', () => {
+  const configs = [
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'hai-mix-process',
+      spec: {
+        display_name: 'HAI Mix Process',
+        plugin_name: 'hai-mix-process',
+      },
+    },
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'bind-85513be3',
+      spec: {
+        binding_scope: 'route',
+        binding_base_plugin: 'hai-mix-process',
+        binding_display_name: 'route / route-a / hai-mix-process',
+      },
+    },
+  ] as const
+
+  assert.equal(pluginInstanceDisplayName({ code: 'wasm', kind: 'named', name: 'bind-85513be3' }, configs), 'HAI Mix Process')
+})
+
+test('toggles a gateway-level plugin instance reference without duplicating it', () => {
+  const ref = { code: 'wasm', kind: 'named', name: 'hai-mix-process' } as const
+  const existing = [
+    { code: 'request-id', kind: 'mono' },
+  ] as const
+
+  const enabled = setPluginInstanceRefEnabled(existing, ref, true)
+  assert.equal(hasPluginInstanceRef(enabled, ref), true)
+  assert.equal(enabled.length, 2)
+
+  const enabledAgain = setPluginInstanceRefEnabled(enabled, ref, true)
+  assert.equal(enabledAgain.length, 2)
+
+  const disabled = setPluginInstanceRefEnabled(enabledAgain, ref, false)
+  assert.equal(hasPluginInstanceRef(disabled, ref), false)
+  assert.deepEqual(disabled, [{ code: 'request-id', kind: 'mono' }])
+})
+
+test('sorts plugin center wasm configs by priority and stable display identity', () => {
+  const configs = [
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'z-plugin',
+      spec: {
+        display_name: 'Z Plugin',
+        priority: 10,
+      },
+    },
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'a-plugin',
+      spec: {
+        display_name: 'A Plugin',
+        priority: 10,
+      },
+    },
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'top-plugin',
+      spec: {
+        display_name: 'Top Plugin',
+        priority: 100,
+      },
+    },
+  ] as const
+
+  assert.deepEqual(sortWasmPluginCenterConfigs(configs).map((item) => item.name), [
+    'top-plugin',
+    'a-plugin',
+    'z-plugin',
+  ])
+  assert.deepEqual(configs.map((item) => item.name), ['z-plugin', 'a-plugin', 'top-plugin'])
 })

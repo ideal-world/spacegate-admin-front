@@ -1,3 +1,5 @@
+import type { Model } from 'spacegate-admin-client'
+
 export type JsonSchema = Record<string, any>
 
 export interface WasmImageSchemaRequest {
@@ -22,15 +24,27 @@ export interface TenantRateLimitRuleView extends TenantRateLimitRule {
   ttl_remaining_secs?: number
 }
 
-const baseUrl = (() => {
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/$/, '')
+}
+
+const aiGatewayBaseUrl = (() => {
   const env = (import.meta as any).env?.VITE_AI_GATEWAY_BASE_URL
   if (typeof env === 'string' && env.length > 0) {
-    return env.replace(/\/$/, '')
+    return normalizeBaseUrl(env)
   }
-  return typeof window !== 'undefined' && window.location.port === '3000' ? '' : '/api'
+  return '/ai-gateway'
 })()
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+const adminApiBaseUrl = (() => {
+  const env = (import.meta as any).env?.VITE_ADMIN_API_BASE_URL ?? (import.meta as any).env?.VITE_API_BASE_PATH
+  if (typeof env === 'string' && env.length > 0) {
+    return normalizeBaseUrl(env)
+  }
+  return '/api'
+})()
+
+async function request<T>(baseUrl: string, path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
@@ -50,18 +64,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getAiGatewayPluginSchema(plugin = 'ai-gateway-queue') {
-  return request<JsonSchema>(`/v1/admin/plugins/${plugin}/schema`)
+  return request<JsonSchema>(aiGatewayBaseUrl, `/v1/admin/plugins/${plugin}/schema`)
 }
 
-export function getWasmPluginImageSchema(payload: WasmImageSchemaRequest) {
-  return request<JsonSchema>('/plugin/wasm/schema', {
+function pluginInstanceIdQuery(id: Model.PluginInstanceId) {
+  const params = new URLSearchParams()
+  params.set('code', id.code)
+  params.set('kind', id.kind)
+  if (id.kind === 'named') params.set('name', id.name)
+  if (id.kind === 'anon') params.set('uid', id.uid)
+  return params.toString()
+}
+
+export function getSavedWasmPluginImageSchema(id: Model.PluginInstanceId) {
+  return request<JsonSchema>(adminApiBaseUrl, `/plugin/wasm/schema?${pluginInstanceIdQuery(id)}`)
+}
+
+export function previewWasmPluginImageSchema(payload: WasmImageSchemaRequest) {
+  return request<JsonSchema>(adminApiBaseUrl, '/plugin/wasm/schema/preview', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export function getAiGatewayPluginReadme(plugin = 'ai-gateway-queue') {
-  return request<string>(`/v1/admin/plugins/${plugin}/readme`, {
+  return request<string>(aiGatewayBaseUrl, `/v1/admin/plugins/${plugin}/readme`, {
     headers: {
       accept: 'text/markdown',
     },
@@ -76,18 +103,18 @@ export function listTenantRateLimits(filters: Partial<TenantRateLimitRule> = {})
     }
   }
   const query = params.toString()
-  return request<TenantRateLimitRuleView[]>(`/v1/admin/tenant-rate-limits${query ? `?${query}` : ''}`)
+  return request<TenantRateLimitRuleView[]>(aiGatewayBaseUrl, `/v1/admin/tenant-rate-limits${query ? `?${query}` : ''}`)
 }
 
 export function upsertTenantRateLimit(rule: TenantRateLimitRule) {
-  return request<TenantRateLimitRuleView>('/v1/admin/tenant-rate-limits', {
+  return request<TenantRateLimitRuleView>(aiGatewayBaseUrl, '/v1/admin/tenant-rate-limits', {
     method: 'PUT',
     body: JSON.stringify(rule),
   })
 }
 
 export function deleteTenantRateLimit(rule: TenantRateLimitRule) {
-  return request<{ deleted: number }>('/v1/admin/tenant-rate-limits', {
+  return request<{ deleted: number }>(aiGatewayBaseUrl, '/v1/admin/tenant-rate-limits', {
     method: 'DELETE',
     body: JSON.stringify(rule),
   })

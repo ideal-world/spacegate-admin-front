@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { Model } from 'spacegate-admin-client';
+import { Api, Model } from 'spacegate-admin-client';
 import { Plus, Check } from '@element-plus/icons-vue'
 import { cloneDeep } from 'lodash';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, shallowRef } from 'vue';
 import { ElMessage } from 'element-plus';
-import { hashColor, labelPluginId, keyPluginId } from '../utils';
+import { hashColor, keyPluginId, unwrapResponse } from '../utils';
 import PluginSelect from './PluginSelect.vue';
 import { PluginInstanceId } from 'spacegate-admin-client/dist/model';
 import { useI18n } from 'vue-i18n'
+import { pluginInstanceDisplayName, type PluginConfigLike } from '../utils/wasmPlugin';
 const { locale, t } = useI18n();
 const props = withDefaults(defineProps<{
     bindingScope?: 'gateway' | 'route' | 'rule' | 'backend'
@@ -23,6 +24,7 @@ const isOpen = ref(false)
 const mode = ref<'add' | 'edit' | undefined>('add')
 const formData = ref<Model.PluginInstanceId | undefined>(undefined)
 const selectRef = ref<InstanceType<typeof PluginSelect> | null>(null)
+const pluginConfigs = shallowRef<PluginConfigLike[]>([])
 const editIndex = ref(0);
 const texts = computed(() => locale.value.startsWith('zh') ? {
     intro: '选择插件类型后，可以引用已有插件配置，也可以创建一份自定义配置并立即绑定到当前资源。',
@@ -37,6 +39,42 @@ const open = (m: 'add' | 'edit', plugin?: Model.PluginInstanceId) => {
 const openEdit = (plugin: Model.PluginInstanceId, index: number) => {
     editIndex.value = index
     open('edit', plugin)
+}
+function toPluginConfigLike(value: unknown): PluginConfigLike | null {
+    if (!value || typeof value !== 'object') return null
+    const item = value as Record<string, unknown>
+    if (typeof item.code !== 'string') return null
+    if (item.kind !== 'anon' && item.kind !== 'named' && item.kind !== 'mono') return null
+    const config: PluginConfigLike = {
+        code: item.code,
+        kind: item.kind,
+        spec: item.spec && typeof item.spec === 'object' && !Array.isArray(item.spec)
+            ? item.spec as Record<string, unknown>
+            : {},
+    }
+    if (item.kind === 'named') {
+        if (typeof item.name !== 'string') return null
+        config.name = item.name
+    }
+    if (item.kind === 'anon') {
+        if (typeof item.uid !== 'string') return null
+        config.uid = item.uid
+    }
+    return config
+}
+async function refreshPluginConfigs() {
+    try {
+        const response = await Api.getConfigPluginAll()
+        const list = unwrapResponse<unknown>(response)
+        pluginConfigs.value = Array.isArray(list)
+            ? list.map(toPluginConfigLike).filter((item): item is PluginConfigLike => item !== null)
+            : []
+    } catch {
+        pluginConfigs.value = []
+    }
+}
+function displayPluginName(plugin: Model.PluginInstanceId) {
+    return pluginInstanceDisplayName(plugin, pluginConfigs.value)
 }
 const getFormData = (): PluginInstanceId => {
     switch (formData.value.kind) {
@@ -82,16 +120,19 @@ const close = () => {
     mode.value = undefined
     formData.value = undefined
 }
+onMounted(() => {
+    void refreshPluginConfigs()
+})
 </script>
 <template>
     <div class="flex space-x-1">
         <el-tag v-for="(plugin, index) in modelValue" :key="`${keyPluginId(plugin)}-${index}`" closable
             @close="modelValue.splice(index, 1)" :color="hashColor(plugin.code, 'light')"
-            @click="() => openEdit(plugin, index)" class="hover:cursor-pointer hover:brightness-110">
+            @click="() => openEdit(plugin, index)" class="hover:cursor-pointer hover:brightness-110"
+            :title="keyPluginId(plugin)">
             <span class="mx-1 text-gray-900" draggable="true" @dragstart="dragstart(index)" @dragover.prevent
                 @drop="drop(index)">:::</span>
-            <code class="rounded bg-black text-white bg-opacity-60 px-1">{{ plugin.code }}</code>
-            {{ labelPluginId(plugin) }}
+            {{ displayPluginName(plugin) }}
         </el-tag>
         <el-button :icon="Plus" size="small" @click="() => open('add')">{{ t('button.addPlugin') }}
         </el-button>
@@ -122,6 +163,7 @@ const close = () => {
             <el-button type="primary" :icon="Check" @click="async () => {
                 try {
                     await selectRef?.save()
+                    await refreshPluginConfigs()
                     addPlugin()
                     close()
                 } catch (e) {

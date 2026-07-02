@@ -48,10 +48,125 @@ export type BuildBoundWasmPluginConfigInput = {
   baseConfig: Model.PluginConfig
   existingConfig?: Model.PluginConfig
   bindingName: string
+  bindingOwner?: string
+  bindingDisplayName?: string
   bindingScope: 'gateway' | 'route' | 'rule' | 'backend'
   configMode: BoundWasmConfigMode
   schemaConfig: unknown
   yamlConfig: string
+}
+
+export type PluginConfigLike = {
+  code: string
+  kind: 'anon' | 'named' | 'mono'
+  uid?: string
+  name?: string
+  spec?: Record<string, unknown>
+}
+
+export type PluginInstanceRefLike = {
+  code: string
+  kind: 'anon' | 'named' | 'mono'
+  uid?: string
+  name?: string
+}
+
+export function isWasmPluginCode(pluginCode: string) {
+  const c = pluginCode.toLowerCase()
+  return c === 'wasm' || c.startsWith('wasm.') || c.startsWith('wasm-')
+}
+
+export function isWasmPluginBindingConfig(config: PluginConfigLike) {
+  return isWasmPluginCode(config.code) && config.spec?.binding_scope !== undefined
+}
+
+export function isWasmPluginCenterConfig(config: PluginConfigLike) {
+  if (!isWasmPluginCode(config.code)) return false
+  if (config.kind !== 'named') return false
+  if (isWasmPluginBindingConfig(config)) return false
+  if (config.spec?.plugin_name === 'ai-gateway-queue') return false
+  return true
+}
+
+function wasmPluginSortPriority(config: PluginConfigLike) {
+  const priority = config.spec?.priority
+  return typeof priority === 'number' && Number.isFinite(priority) ? priority : 0
+}
+
+function wasmPluginSortName(config: PluginConfigLike) {
+  const spec = config.spec ?? {}
+  if (typeof spec.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
+  if (typeof spec.title === 'string' && spec.title.trim()) return spec.title.trim()
+  if (typeof spec.plugin_name === 'string' && spec.plugin_name.trim()) return spec.plugin_name.trim()
+  return config.name ?? config.code
+}
+
+export function sortWasmPluginCenterConfigs<T extends PluginConfigLike>(configs: readonly T[]): T[] {
+  return [...configs].sort((left, right) => {
+    const priorityDelta = wasmPluginSortPriority(right) - wasmPluginSortPriority(left)
+    if (priorityDelta !== 0) return priorityDelta
+    return wasmPluginSortName(left).localeCompare(wasmPluginSortName(right), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    })
+  })
+}
+
+export function pluginConfigToInstanceRef(config: PluginConfigLike): Model.PluginInstanceId {
+  if (config.kind === 'named') {
+    return { code: config.code, kind: config.kind, name: config.name ?? '' }
+  }
+  if (config.kind === 'anon') {
+    return { code: config.code, kind: config.kind, uid: config.uid ?? '' }
+  }
+  return { code: config.code, kind: config.kind }
+}
+
+function findPluginConfigByRef(configs: readonly PluginConfigLike[], ref: PluginInstanceRefLike) {
+  return configs.find((config) => isSamePluginInstanceRef(config, ref))
+}
+
+function readablePluginConfigName(config: PluginConfigLike) {
+  return wasmPluginSortName(config)
+}
+
+export function pluginInstanceDisplayName(ref: PluginInstanceRefLike, configs: readonly PluginConfigLike[] = []) {
+  const config = findPluginConfigByRef(configs, ref)
+  if (config && isWasmPluginBindingConfig(config)) {
+    const basePlugin = config.spec?.binding_base_plugin
+    if (typeof basePlugin === 'string' && basePlugin.trim()) {
+      const baseConfig = configs.find((item) => item.code === config.code && item.kind === 'named' && item.name === basePlugin)
+      return baseConfig ? readablePluginConfigName(baseConfig) : basePlugin.trim()
+    }
+    const pluginName = config.spec?.plugin_name
+    if (typeof pluginName === 'string' && pluginName.trim()) return pluginName.trim()
+  }
+  if (config) return readablePluginConfigName(config)
+  if (ref.kind === 'named') return ref.name ?? ref.code
+  if (ref.kind === 'anon') return ref.uid ? `${ref.code}.${ref.uid}` : ref.code
+  return ref.code
+}
+
+export function isSamePluginInstanceRef(left: PluginInstanceRefLike, right: PluginInstanceRefLike) {
+  if (left.code !== right.code || left.kind !== right.kind) return false
+  if (left.kind === 'named') return left.name === right.name
+  if (left.kind === 'anon') return left.uid === right.uid
+  return true
+}
+
+export function hasPluginInstanceRef(list: readonly PluginInstanceRefLike[] | undefined, ref: PluginInstanceRefLike) {
+  return Array.isArray(list) && list.some((item) => isSamePluginInstanceRef(item, ref))
+}
+
+export function setPluginInstanceRefEnabled(
+  list: readonly PluginInstanceRefLike[] | undefined,
+  ref: Model.PluginInstanceId,
+  enabled: boolean,
+): Model.PluginInstanceId[] {
+  const current = Array.isArray(list) ? [...list] : []
+  const withoutRef = current.filter((item) => !isSamePluginInstanceRef(item, ref))
+  if (!enabled) return withoutRef as Model.PluginInstanceId[]
+  return [...withoutRef, ref]
 }
 
 export function normalizeWasmPluginId(value: string) {
@@ -62,6 +177,24 @@ export function normalizeWasmPluginId(value: string) {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
   return normalized || 'custom-wasm-plugin'
+}
+
+function fnv1a32Hex(value: string) {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+export function stableWasmBindingId(scope: string, owner: string, plugin: string) {
+  const normalizedInput = [
+    scope.trim().toLowerCase(),
+    owner.trim().toLowerCase(),
+    plugin.trim().toLowerCase(),
+  ].join(':')
+  return `bind-${fnv1a32Hex(normalizedInput)}`
 }
 
 export function validateWasmPluginId(value: string) {
@@ -182,7 +315,8 @@ export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInpu
       : input.baseConfig.kind === 'anon'
         ? input.baseConfig.uid
         : input.baseConfig.code,
-    binding_display_name: input.bindingName.trim() || instanceName,
+    binding_owner: input.bindingOwner?.trim() || undefined,
+    binding_display_name: input.bindingDisplayName?.trim() || input.bindingOwner?.trim() || instanceName,
   }
 
   return {

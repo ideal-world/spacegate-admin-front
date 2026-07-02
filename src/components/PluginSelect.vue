@@ -4,8 +4,8 @@ import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 import { unwrapResponse, keyPluginId, labelPluginId, randomUid } from '../utils';
 import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
-import { buildBoundWasmPluginConfig, type BoundWasmConfigMode } from '../utils/wasmPlugin'
-import { getWasmPluginImageSchema, type JsonSchema } from '../api/aiGateway'
+import { buildBoundWasmPluginConfig, stableWasmBindingId, type BoundWasmConfigMode } from '../utils/wasmPlugin'
+import { getSavedWasmPluginImageSchema, type JsonSchema } from '../api/aiGateway'
 import PluginForm from './PluginForm.vue';
 import SchemaForm from './SchemaForm.vue';
 import { useI18n } from 'vue-i18n'
@@ -55,7 +55,6 @@ const attr = ref<Model.PluginAttributes | undefined>()
 const formRef = ref<InstanceType<typeof PluginForm> | null>(null)
 const loading = ref(false)
 const wasmConfigMode = ref<BoundWasmConfigMode>('default')
-const wasmBindingName = ref('')
 const wasmSchemaConfig = ref<Record<string, any>>({})
 const wasmYamlConfigText = ref('')
 const wasmImageSchema = shallowRef<JsonSchema | undefined>()
@@ -63,10 +62,11 @@ const wasmSchemaLoading = ref(false)
 const wasmSchemaError = ref('')
 const schemaFormRef = ref<InstanceType<typeof SchemaForm> | null>(null)
 const existingWasmBinding = ref<PluginConfigLite | undefined>()
+const suppressCategoryReset = ref(false)
 
 const texts = computed(() => locale.value.startsWith('zh') ? {
     native: '原生插件',
-    ai: 'AI/Wasm 插件',
+    ai: 'Wasm 扩展',
     pluginCategory: '插件分类',
     pluginType: '具体插件',
     pluginConfig: '插件配置',
@@ -75,17 +75,17 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     referenceConfig: '引用已有配置',
     customConfig: '新建原生插件配置',
     nativeHint: '原生插件由网关内置，支持直接新建配置或引用已有配置。',
-    aiHint: 'AI/Wasm 插件从插件中心选择默认配置，绑定时会为当前资源新增或更新一份专属配置。',
+    aiHint: 'Wasm 扩展从插件中心选择默认配置，绑定时会为当前资源新增或更新一份专属配置。',
     referenceHint: '选择一份已经保存的插件配置，绑定到当前资源。',
     customHint: '创建一份新的 named 原生插件配置，保存后立即绑定到当前资源。',
     selectPluginType: '请选择原生插件',
     selectPluginTypeDesc: '选择插件后会加载 schema，并显示配置表单。',
     emptyConfig: '当前插件还没有可引用的 named 配置。',
-    emptyAiConfig: '暂无可绑定的 AI/Wasm 插件配置，请先到插件中心创建。',
+    emptyAiConfig: '暂无可绑定的 Wasm 扩展配置，请先到插件中心创建。',
     loadFailed: '插件列表加载失败，请确认 admin-server 和网关实例已启动。',
     wasmBinding: '绑定配置',
-    wasmBindingName: '绑定配置名称',
-    wasmBindingNameHint: '保存为 wasm.{name}.json。建议表达绑定位置，避免覆盖插件中心默认配置。',
+    wasmBindingName: '调试标识',
+    wasmBindingNameHint: '系统按绑定位置自动生成内部标识；同一位置重复绑定同一插件时会更新这份配置。',
     wasmDefaultMode: '使用默认配置',
     wasmSchemaMode: '镜像 Schema 表单',
     wasmYamlMode: 'YAML 配置',
@@ -99,7 +99,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     selectWasmBase: '请选择插件中心默认配置',
 } : {
     native: 'Native Plugin',
-    ai: 'AI/Wasm Plugin',
+    ai: 'Wasm Extension',
     pluginCategory: 'Plugin Category',
     pluginType: 'Plugin',
     pluginConfig: 'Plugin Configuration',
@@ -108,17 +108,17 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     referenceConfig: 'Reference Existing Configuration',
     customConfig: 'Create Native Plugin Configuration',
     nativeHint: 'Native plugins are built into the gateway. You can create a new configuration or reference an existing one.',
-    aiHint: 'Select the default AI/Wasm config from Plugin Center. Binding creates or updates a config dedicated to this resource.',
+    aiHint: 'Select the default Wasm extension config from Plugin Center. Binding creates or updates a config dedicated to this resource.',
     referenceHint: 'Select an existing plugin configuration and bind it to this resource.',
     customHint: 'Create a new named native plugin configuration and bind it to this resource immediately.',
     selectPluginType: 'Select a native plugin',
     selectPluginTypeDesc: 'After selecting a plugin, the schema loads and the configuration form appears.',
     emptyConfig: 'This plugin has no named configuration to reference.',
-    emptyAiConfig: 'No AI/Wasm plugin configuration is available. Create one in Plugin Center first.',
+    emptyAiConfig: 'No Wasm extension configuration is available. Create one in Plugin Center first.',
     loadFailed: 'Failed to load plugins. Make sure admin-server and gateway instance are running.',
     wasmBinding: 'Binding Configuration',
-    wasmBindingName: 'Binding Config Name',
-    wasmBindingNameHint: 'Saved as wasm.{name}.json. Use a resource-specific name to avoid overwriting Plugin Center defaults.',
+    wasmBindingName: 'Debug ID',
+    wasmBindingNameHint: 'The internal ID is generated from the binding location. Rebinding the same plugin at the same location updates this config.',
     wasmDefaultMode: 'Use Default Config',
     wasmSchemaMode: 'Image Schema Form',
     wasmYamlMode: 'YAML Config',
@@ -290,12 +290,36 @@ function configByPluginId(id: Model.PluginInstanceId | undefined) {
     })
 }
 
-function defaultWasmBindingName(option: AiPluginOption) {
-    const raw = props.bindingName.trim()
-        ? `${props.bindingName}-${option.configName || option.name}`
-        : `${props.bindingScope}-${option.configName || option.name}-binding`
-    return raw
+function defaultWasmBindingOwner() {
+    return props.bindingName.trim() || props.bindingScope
 }
+
+function defaultWasmBindingName(option: AiPluginOption) {
+    const owner = defaultWasmBindingOwner()
+    const plugin = option.configName || option.name
+    return stableWasmBindingId(props.bindingScope, owner, plugin)
+}
+
+function defaultWasmBindingDisplayName(option: AiPluginOption) {
+    const owner = props.bindingName.trim() || props.bindingScope
+    const plugin = option.configName || option.name
+    return `${props.bindingScope} / ${owner} / ${plugin}`
+}
+
+const generatedWasmBindingName = computed(() => {
+    const option = aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)
+    if (!option) return ''
+    if (existingWasmBinding.value?.kind === 'named') return existingWasmBinding.value.name ?? ''
+    return defaultWasmBindingName(option)
+})
+
+const generatedWasmBindingDisplayName = computed(() => {
+    const option = aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)
+    if (!option) return ''
+    const existingDisplayName = existingWasmBinding.value?.spec.binding_display_name
+    if (typeof existingDisplayName === 'string' && existingDisplayName.trim()) return existingDisplayName.trim()
+    return defaultWasmBindingDisplayName(option)
+})
 
 function hydrateWasmBinding(config: PluginConfigLite | undefined) {
     existingWasmBinding.value = config
@@ -303,7 +327,6 @@ function hydrateWasmBinding(config: PluginConfigLite | undefined) {
     wasmConfigMode.value = (spec.binding_config_mode === 'xml' || spec.binding_config_mode === 'yaml' || spec.binding_config_mode === 'schema' || spec.binding_config_mode === 'default')
         ? spec.binding_config_mode
         : 'default'
-    wasmBindingName.value = config?.kind === 'named' ? config.name ?? '' : ''
     const pluginConfig = spec.plugin_config ?? spec.default_config
     if (wasmConfigMode.value === 'xml') {
         wasmYamlConfigText.value = typeof pluginConfig === 'string' ? pluginConfig : ''
@@ -341,19 +364,9 @@ async function loadSelectedWasmSchema() {
     wasmImageSchema.value = undefined
     wasmSchemaError.value = ''
     if (!baseConfig || wasmConfigMode.value !== 'schema') return
-    const spec = baseConfig.spec
-    const imageUrl = String(spec.image_url ?? spec.url ?? '')
-    if (!imageUrl.trim()) {
-        wasmSchemaError.value = 'missing image_url'
-        return
-    }
     wasmSchemaLoading.value = true
     try {
-        wasmImageSchema.value = await getWasmPluginImageSchema({
-            image_url: imageUrl,
-            schema_path: typeof spec.schema_path === 'string' ? spec.schema_path : undefined,
-            oci_auth: toPlainObject(spec.oci_auth),
-        })
+        wasmImageSchema.value = await getSavedWasmPluginImageSchema(pluginIdFromConfig(baseConfig))
     } catch (e) {
         wasmSchemaError.value = e instanceof Error ? e.message : String(e)
     } finally {
@@ -375,9 +388,11 @@ async function loadNativeAttr(pluginCode: string) {
     }
 }
 
-async function setCode(pluginCode: string | undefined) {
+async function setCode(pluginCode: string | undefined, options: { resetModelValue?: boolean } = {}) {
     code.value = pluginCode
-    modelValue.value = undefined
+    if (options.resetModelValue !== false) {
+        modelValue.value = undefined
+    }
     instances.value = []
     attr.value = undefined
     if (!pluginCode) return
@@ -399,13 +414,12 @@ async function setAiPlugin(key: string | undefined, options: { keepExisting?: bo
         await setCode(undefined)
         return
     }
-    await setCode(option.code)
+    await setCode(option.code, { resetModelValue: !options.keepExisting })
     if (!options.keepExisting) {
         existingWasmBinding.value = undefined
         wasmConfigMode.value = 'default'
         wasmSchemaConfig.value = toPlainObject(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {})
         wasmYamlConfigText.value = stringifyYamlLike(selectedWasmBaseConfig.value?.spec.plugin_config ?? selectedWasmBaseConfig.value?.spec.default_config ?? {})
-        wasmBindingName.value = defaultWasmBindingName(option)
     }
     modelValue.value = {
         code: option.code,
@@ -445,19 +459,23 @@ async function saveWasmBinding() {
     const result = buildBoundWasmPluginConfig({
         baseConfig: baseConfig as Model.PluginConfig,
         existingConfig: existingWasmBinding.value as Model.PluginConfig | undefined,
-        bindingName: wasmBindingName.value || defaultWasmBindingName(aiPluginOptions.value.find((item) => item.key === aiSelectedKey.value)!),
+        bindingName: generatedWasmBindingName.value,
+        bindingOwner: defaultWasmBindingOwner(),
+        bindingDisplayName: generatedWasmBindingDisplayName.value,
         bindingScope: props.bindingScope,
         configMode,
         schemaConfig: configMode === 'schema' ? wasmSchemaConfig.value : {},
         yamlConfig: configMode === 'yaml' || configMode === 'xml' ? wasmYamlConfigText.value : '',
     })
-    if (existingWasmBinding.value) {
+    const resultConfig = result.config as PluginConfigLite
+    const existingConfig = existingWasmBinding.value ?? configByPluginId(pluginIdFromConfig(resultConfig))
+    if (existingConfig) {
         await Api.putConfigPlugin(result.config)
     } else {
         await Api.postConfigPlugin(result.config)
     }
     await refreshWasmPluginInstances()
-    existingWasmBinding.value = result.config as PluginConfigLite
+    existingWasmBinding.value = resultConfig
     modelValue.value = {
         code: result.config.code,
         kind: 'named',
@@ -466,6 +484,7 @@ async function saveWasmBinding() {
 }
 
 watch(category, async () => {
+    if (suppressCategoryReset.value) return
     const next = category.value === 'native'
         ? nativePluginOptions.value[0]?.code
         : undefined
@@ -499,7 +518,10 @@ watch(modelValue, async (newValue) => {
         }
     }
     if (category.value !== nextCategory) {
+        suppressCategoryReset.value = true
         category.value = nextCategory
+        await nextTick()
+        suppressCategoryReset.value = false
     }
     if (code.value !== newValue.code) {
         code.value = newValue.code
@@ -540,7 +562,10 @@ onMounted(async () => {
     }
     const initialCode = modelValue.value?.code
     if (initialCode) {
+        suppressCategoryReset.value = true
         category.value = isWasmCode(initialCode) ? 'ai' : 'native'
+        await nextTick()
+        suppressCategoryReset.value = false
         if (category.value === 'ai') {
             const hydrated = await hydrateInitialWasmValue()
             if (!hydrated) {
@@ -640,7 +665,9 @@ onMounted(async () => {
             <section v-else class="plugin-select__section plugin-select__section--binding">
                 <div class="plugin-select__section-title">{{ texts.wasmBinding }}</div>
                 <el-form-item :label="texts.wasmBindingName">
-                    <el-input v-model="wasmBindingName" placeholder="route-catch-all-auth" />
+                    <div class="plugin-select__readonly-name">
+                        <code>wasm.{{ generatedWasmBindingName || '-' }}.json</code>
+                    </div>
                     <div class="plugin-select__empty-hint">{{ texts.wasmBindingNameHint }}</div>
                 </el-form-item>
                 <div class="plugin-select__section-title">{{ texts.configMode }}</div>
@@ -741,6 +768,23 @@ onMounted(async () => {
     color: #64748b;
     font-size: 12px;
     line-height: 1.5;
+}
+
+.plugin-select__readonly-name {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid #dbe3ef;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.plugin-select__readonly-name code {
+    color: #475569;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    word-break: break-all;
 }
 
 .plugin-select__form {
