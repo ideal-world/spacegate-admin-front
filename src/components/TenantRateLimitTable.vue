@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import {
   deleteTenantRateLimit,
   listTenantRateLimits,
+  resolveTenantRateLimit,
+  type TenantRateLimitResolution,
   type TenantRateLimitRule,
   type TenantRateLimitRuleView,
   upsertTenantRateLimit,
@@ -13,7 +15,11 @@ import {
 const { locale } = useI18n()
 const loading = ref(false)
 const error = ref('')
-const drawerVisible = ref(false)
+const editingMode = ref<'create' | 'edit'>('create')
+const editingKey = ref('')
+const resolving = ref(false)
+const resolveError = ref('')
+const resolution = ref<TenantRateLimitResolution | null>(null)
 const rows = ref<TenantRateLimitRuleView[]>([])
 const filters = reactive({
   tenant: '',
@@ -34,6 +40,8 @@ const editing = reactive<TenantRateLimitRule>({
 const texts = computed(() => locale.value.startsWith('zh') ? {
   tenantRequired: '租户不能为空',
   positiveNumbers: '每秒入队上限、突发容量和单次消耗必须大于 0',
+  costExceedsBurst: '单次消耗不能大于突发容量，否则令牌桶永远攒不够一次请求所需令牌',
+  colonNotAllowed: '租户、模型和路径不能包含英文冒号 :',
   ttlPositive: 'TTL 必须大于 0 秒，或留空表示永久生效',
   saved: '队列配额已保存',
   saveFailed: (error: string) => `队列配额保存失败：${error}`,
@@ -52,6 +60,17 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
   model: '模型',
   path: '路径',
   policy: '队列模式',
+  scope: '匹配范围',
+  allModels: '全部模型',
+  allPaths: '全部路径',
+  allPolicies: '全部模式',
+  none: '-',
+  permanent: '永久',
+  tenantScope: '租户级',
+  modelScope: '模型级',
+  pathScope: '路径级',
+  policyScope: '模式级',
+  combinedScope: '组合规则',
   search: '查询',
   create: '新增队列配额',
   rps: '每秒入队上限',
@@ -62,21 +81,32 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
   key: '队列配额键',
   operation: '操作',
   edit: '编辑',
-  drawerTitle: '队列配额',
+  editTitle: '编辑队列配额',
+  createTitle: '新增队列配额',
   tenantHint: '租户标识（必填），用于隔离不同业务方的队列配额。',
   modelHint: '可选；指定后该配额只对该模型生效，留空表示对租户所有模型生效。',
   pathHint: '可选；指定后该配额只对该路径生效，留空表示对租户全部路径生效。',
   policyHint: '可选；只对该队列模式的请求生效，留空表示所有模式共用此配额。',
   rpsHint: '平均放行速率：每秒可直通的请求数；超出部分按队列模式入队或拒绝。',
   burstHint: '允许的瞬时突发请求数，等同于令牌桶容量；建议 ≥ 每秒入队上限。',
-  costHint: '单条请求占用的令牌数，重负载请求（如 long-context）可设为 ≥ 2。',
+  costHint: '单条请求占用的令牌数，重负载请求（如 long-context）可设为 ≥ 2，但不能大于突发容量。',
   ttlHint: '临时配额过期时间；留空表示永久生效，到期后 Redis key 自动删除。',
+  keyPreviewTitle: 'Redis key 预览',
+  keyPreviewDesc: '后端按 tenant / model / path / policy 由具体到通配依次匹配，越具体的规则越优先生效；令牌桶计数仍按租户聚合。',
+  resolve: '解析当前请求',
+  resolveFailed: (error: string) => `解析失败：${error}`,
+  resolveFallback: '未命中租户规则，使用全局默认配额',
+  resolveMatched: '命中规则',
+  resolveLimit: (rps: number, burst: number, cost: number) => `生效配额：RPS ${rps} / Burst ${burst} / Cost ${cost}`,
+  candidates: '候选 key',
   optional: '可选',
   example: '例如',
   save: '保存',
 } : {
   tenantRequired: 'Tenant is required.',
   positiveNumbers: 'RPS, burst, and cost must be greater than 0.',
+  costExceedsBurst: 'Cost must not exceed burst, otherwise the bucket can never accumulate enough tokens for one request.',
+  colonNotAllowed: 'Tenant, model, and path must not contain colon (:).',
   ttlPositive: 'TTL must be greater than 0 seconds, or empty for no expiry.',
   saved: 'Queue quota saved.',
   saveFailed: (error: string) => `Queue quota save failed: ${error}`,
@@ -95,6 +125,17 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
   model: 'Model',
   path: 'Path',
   policy: 'Queue Mode',
+  scope: 'Scope',
+  allModels: 'All Models',
+  allPaths: 'All Paths',
+  allPolicies: 'All Modes',
+  none: '-',
+  permanent: 'Permanent',
+  tenantScope: 'Tenant',
+  modelScope: 'Model',
+  pathScope: 'Path',
+  policyScope: 'Mode',
+  combinedScope: 'Combined',
   search: 'Search',
   create: 'Create Queue Quota',
   rps: 'RPS',
@@ -105,15 +146,24 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
   key: 'Quota Key',
   operation: 'Actions',
   edit: 'Edit',
-  drawerTitle: 'Queue Quota',
+  editTitle: 'Edit Queue Quota',
+  createTitle: 'Create Queue Quota',
   tenantHint: 'Tenant identifier, required. Used to isolate quota by business party.',
   modelHint: 'Optional. When set, this quota only applies to the specified model. Empty means all models for the tenant.',
   pathHint: 'Optional. When set, this quota only applies to the specified path. Empty means all paths for the tenant.',
   policyHint: 'Optional. When set, this quota only applies to the selected queue mode. Empty means all modes share this quota.',
   rpsHint: 'Average pass-through rate: requests allowed per second. Excess traffic is queued or rejected based on mode.',
   burstHint: 'Allowed short spike capacity, equivalent to token bucket size. Usually greater than or equal to RPS.',
-  costHint: 'Tokens consumed by one request. Heavy requests such as long-context calls can use 2 or more.',
+  costHint: 'Tokens consumed by one request. Heavy requests such as long-context calls can use 2 or more, but cost must not exceed burst.',
   ttlHint: 'Temporary quota expiry. Empty means permanent; Redis deletes the key after expiry.',
+  keyPreviewTitle: 'Redis Key Preview',
+  keyPreviewDesc: 'The backend checks tenant / model / path / policy keys from specific to wildcard. More specific rules win; token bucket counters are still tenant-scoped.',
+  resolve: 'Resolve Current Request',
+  resolveFailed: (error: string) => `Resolve failed: ${error}`,
+  resolveFallback: 'No tenant rule matched. Global default quota is used.',
+  resolveMatched: 'Matched Rule',
+  resolveLimit: (rps: number, burst: number, cost: number) => `Effective quota: RPS ${rps} / Burst ${burst} / Cost ${cost}`,
+  candidates: 'Candidate keys',
   optional: 'Optional',
   example: 'for example',
   save: 'Save',
@@ -132,7 +182,41 @@ function sanitizeKey(value: string) {
   return value.replace(/[^a-zA-Z0-9:_\-.]/g, '_')
 }
 
+function hasValue(value: string | undefined) {
+  return Boolean(value?.trim())
+}
+
+function displayValue(value: string | undefined, fallback: string) {
+  return hasValue(value) ? value : fallback
+}
+
+function displayTtl(value: number | undefined, fallback: string) {
+  return value == null ? fallback : value
+}
+
+function policyTagType(policy: string | undefined) {
+  if (policy === 'abandon') return 'danger'
+  if (policy === 'queue') return 'warning'
+  if (policy === 'wait') return 'success'
+  return 'info'
+}
+
+function ruleScope(rule: TenantRateLimitRule) {
+  const dimensions = [
+    hasValue(rule.model),
+    hasValue(rule.path),
+    hasValue(rule.policy),
+  ].filter(Boolean).length
+  if (dimensions > 1) return texts.value.combinedScope
+  if (hasValue(rule.model)) return texts.value.modelScope
+  if (hasValue(rule.path)) return texts.value.pathScope
+  if (hasValue(rule.policy)) return texts.value.policyScope
+  return texts.value.tenantScope
+}
+
 function resetEditing(rule?: TenantRateLimitRule) {
+  resolveError.value = ''
+  resolution.value = null
   Object.assign(editing, {
     tenant: rule?.tenant ?? '',
     model: rule?.model ?? '',
@@ -164,13 +248,19 @@ function errorMessage(e: unknown) {
 }
 
 function openCreate() {
+  editingMode.value = 'create'
+  editingKey.value = ''
   resetEditing()
-  drawerVisible.value = true
 }
 
 function openEdit(row: TenantRateLimitRuleView) {
+  editingMode.value = 'edit'
+  editingKey.value = row.key
   resetEditing(row)
-  drawerVisible.value = true
+}
+
+function hasColonInDimensions(rule: TenantRateLimitRule) {
+  return [rule.tenant, rule.model ?? '', rule.path ?? ''].some((value) => value.includes(':'))
 }
 
 async function saveRule() {
@@ -178,8 +268,16 @@ async function saveRule() {
     ElMessage.error(texts.value.tenantRequired)
     return
   }
+  if (hasColonInDimensions(editing)) {
+    ElMessage.error(texts.value.colonNotAllowed)
+    return
+  }
   if (editing.rps <= 0 || editing.burst <= 0 || editing.cost <= 0) {
     ElMessage.error(texts.value.positiveNumbers)
+    return
+  }
+  if (editing.cost > editing.burst) {
+    ElMessage.error(texts.value.costExceedsBurst)
     return
   }
   if (editing.ttl_secs != null && editing.ttl_secs <= 0) {
@@ -187,12 +285,40 @@ async function saveRule() {
     return
   }
   try {
-    await upsertTenantRateLimit({ ...editing })
+    const saved = await upsertTenantRateLimit({ ...editing })
     ElMessage.success(texts.value.saved)
-    drawerVisible.value = false
+    editingMode.value = 'edit'
+    editingKey.value = saved.key
+    resetEditing(saved)
     await refresh()
   } catch (e) {
     ElMessage.error(texts.value.saveFailed(errorMessage(e)))
+  }
+}
+
+async function resolveCurrentRule() {
+  if (!editing.tenant.trim()) {
+    ElMessage.error(texts.value.tenantRequired)
+    return
+  }
+  if (hasColonInDimensions(editing)) {
+    ElMessage.error(texts.value.colonNotAllowed)
+    return
+  }
+  resolving.value = true
+  resolveError.value = ''
+  resolution.value = null
+  try {
+    resolution.value = await resolveTenantRateLimit({
+      tenant: editing.tenant,
+      model: editing.model,
+      path: editing.path,
+      policy: editing.policy,
+    })
+  } catch (e) {
+    resolveError.value = errorMessage(e)
+  } finally {
+    resolving.value = false
   }
 }
 
@@ -209,6 +335,9 @@ async function removeRule(row: TenantRateLimitRuleView) {
   try {
     await deleteTenantRateLimit(row)
     ElMessage.success(texts.value.deleted)
+    if (editingKey.value === row.key) {
+      openCreate()
+    }
     await refresh()
   } catch (e) {
     ElMessage.error(texts.value.deleteFailed(errorMessage(e)))
@@ -254,74 +383,136 @@ onMounted(refresh)
       <el-button type="primary" @click="openCreate">{{ texts.create }}</el-button>
     </div>
 
-    <el-table v-loading="loading" :data="rows" border>
-      <el-table-column prop="tenant" :label="texts.tenant" min-width="120" />
-      <el-table-column prop="model" :label="texts.model" min-width="120" />
-      <el-table-column prop="path" :label="texts.path" min-width="160" />
-      <el-table-column prop="policy" :label="texts.policy" min-width="110" />
-      <el-table-column prop="rps" :label="texts.rps" width="120" />
-      <el-table-column prop="burst" :label="texts.burst" width="110" />
-      <el-table-column prop="cost" :label="texts.cost" width="110" />
-      <el-table-column prop="ttl_secs" :label="texts.ttl" width="100" />
-      <el-table-column prop="ttl_remaining_secs" :label="texts.ttlRemaining" width="100" />
-      <el-table-column prop="key" :label="texts.key" min-width="260" show-overflow-tooltip />
-      <el-table-column :label="texts.operation" width="140" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="openEdit(row as TenantRateLimitRuleView)">{{ texts.edit }}</el-button>
-          <el-button type="danger" link @click="removeRule(row as TenantRateLimitRuleView)">{{ texts.delete }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="tenant-rate-limit__content">
+      <section class="tenant-rate-limit__list">
+        <el-table v-loading="loading" :data="rows" border height="520" highlight-current-row>
+          <el-table-column prop="tenant" :label="texts.tenant" min-width="120" />
+          <el-table-column :label="texts.scope" width="110">
+            <template #default="{ row }">
+              <el-tag size="small" type="info">{{ ruleScope(row as TenantRateLimitRuleView) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="texts.model" min-width="120">
+            <template #default="{ row }">
+              {{ displayValue((row as TenantRateLimitRuleView).model, texts.allModels) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="texts.path" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ displayValue((row as TenantRateLimitRuleView).path, texts.allPaths) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="texts.policy" width="120">
+            <template #default="{ row }">
+              <el-tag size="small" :type="policyTagType((row as TenantRateLimitRuleView).policy)">
+                {{ displayValue((row as TenantRateLimitRuleView).policy, texts.allPolicies) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="rps" :label="texts.rps" width="120" />
+          <el-table-column prop="burst" :label="texts.burst" width="110" />
+          <el-table-column prop="cost" :label="texts.cost" width="110" />
+          <el-table-column :label="texts.ttl" width="110">
+            <template #default="{ row }">
+              {{ displayTtl((row as TenantRateLimitRuleView).ttl_secs, texts.permanent) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="texts.ttlRemaining" width="110">
+            <template #default="{ row }">
+              {{ displayTtl((row as TenantRateLimitRuleView).ttl_remaining_secs, texts.none) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="key" :label="texts.key" min-width="260" show-overflow-tooltip />
+          <el-table-column :label="texts.operation" width="140" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" link @click="openEdit(row as TenantRateLimitRuleView)">{{ texts.edit }}</el-button>
+              <el-button type="danger" link @click="removeRule(row as TenantRateLimitRuleView)">{{ texts.delete }}</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </section>
 
-    <el-drawer v-model="drawerVisible" :title="texts.drawerTitle" size="460px">
-      <el-form label-position="top">
-        <el-form-item :label="texts.tenant">
-          <el-input v-model="editing.tenant" placeholder="例如 acme" />
-          <div class="tenant-rate-limit__hint">{{ texts.tenantHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.model">
-          <el-input v-model="editing.model" :placeholder="`${texts.optional}, ${texts.example} gpt-4o`" />
-          <div class="tenant-rate-limit__hint">{{ texts.modelHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.path">
-          <el-input v-model="editing.path" :placeholder="`${texts.optional}, ${texts.example} /v1/chat/completions`" />
-          <div class="tenant-rate-limit__hint">{{ texts.pathHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.policy">
-          <el-select v-model="editing.policy" clearable :placeholder="texts.optional">
-            <el-option label="abandon（超额拒绝）" value="abandon" />
-            <el-option label="queue（异步入队）" value="queue" />
-            <el-option label="wait（入队等待）" value="wait" />
-          </el-select>
-          <div class="tenant-rate-limit__hint">{{ texts.policyHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.rps">
-          <el-input-number v-model="editing.rps" :min="1" />
-          <div class="tenant-rate-limit__hint">{{ texts.rpsHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.burst">
-          <el-input-number v-model="editing.burst" :min="1" />
-          <div class="tenant-rate-limit__hint">{{ texts.burstHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.cost">
-          <el-input-number v-model="editing.cost" :min="1" />
-          <div class="tenant-rate-limit__hint">{{ texts.costHint }}</div>
-        </el-form-item>
-        <el-form-item :label="texts.ttl">
-          <el-input-number v-model="editing.ttl_secs" :min="1" clearable />
-          <div class="tenant-rate-limit__hint">{{ texts.ttlHint }}</div>
-        </el-form-item>
-        <el-alert type="info" :closable="false">
-          <template #title>
+      <section class="tenant-rate-limit__editor">
+        <div class="tenant-rate-limit__editor-header">
+          <h3>{{ editingMode === 'edit' ? texts.editTitle : texts.createTitle }}</h3>
+          <el-button size="small" @click="openCreate">{{ texts.create }}</el-button>
+        </div>
+        <el-form label-position="top">
+          <el-form-item :label="texts.tenant">
+            <el-input v-model="editing.tenant" placeholder="例如 acme" />
+            <div class="tenant-rate-limit__hint">{{ texts.tenantHint }}</div>
+          </el-form-item>
+          <el-form-item :label="texts.model">
+            <el-input v-model="editing.model" :placeholder="`${texts.optional}, ${texts.example} gpt-4o`" />
+            <div class="tenant-rate-limit__hint">{{ texts.modelHint }}</div>
+          </el-form-item>
+          <el-form-item :label="texts.path">
+            <el-input v-model="editing.path" :placeholder="`${texts.optional}, ${texts.example} /v1/chat/completions`" />
+            <div class="tenant-rate-limit__hint">{{ texts.pathHint }}</div>
+          </el-form-item>
+          <el-form-item :label="texts.policy">
+            <el-select v-model="editing.policy" clearable :placeholder="texts.optional">
+              <el-option label="abandon（超额拒绝）" value="abandon" />
+              <el-option label="queue（异步入队）" value="queue" />
+              <el-option label="wait（入队等待）" value="wait" />
+            </el-select>
+            <div class="tenant-rate-limit__hint">{{ texts.policyHint }}</div>
+          </el-form-item>
+          <div class="tenant-rate-limit__numbers">
+            <el-form-item :label="texts.rps">
+              <el-input-number v-model="editing.rps" :min="1" />
+              <div class="tenant-rate-limit__hint">{{ texts.rpsHint }}</div>
+            </el-form-item>
+            <el-form-item :label="texts.burst">
+              <el-input-number v-model="editing.burst" :min="1" />
+              <div class="tenant-rate-limit__hint">{{ texts.burstHint }}</div>
+            </el-form-item>
+            <el-form-item :label="texts.cost">
+              <el-input-number v-model="editing.cost" :min="1" :max="editing.burst" />
+              <div class="tenant-rate-limit__hint">{{ texts.costHint }}</div>
+            </el-form-item>
+          </div>
+          <el-form-item :label="texts.ttl">
+            <el-input-number v-model="editing.ttl_secs" :min="1" clearable />
+            <div class="tenant-rate-limit__hint">{{ texts.ttlHint }}</div>
+          </el-form-item>
+          <div class="tenant-rate-limit__preview-box">
+            <div class="tenant-rate-limit__preview-title">{{ texts.keyPreviewTitle }}</div>
             <div class="tenant-rate-limit__preview">{{ keyPreview }}</div>
-          </template>
-        </el-alert>
-      </el-form>
-      <template #footer>
-        <el-button @click="drawerVisible = false">{{ texts.cancel }}</el-button>
-        <el-button type="primary" @click="saveRule">{{ texts.save }}</el-button>
-      </template>
-    </el-drawer>
+            <div class="tenant-rate-limit__hint">{{ texts.keyPreviewDesc }}</div>
+            <div class="tenant-rate-limit__preview-actions">
+              <el-button size="small" :loading="resolving" @click="resolveCurrentRule">{{ texts.resolve }}</el-button>
+            </div>
+            <el-alert
+              v-if="resolveError"
+              type="error"
+              :closable="false"
+              :title="texts.resolveFailed(resolveError)"
+            />
+            <div v-if="resolution" class="tenant-rate-limit__resolution">
+              <div class="tenant-rate-limit__resolution-title">
+                {{ resolution.fallback_global ? texts.resolveFallback : texts.resolveMatched }}
+              </div>
+              <div v-if="resolution.matched_key" class="tenant-rate-limit__preview">
+                {{ resolution.matched_key }}
+              </div>
+              <div>{{ texts.resolveLimit(resolution.rps, resolution.burst, resolution.cost) }}</div>
+              <el-collapse>
+                <el-collapse-item :title="texts.candidates" name="candidates">
+                  <ol class="tenant-rate-limit__candidates">
+                    <li v-for="key in resolution.candidate_keys" :key="key">{{ key }}</li>
+                  </ol>
+                </el-collapse-item>
+              </el-collapse>
+            </div>
+          </div>
+        </el-form>
+        <div class="tenant-rate-limit__editor-actions">
+          <el-button @click="openCreate">{{ texts.cancel }}</el-button>
+          <el-button type="primary" @click="saveRule">{{ texts.save }}</el-button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -339,6 +530,46 @@ onMounted(refresh)
   align-items: center;
 }
 
+.tenant-rate-limit__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 12px;
+  align-items: start;
+}
+
+.tenant-rate-limit__list,
+.tenant-rate-limit__editor {
+  min-width: 0;
+}
+
+.tenant-rate-limit__editor {
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tenant-rate-limit__editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tenant-rate-limit__editor-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.tenant-rate-limit__numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .tenant-rate-limit__intro {
   margin-bottom: 4px;
 }
@@ -353,5 +584,71 @@ onMounted(refresh)
 .tenant-rate-limit__preview {
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.tenant-rate-limit__preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.tenant-rate-limit__preview-title {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tenant-rate-limit__preview-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.tenant-rate-limit__resolution {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tenant-rate-limit__resolution-title {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.tenant-rate-limit__candidates {
+  margin: 0;
+  padding-left: 18px;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.tenant-rate-limit__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 1180px) {
+  .tenant-rate-limit__content,
+  .tenant-rate-limit__toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-rate-limit__editor {
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .tenant-rate-limit__numbers {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -24,6 +24,19 @@ export interface TenantRateLimitRuleView extends TenantRateLimitRule {
   ttl_remaining_secs?: number
 }
 
+export interface TenantRateLimitResolution {
+  tenant: string
+  model: string
+  path: string
+  policy: 'abandon' | 'queue' | 'wait'
+  rps: number
+  burst: number
+  cost: number
+  matched_key?: string
+  fallback_global: boolean
+  candidate_keys: string[]
+}
+
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/$/, '')
 }
@@ -104,6 +117,16 @@ export function listTenantRateLimits(filters: Partial<TenantRateLimitRule> = {})
   }
   const query = params.toString()
   return request<TenantRateLimitRuleView[]>(aiGatewayBaseUrl, `/v1/admin/tenant-rate-limits${query ? `?${query}` : ''}`)
+}
+
+export function resolveTenantRateLimit(rule: Pick<TenantRateLimitRule, 'tenant' | 'model' | 'path' | 'policy'>) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(rule)) {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      params.set(key, String(value))
+    }
+  }
+  return request<TenantRateLimitResolution>(aiGatewayBaseUrl, `/v1/admin/tenant-rate-limits/resolve?${params.toString()}`)
 }
 
 export function upsertTenantRateLimit(rule: TenantRateLimitRule) {
