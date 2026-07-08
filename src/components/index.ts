@@ -7,6 +7,7 @@ import GatewayForm from './GatewayForm.vue'
 import ListenerForm from './ListenerForm.vue'
 import OptionalField from './OptionalField.vue'
 import RouteForm from './RouteForm.vue'
+import McpRouteForm from './McpRouteForm.vue'
 import RouterMatchForm from './RouterMatchForm.vue'
 import RouteRuleForm from './RouteRuleForm.vue'
 import SelectGateway from './SelectGateway.vue'
@@ -14,6 +15,12 @@ import PluginSelect from './PluginSelect.vue'
 import PluginPanel from './PluginPanel.vue'
 import Login from './Login.vue'
 import InstanceList from './InstanceList.vue'
+import AiGatewayQueueDrawer from './AiGatewayQueueDrawer.vue'
+import ThirdPartyWasmDrawer from './ThirdPartyWasmDrawer.vue'
+import PluginMarkdown from './PluginMarkdown.vue'
+import SchemaArrayField from './SchemaArrayField.vue'
+import SchemaForm from './SchemaForm.vue'
+import TenantRateLimitTable from './TenantRateLimitTable.vue'
 export {
   BackendForm,
   ConfigPanel,
@@ -23,11 +30,18 @@ export {
   ListenerForm,
   OptionalField,
   RouteForm,
+  McpRouteForm,
   RouterMatchForm,
   RouteRuleForm,
   SelectGateway,
   PluginSelect,
   PluginPanel,
   Login,
-  InstanceList
+  InstanceList,
+  AiGatewayQueueDrawer,
+  ThirdPartyWasmDrawer,
+  PluginMarkdown,
+  SchemaArrayField,
+  SchemaForm,
+  TenantRateLimitTable
 }

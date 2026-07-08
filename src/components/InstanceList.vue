@@ -18,7 +18,7 @@ const instanceList = ref<{
 const gatewayReloadDialogVisible = ref(false);
 const selectedInstance = ref<string>();
 const selectedGateway = ref('');
-const gatewayList = ref([])
+const gatewayList = ref<string[]>([])
 onMounted(async () => {
         try {
             (async () => {
@@ -119,7 +119,7 @@ function handleGatewayReload(instance: string) {
             width="30%"
             
             >
-            <p>{{t('hint.currentInstance')}}: {{ selectedInstance?.id }}</p>
+            <p>{{t('hint.currentInstance')}}: {{ selectedInstance }}</p>
             <el-select v-model="selectedGateway" :placeholder="t('hint.selectGateway')" style="width: 100%">
                 <el-option
                     v-for="item in gatewayList"

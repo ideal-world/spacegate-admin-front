@@ -47,7 +47,6 @@ export default defineConfig({
       formats: ['es'],
       fileName: (format) => `spacegate-admin.${format}.js`
     },
-    include: ['src/**/*'],
     rollupOptions: {
       external: ['vue', 'spacegate-admin-client', /element-plus\/.+/],
       output: {
