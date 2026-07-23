@@ -3,7 +3,6 @@ import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
-import { HAI_PLUGIN_GUIDES } from '../constants/haiPluginCatalog'
 import { pluginInstanceDisplayName } from '../utils/pluginInstance'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
 import { PluginForm, ThirdPartyWasmDrawer } from '.';
@@ -154,18 +153,6 @@ const wasmReloadNoticeVisible = ref(false);
 const nativePluginAttrs = computed(() =>
     pluginAttrs.value.filter((item) => !isWasmPluginCode(item.code))
 )
-const haiPluginGuide = computed(() => (code.value ? HAI_PLUGIN_GUIDES[code.value] : undefined))
-
-/** 深拷贝示例，避免编辑实例时修改共享目录数据。 */
-function cloneGuideExample(pluginCode: string): PluginSpecRecord {
-    const guide = HAI_PLUGIN_GUIDES[pluginCode]
-    return guide ? JSON.parse(JSON.stringify(guide.example)) : {}
-}
-
-function formatGuideExample(example: Record<string, unknown>): string {
-    return JSON.stringify(example, null, 2)
-}
-
 /** 从 spec 读取 Wasm 插件逻辑名（与 plugin/wasm.{name}.json 对应） */
 function pluginNameFromSpec(spec: PluginSpecRecord): string {
     return typeof spec.plugin_name === 'string' ? spec.plugin_name.trim() : ''
@@ -305,7 +292,7 @@ function pluginDescription(item: Model.PluginAttributes): string {
 }
 
 function pluginDisplayName(item: Model.PluginAttributes): string {
-    return nativePluginDisplayName(item.code, locale.value)
+    return nativePluginDisplayName(item)
 }
 
 function iconStyle(pluginCode: string) {
@@ -479,7 +466,7 @@ const openCreateDialog = () => {
                 code: attr.value.code,
                 kind: 'mono',
                 display_name: null,
-                spec: cloneGuideExample(attr.value.code),
+                spec: {},
             }
         } else {
             formPluginConfig.value = {
@@ -487,7 +474,7 @@ const openCreateDialog = () => {
                 kind: 'named',
                 name: 'new-instance',
                 display_name: null,
-                spec: cloneGuideExample(attr.value.code),
+                spec: {},
             }
         }
     }
@@ -783,12 +770,6 @@ function goInstances() {
             </el-descriptions-item>
             <el-descriptions-item :label="texts.description">{{ attr.meta.description }}</el-descriptions-item>
         </el-descriptions>
-        <el-alert v-if="haiPluginGuide" type="info" :closable="false" show-icon class="hai-plugin-guide">
-            <template #title>{{ haiPluginGuide.title }}</template>
-            <p>{{ haiPluginGuide.description }}</p>
-            <p v-if="haiPluginGuide.note" class="hai-plugin-guide__note">{{ haiPluginGuide.note }}</p>
-            <pre>{{ formatGuideExample(haiPluginGuide.example) }}</pre>
-        </el-alert>
         <div v-if="attr !== undefined && attr.mono" />
 
         <div v-if="attr !== undefined && !attr.mono && instances !== undefined">
@@ -1050,30 +1031,6 @@ function goInstances() {
 
 .plugin-detail__meta {
     margin-bottom: 16px;
-}
-
-.hai-plugin-guide {
-    margin-bottom: 16px;
-}
-
-.hai-plugin-guide p {
-    margin: 8px 0 0;
-}
-
-.hai-plugin-guide__note {
-    color: #8a5a00;
-}
-
-.hai-plugin-guide pre {
-    max-height: 280px;
-    margin: 10px 0 0;
-    overflow: auto;
-    padding: 10px;
-    border: 1px solid #d9ecff;
-    background: #fff;
-    color: #303133;
-    font-size: 12px;
-    line-height: 1.5;
 }
 
 .plugin-detail__actions {

@@ -197,8 +197,8 @@ function isWasmCode(pluginCode: string) {
     return c === 'wasm' || c.startsWith('wasm.') || c.startsWith('wasm-')
 }
 
-function displayNativeName(pluginCode: string) {
-    return nativePluginDisplayName(pluginCode, locale.value)
+function displayNativeName(plugin: Model.PluginAttributes) {
+    return nativePluginDisplayName(plugin)
 }
 
 function configPluginName(config: PluginConfigLite) {
@@ -223,7 +223,7 @@ const nativePluginOptions = computed<NativePluginOption[]>(() =>
         .filter((item) => !isWasmCode(item.code))
         .map((item) => ({
             code: item.code,
-            name: displayNativeName(item.code),
+            name: displayNativeName(item),
             description: item.meta.description ?? '',
         }))
         .sort((a, b) => a.name.localeCompare(b.name))
