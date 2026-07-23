@@ -3,6 +3,8 @@ import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { Api, Model } from 'spacegate-admin-client'
 import { unwrapResponse, hashColor } from '../utils'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
+import { HAI_PLUGIN_GUIDES } from '../constants/haiPluginCatalog'
+import { pluginInstanceDisplayName } from '../utils/pluginInstance'
 import { Plus, Delete, Check, Edit, ArrowLeft, MoreFilled, Grid, Sunny } from '@element-plus/icons-vue'
 import { PluginForm, ThirdPartyWasmDrawer } from '.';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -43,6 +45,7 @@ type PluginConfigLite = {
     kind: 'anon' | 'named' | 'mono'
     uid?: string
     name?: string
+    display_name?: string | null
     spec: PluginSpecRecord
 }
 type WasmPluginView = {
@@ -151,6 +154,17 @@ const wasmReloadNoticeVisible = ref(false);
 const nativePluginAttrs = computed(() =>
     pluginAttrs.value.filter((item) => !isWasmPluginCode(item.code))
 )
+const haiPluginGuide = computed(() => (code.value ? HAI_PLUGIN_GUIDES[code.value] : undefined))
+
+/** 深拷贝示例，避免编辑实例时修改共享目录数据。 */
+function cloneGuideExample(pluginCode: string): PluginSpecRecord {
+    const guide = HAI_PLUGIN_GUIDES[pluginCode]
+    return guide ? JSON.parse(JSON.stringify(guide.example)) : {}
+}
+
+function formatGuideExample(example: Record<string, unknown>): string {
+    return JSON.stringify(example, null, 2)
+}
 
 /** 从 spec 读取 Wasm 插件逻辑名（与 plugin/wasm.{name}.json 对应） */
 function pluginNameFromSpec(spec: PluginSpecRecord): string {
@@ -158,6 +172,7 @@ function pluginNameFromSpec(spec: PluginSpecRecord): string {
 }
 
 function titleFromConfig(inst: PluginConfigLite, spec: PluginSpecRecord, pluginName: string): string {
+    if (typeof inst.display_name === 'string' && inst.display_name.trim()) return inst.display_name.trim()
     if (typeof spec.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
     if (pluginName) return pluginName
     if (inst.kind === 'named') return inst.name
@@ -185,6 +200,9 @@ function toPluginConfigLite(value: unknown): PluginConfigLite | null {
     const config: PluginConfigLite = {
         code: item.code,
         kind: item.kind,
+        display_name: typeof item.display_name === 'string'
+            ? item.display_name
+            : item.display_name === null ? null : undefined,
         spec: toSpecRecord(item.spec),
     }
     if (item.kind === 'named') {
@@ -430,6 +448,13 @@ const refreshPluginInstancesList = async (pluginCode: string) => {
     }
 }
 
+function matchesInstanceSearch(instance: PluginConfigLite): boolean {
+    if (instance.kind !== 'named') return false
+    if (!searchText.value) return true
+    return instance.name.includes(searchText.value)
+        || pluginInstanceDisplayName(asPluginConfig(instance)).includes(searchText.value)
+}
+
 watch(code, async (pluginCode) => {
     if (!pluginCode) return;
     attr.value = undefined;
@@ -453,14 +478,16 @@ const openCreateDialog = () => {
             formPluginConfig.value = {
                 code: attr.value.code,
                 kind: 'mono',
-                spec: {},
+                display_name: null,
+                spec: cloneGuideExample(attr.value.code),
             }
         } else {
             formPluginConfig.value = {
                 code: attr.value.code,
                 kind: 'named',
                 name: 'new-instance',
-                spec: {},
+                display_name: null,
+                spec: cloneGuideExample(attr.value.code),
             }
         }
     }
@@ -756,6 +783,12 @@ function goInstances() {
             </el-descriptions-item>
             <el-descriptions-item :label="texts.description">{{ attr.meta.description }}</el-descriptions-item>
         </el-descriptions>
+        <el-alert v-if="haiPluginGuide" type="info" :closable="false" show-icon class="hai-plugin-guide">
+            <template #title>{{ haiPluginGuide.title }}</template>
+            <p>{{ haiPluginGuide.description }}</p>
+            <p v-if="haiPluginGuide.note" class="hai-plugin-guide__note">{{ haiPluginGuide.note }}</p>
+            <pre>{{ formatGuideExample(haiPluginGuide.example) }}</pre>
+        </el-alert>
         <div v-if="attr !== undefined && attr.mono" />
 
         <div v-if="attr !== undefined && !attr.mono && instances !== undefined">
@@ -768,12 +801,10 @@ function goInstances() {
                 <span>{{ texts.pluginInstanceListDesc }}</span>
             </div>
             <div class="plugin-instance-list">
-                <div v-for="instance in instances.filter((c) => {
-                    return c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))
-                })" :key="instance.kind === 'named' ? instance.name : ''"
+                <div v-for="instance in instances.filter(matchesInstanceSearch)" :key="instance.kind === 'named' ? instance.name : ''"
                     class="plugin-instance-row">
                     <div>
-                        <strong>{{ instance.kind === 'named' ? instance.name : undefined }}</strong>
+                        <strong>{{ pluginInstanceDisplayName(asPluginConfig(instance)) }}</strong>
                         <span>{{ instance.code }} / {{ instance.kind }}</span>
                     </div>
                     <div class="plugin-instance-row__actions">
@@ -783,7 +814,7 @@ function goInstances() {
                             @click="() => deleteInstance(instance)">{{ t('button.delete') }}</el-button>
                     </div>
                 </div>
-                <el-empty v-if="instances.filter((c) => c.kind === 'named' && (searchText === '' ? true : c.name.includes(searchText))).length === 0" :description="texts.emptyConfig" />
+                <el-empty v-if="instances.filter(matchesInstanceSearch).length === 0" :description="texts.emptyConfig" />
             </div>
             <el-drawer v-model="dialogVisible" size="72%" class="plugin-config-drawer" destroy-on-close>
                 <template #header>
@@ -1019,6 +1050,30 @@ function goInstances() {
 
 .plugin-detail__meta {
     margin-bottom: 16px;
+}
+
+.hai-plugin-guide {
+    margin-bottom: 16px;
+}
+
+.hai-plugin-guide p {
+    margin: 8px 0 0;
+}
+
+.hai-plugin-guide__note {
+    color: #8a5a00;
+}
+
+.hai-plugin-guide pre {
+    max-height: 280px;
+    margin: 10px 0 0;
+    overflow: auto;
+    padding: 10px;
+    border: 1px solid #d9ecff;
+    background: #fff;
+    color: #303133;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .plugin-detail__actions {

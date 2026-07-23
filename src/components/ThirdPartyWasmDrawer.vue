@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Api, Model } from 'spacegate-admin-client'
 import { ElMessage } from 'element-plus'
+import type { ManagedPluginConfig } from '../utils/pluginInstance'
 import {
   buildThirdPartyWasmPluginConfig,
   normalizeWasmPluginId,
@@ -110,10 +111,11 @@ watch(() => form.image_pull_policy, (next) => {
 
 function loadInstance(instance: Model.PluginConfig | undefined) {
   const spec = (instance?.spec ?? {}) as Record<string, any>
+  const managed = instance as ManagedPluginConfig | undefined
   const instanceName = instance?.kind === 'named' ? instance.name : 'custom-wasm-plugin'
   const pluginName = String(spec.plugin_name ?? instanceName)
   form.instance_name = instanceName
-  form.display_name = String(spec.display_name ?? spec.title ?? pluginName)
+  form.display_name = String(managed?.display_name ?? spec.display_name ?? spec.title ?? pluginName)
   form.description = String(spec.description ?? '')
   form.image_url = String(spec.image_url ?? buildImageUrlFromSpec(spec) ?? spec.url ?? '')
   form.phase = String(spec.phase ?? 'UNSPECIFIED_PHASE')

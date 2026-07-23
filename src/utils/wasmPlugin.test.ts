@@ -62,6 +62,7 @@ test('builds wasm named plugin config and reports reload requirement outside spe
   assert.equal(result.config.code, 'wasm')
   assert.equal(result.config.kind, 'named')
   assert.equal(result.config.name, 'custom-auth')
+  assert.equal(result.config.display_name, 'Custom Auth')
   assert.equal(result.config.spec.url, 'oci://registry.example.com/plugins/auth:v1')
   assert.equal(result.config.spec.image_repository, 'oci://registry.example.com/plugins/auth')
   assert.equal(result.config.spec.image_version, 'v1')
@@ -110,6 +111,7 @@ test('builds a bound wasm plugin config from a default config and schema values'
   assert.equal(result.config.code, 'wasm')
   assert.equal(result.config.kind, 'named')
   assert.equal(result.config.name, stableWasmBindingId('route', 'Route: catch-all / HAI', 'hai-mix-process'))
+  assert.equal(result.config.display_name, 'route / Route: catch-all / HAI / hai-mix-process')
   assert.equal(result.config.spec.url, defaults.spec.url)
   assert.deepEqual(result.config.spec.default_config, { tenant: 'route-a' })
   assert.deepEqual(result.config.spec.plugin_config, { tenant: 'route-a' })
@@ -275,6 +277,21 @@ test('displays a bound wasm plugin by its base plugin name instead of the bindin
   assert.equal(pluginInstanceDisplayName({ code: 'wasm', kind: 'named', name: 'bind-85513be3' }, configs), 'HAI Mix Process')
 })
 
+test('prefers the managed display name over legacy wasm spec fields', () => {
+  const config = {
+    code: 'wasm',
+    kind: 'named',
+    name: 'custom-auth',
+    display_name: 'Production Auth',
+    spec: {
+      display_name: 'Legacy Auth',
+      plugin_name: 'auth',
+    },
+  } as const
+
+  assert.equal(pluginInstanceDisplayName(config, [config]), 'Production Auth')
+})
+
 test('toggles a gateway-level plugin instance reference without duplicating it', () => {
   const ref = { code: 'wasm', kind: 'named', name: 'hai-mix-process' } as const
   const existing = [
@@ -284,13 +301,14 @@ test('toggles a gateway-level plugin instance reference without duplicating it',
   const enabled = setPluginInstanceRefEnabled(existing, ref, true)
   assert.equal(hasPluginInstanceRef(enabled, ref), true)
   assert.equal(enabled.length, 2)
+  assert.equal(enabled.find((item) => item.code === 'wasm')?.priority, 0)
 
   const enabledAgain = setPluginInstanceRefEnabled(enabled, ref, true)
   assert.equal(enabledAgain.length, 2)
 
   const disabled = setPluginInstanceRefEnabled(enabledAgain, ref, false)
   assert.equal(hasPluginInstanceRef(disabled, ref), false)
-  assert.deepEqual(disabled, [{ code: 'request-id', kind: 'mono' }])
+  assert.deepEqual(disabled, [{ code: 'request-id', kind: 'mono', priority: 0 }])
 })
 
 test('sorts plugin center wasm configs by priority and stable display identity', () => {

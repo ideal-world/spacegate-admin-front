@@ -15,11 +15,18 @@ type PluginFormModel = {
     kind: 'anon' | 'named' | 'mono'
     uid?: string
     name?: string
+    display_name?: string | null
     spec: Record<string, unknown>
 }
 
 const modelValue = defineModel<PluginFormModel>({
     required: true,
+})
+const displayName = computed({
+    get: () => modelValue.value.display_name ?? '',
+    set: (value: string) => {
+        modelValue.value.display_name = value
+    },
 })
 
 // --- Schema-driven form ---
@@ -188,6 +195,9 @@ async function copyJsonExample() {
 </script>
 
 <template>
+    <el-form-item :label="t('label.displayName')" prop="display_name">
+        <el-input v-model="displayName"></el-input>
+    </el-form-item>
     <el-form-item v-if="modelValue.kind === 'named'" :label="t('label.pluginInstanceName')" prop="name">
         <el-input v-model="modelValue.name" placeholder="auth-timeout"></el-input>
         <div class="plugin-form__hint">{{ texts.instanceNameHint }}</div>

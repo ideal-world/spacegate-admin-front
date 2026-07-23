@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Api, Model } from 'spacegate-admin-client'
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
-import { unwrapResponse, keyPluginId, labelPluginId, randomUid } from '../utils';
+import { unwrapResponse, keyPluginId, randomUid } from '../utils';
 import { AI_WASM_CATALOG } from '../constants/aiWasmCatalog'
 import { nativePluginDisplayName } from '../utils/pluginDisplay'
 import { buildBoundWasmPluginConfig, stableWasmBindingId, type BoundWasmConfigMode } from '../utils/wasmPlugin'
@@ -9,6 +9,7 @@ import { getSavedWasmPluginImageSchema, type JsonSchema } from '../api/aiGateway
 import PluginForm from './PluginForm.vue';
 import SchemaForm from './SchemaForm.vue';
 import { useI18n } from 'vue-i18n'
+import { pluginInstanceOptionLabel } from '../utils/pluginInstance'
 
 const { locale, t } = useI18n();
 
@@ -27,6 +28,7 @@ type PluginConfigLite = {
     kind: 'anon' | 'named' | 'mono'
     uid?: string
     name?: string
+    display_name?: string | null
     spec: PluginSpecRecord
 }
 type NativePluginOption = {
@@ -159,6 +161,9 @@ function toPluginConfigLite(value: unknown): PluginConfigLite | null {
     const config: PluginConfigLite = {
         code: item.code,
         kind: item.kind,
+        display_name: typeof item.display_name === 'string'
+            ? item.display_name
+            : item.display_name === null ? null : undefined,
         spec: toSpecRecord(item.spec),
     }
     if (item.kind === 'named') {
@@ -197,6 +202,7 @@ function displayNativeName(pluginCode: string) {
 }
 
 function configPluginName(config: PluginConfigLite) {
+    if (typeof config.display_name === 'string' && config.display_name.trim()) return config.display_name.trim()
     const spec = config.spec
     if (typeof spec.display_name === 'string' && spec.display_name.trim()) return spec.display_name.trim()
     if (typeof spec.plugin_name === 'string' && spec.plugin_name.trim()) {
@@ -254,6 +260,14 @@ const referenceIds = computed(() => {
         .filter((id) => id.kind === 'named')
 })
 
+const referenceConfigs = computed(() =>
+    instances.value.filter((config) => config.kind === 'named')
+)
+
+function referenceConfigLabel(config: PluginConfigLite) {
+    return pluginInstanceOptionLabel(config as Model.PluginConfig)
+}
+
 function pickNewName() {
     return code.value ? (code.value + '-' + randomUid()) : randomUid()
 }
@@ -262,6 +276,7 @@ const newConfig = ref<PluginConfigLite>({
     code: '',
     kind: 'named',
     name: pickNewName(),
+    display_name: null,
     spec: {},
 })
 
@@ -438,14 +453,16 @@ async function save() {
     }
     await Api.postConfigPlugin({
         ...id,
+        display_name: newConfig.value.display_name ?? null,
         spec
-    });
+    } as Model.PluginConfig);
     await refreshPluginInstancesList(id.code);
     modelValue.value = id
     newConfig.value = {
         code: id.code,
         kind: 'named',
         name: pickNewName(),
+        display_name: null,
         spec: {},
     }
 }
@@ -651,10 +668,10 @@ onMounted(async () => {
             <el-form-item v-else-if="category === 'native'" :label="texts.pluginConfig">
                 <el-select filterable v-model="modelValue">
                     <el-option
-                        v-for="item in referenceIds"
-                        :key="keyPluginId(item)"
-                        :label="labelPluginId(item)"
-                        :value="item"
+                        v-for="item in referenceConfigs"
+                        :key="keyPluginId(pluginIdFromConfig(item))"
+                        :label="referenceConfigLabel(item)"
+                        :value="pluginIdFromConfig(item)"
                     />
                 </el-select>
                 <div class="plugin-select__empty-hint" v-if="code && referenceIds.length === 0">

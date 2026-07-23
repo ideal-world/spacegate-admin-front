@@ -1,5 +1,6 @@
 import type { Model } from 'spacegate-admin-client'
 import { parse as parseYaml } from 'yaml'
+import type { ManagedPluginConfig } from './pluginInstance'
 
 export type OciAuthInput = {
   registry?: string
@@ -61,6 +62,7 @@ export type PluginConfigLike = {
   kind: 'anon' | 'named' | 'mono'
   uid?: string
   name?: string
+  display_name?: string | null
   spec?: Record<string, unknown>
 }
 
@@ -127,6 +129,8 @@ function findPluginConfigByRef(configs: readonly PluginConfigLike[], ref: Plugin
 }
 
 function readablePluginConfigName(config: PluginConfigLike) {
+  const managedDisplayName = config.display_name?.trim()
+  if (managedDisplayName) return managedDisplayName
   return wasmPluginSortName(config)
 }
 
@@ -162,11 +166,17 @@ export function setPluginInstanceRefEnabled(
   list: readonly PluginInstanceRefLike[] | undefined,
   ref: Model.PluginInstanceId,
   enabled: boolean,
-): Model.PluginInstanceId[] {
-  const current = Array.isArray(list) ? [...list] : []
+): Model.PluginBinding[] {
+  const current = (Array.isArray(list) ? list : []).map((item) => {
+    const priority = (item as PluginInstanceRefLike & { priority?: unknown }).priority
+    return {
+      ...item,
+      priority: typeof priority === 'number' && Number.isFinite(priority) ? priority : 0,
+    } as Model.PluginBinding
+  })
   const withoutRef = current.filter((item) => !isSamePluginInstanceRef(item, ref))
-  if (!enabled) return withoutRef as Model.PluginInstanceId[]
-  return [...withoutRef, ref]
+  if (!enabled) return withoutRef
+  return [...withoutRef, { ...ref, priority: 0 } as Model.PluginBinding]
 }
 
 export function normalizeWasmPluginId(value: string) {
@@ -300,6 +310,13 @@ export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInpu
     ? input.existingConfig.name
     : normalizeWasmPluginId(input.bindingName || `${input.bindingScope}-${baseName}-binding`)
   validateWasmPluginId(instanceName)
+  const existingDisplayName = (input.existingConfig as ManagedPluginConfig | undefined)?.display_name?.trim()
+  const baseDisplayName = (input.baseConfig as ManagedPluginConfig).display_name?.trim()
+  const displayName = input.bindingDisplayName?.trim()
+    || existingDisplayName
+    || baseDisplayName
+    || input.bindingOwner?.trim()
+    || instanceName
 
   const runtimeConfig = runtimeConfigForMode(input, baseSpec)
   const spec: Record<string, unknown> = {
@@ -325,6 +342,7 @@ export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInpu
       code: input.baseConfig.code || 'wasm',
       kind: 'named',
       name: instanceName,
+      display_name: displayName,
       spec,
     } as Model.PluginConfig,
   }
@@ -391,6 +409,7 @@ export function buildThirdPartyWasmPluginConfig(input: BuildThirdPartyWasmPlugin
       code: 'wasm',
       kind: 'named',
       name: instanceName,
+      display_name: input.displayName.trim() || null,
       spec,
     } as Model.PluginConfig,
   }

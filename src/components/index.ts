@@ -3,6 +3,7 @@ import BackendForm from './BackendForm.vue'
 import ConfigPanel from './ConfigPanel.vue'
 import PluginForm from './PluginForm.vue'
 import PluginListForm from './PluginListForm.vue'
+import PluginBindingDetail from './PluginBindingDetail.vue'
 import GatewayForm from './GatewayForm.vue'
 import ListenerForm from './ListenerForm.vue'
 import OptionalField from './OptionalField.vue'
@@ -26,6 +27,7 @@ export {
   ConfigPanel,
   PluginForm,
   PluginListForm,
+  PluginBindingDetail,
   GatewayForm,
   ListenerForm,
   OptionalField,

@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Api, Model } from 'spacegate-admin-client'
 import { ElMessage } from 'element-plus'
+import type { ManagedPluginConfig } from '../utils/pluginInstance'
 import { useI18n } from 'vue-i18n'
 import {
   getAiGatewayPluginReadme,
@@ -205,8 +206,9 @@ function buildPluginConfig(): Model.PluginConfig {
     code: 'wasm',
     kind: 'named',
     name: 'ai-gateway-queue',
+    display_name: 'AI 网关排队限流',
     spec,
-  } as Model.PluginConfig
+  } as ManagedPluginConfig
 }
 
 async function save() {
