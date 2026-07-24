@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -119,7 +121,7 @@ test('builds a bound wasm plugin config from a default config and schema values'
   assert.equal(result.config.spec.binding_scope, 'route')
   assert.equal(result.config.spec.binding_owner, 'Route: catch-all / HAI')
   assert.equal(result.config.spec.binding_display_name, 'route / Route: catch-all / HAI / hai-mix-process')
-  assert.equal(defaults.spec.plugin_config.defaultTenant, 'base')
+  assert.deepEqual(defaults.spec.plugin_config, { defaultTenant: 'base' })
 })
 
 test('parses yaml config text as a JSON-compatible object', () => {

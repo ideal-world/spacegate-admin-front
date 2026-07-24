@@ -10,8 +10,23 @@ export type OciAuthInput = {
   identity_token?: string
 }
 
+/** Wasm 构造器使用的插件配置字段，兼容 SDK 的完整配置和测试中的最小配置。 */
+export type PluginConfigLike = {
+  code: string
+  kind: 'anon' | 'named' | 'mono'
+  uid?: string
+  name?: string
+  display_name?: string | null
+  spec?: Record<string, unknown>
+}
+
+/** Wasm 构造器始终产生具名实例，且其 spec 在前端以对象形式构造。 */
+export type NamedWasmPluginConfig = Extract<Model.PluginConfig, { kind: 'named' }> & {
+  spec: Record<string, unknown>
+}
+
 export type BuildThirdPartyWasmPluginConfigInput = {
-  instance?: Model.PluginConfig
+  instance?: PluginConfigLike
   instanceName: string
   imageUrl: string
   displayName: string
@@ -39,15 +54,15 @@ export type BuildThirdPartyWasmPluginConfigInput = {
 }
 
 export type ThirdPartyWasmPluginConfigBuildResult = {
-  config: Model.PluginConfig
+  config: NamedWasmPluginConfig
   requiresGlobalReload: boolean
 }
 
 export type BoundWasmConfigMode = 'default' | 'schema' | 'yaml' | 'xml'
 
 export type BuildBoundWasmPluginConfigInput = {
-  baseConfig: Model.PluginConfig
-  existingConfig?: Model.PluginConfig
+  baseConfig: PluginConfigLike
+  existingConfig?: PluginConfigLike
   bindingName: string
   bindingOwner?: string
   bindingDisplayName?: string
@@ -55,15 +70,6 @@ export type BuildBoundWasmPluginConfigInput = {
   configMode: BoundWasmConfigMode
   schemaConfig: unknown
   yamlConfig: string
-}
-
-export type PluginConfigLike = {
-  code: string
-  kind: 'anon' | 'named' | 'mono'
-  uid?: string
-  name?: string
-  display_name?: string | null
-  spec?: Record<string, unknown>
 }
 
 export type PluginInstanceRefLike = {
@@ -344,7 +350,7 @@ export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInpu
       name: instanceName,
       display_name: displayName,
       spec,
-    } as Model.PluginConfig,
+    } as NamedWasmPluginConfig,
   }
 }
 
@@ -411,6 +417,6 @@ export function buildThirdPartyWasmPluginConfig(input: BuildThirdPartyWasmPlugin
       name: instanceName,
       display_name: input.displayName.trim() || null,
       spec,
-    } as Model.PluginConfig,
+    } as NamedWasmPluginConfig,
   }
 }
