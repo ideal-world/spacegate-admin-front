@@ -17,7 +17,8 @@ export type PluginConfigLike = {
   uid?: string
   name?: string
   display_name?: string | null
-  spec?: Record<string, unknown>
+  /** SDK 将 spec 声明为 JsonValue；Wasm 配置流程只在运行时读取对象字段。 */
+  spec?: any
 }
 
 /** Wasm 构造器始终产生具名实例，且其 spec 在前端以对象形式构造。 */
@@ -58,7 +59,8 @@ export type ThirdPartyWasmPluginConfigBuildResult = {
   requiresGlobalReload: boolean
 }
 
-export type BoundWasmConfigMode = 'default' | 'schema' | 'yaml' | 'xml'
+/** Wasm 绑定运行时配置的编辑方式，JSON 与 Schema 都保存为对象配置。 */
+export type BoundWasmConfigMode = 'default' | 'schema' | 'json' | 'yaml' | 'xml'
 
 export type BuildBoundWasmPluginConfigInput = {
   baseConfig: PluginConfigLike
@@ -157,6 +159,11 @@ export function pluginInstanceDisplayName(ref: PluginInstanceRefLike, configs: r
   return ref.code
 }
 
+/** 为资源插件标签显示实际插件名称，原生插件使用 code，Wasm 使用其基础插件名称。 */
+export function pluginBindingPluginName(ref: PluginInstanceRefLike, configs: readonly PluginConfigLike[] = []) {
+  return isWasmPluginCode(ref.code) ? pluginInstanceDisplayName(ref, configs) : ref.code
+}
+
 export function isSamePluginInstanceRef(left: PluginInstanceRefLike, right: PluginInstanceRefLike) {
   if (left.code !== right.code || left.kind !== right.kind) return false
   if (left.kind === 'named') return left.name === right.name
@@ -166,6 +173,11 @@ export function isSamePluginInstanceRef(left: PluginInstanceRefLike, right: Plug
 
 export function hasPluginInstanceRef(list: readonly PluginInstanceRefLike[] | undefined, ref: PluginInstanceRefLike) {
   return Array.isArray(list) && list.some((item) => isSamePluginInstanceRef(item, ref))
+}
+
+/** 判断同一资源的插件挂载中是否已存在指定插件 code。 */
+export function hasPluginCodeBinding(list: readonly PluginInstanceRefLike[] | undefined, code: string) {
+  return Array.isArray(list) && list.some((item) => item.code === code)
 }
 
 export function setPluginInstanceRefEnabled(
@@ -302,7 +314,7 @@ function runtimeConfigForMode(input: BuildBoundWasmPluginConfigInput, baseSpec: 
   if (input.configMode === 'xml') {
     return input.yamlConfig.trim()
   }
-  if (input.configMode === 'schema') {
+  if (input.configMode === 'schema' || input.configMode === 'json') {
     return valueToObject(input.schemaConfig)
   }
   return defaultConfigFromSpec(baseSpec)

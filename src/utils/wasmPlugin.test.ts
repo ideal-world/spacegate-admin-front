@@ -6,11 +6,13 @@ import test from 'node:test'
 import {
   buildBoundWasmPluginConfig,
   buildThirdPartyWasmPluginConfig,
+  hasPluginCodeBinding,
   hasPluginInstanceRef,
   isWasmPluginBindingConfig,
   isWasmPluginCenterConfig,
   normalizeWasmPluginId,
   parseYamlConfigText,
+  pluginBindingPluginName,
   pluginInstanceDisplayName,
   setPluginInstanceRefEnabled,
   sortWasmPluginCenterConfigs,
@@ -166,6 +168,26 @@ test('builds a bound wasm plugin config with yaml text config', () => {
   assert.deepEqual(result.config.spec.default_config, { enabled: true, mode: 'strict' })
 })
 
+test('builds a bound wasm plugin config with JSON object config', () => {
+  const result = buildBoundWasmPluginConfig({
+    baseConfig: {
+      code: 'wasm',
+      kind: 'named',
+      name: 'json-auth',
+      spec: { plugin_config: { enabled: false } },
+    },
+    bindingName: 'JSON Auth',
+    bindingScope: 'route',
+    configMode: 'json',
+    schemaConfig: { enabled: true, audience: 'orders' },
+    yamlConfig: '',
+  })
+
+  assert.equal(result.config.spec.binding_config_mode, 'json')
+  assert.deepEqual(result.config.spec.plugin_config, { enabled: true, audience: 'orders' })
+  assert.deepEqual(result.config.spec.default_config, { enabled: true, audience: 'orders' })
+})
+
 test('keeps legacy xml binding mode compatible while storing new writes as raw text', () => {
   const baseConfig = {
     code: 'wasm',
@@ -277,6 +299,18 @@ test('displays a bound wasm plugin by its base plugin name instead of the bindin
   ] as const
 
   assert.equal(pluginInstanceDisplayName({ code: 'wasm', kind: 'named', name: 'bind-85513be3' }, configs), 'HAI Mix Process')
+  assert.equal(pluginBindingPluginName({ code: 'wasm', kind: 'named', name: 'bind-85513be3' }, configs), 'HAI Mix Process')
+  assert.equal(pluginBindingPluginName({ code: 'limit', kind: 'named', name: 'route-limit' }), 'limit')
+})
+
+test('recognizes a plugin code already bound to the same resource', () => {
+  const bindings = [
+    { code: 'limit', kind: 'named', name: 'route-limit' },
+    { code: 'wasm', kind: 'named', name: 'bind-85513be3' },
+  ] as const
+
+  assert.equal(hasPluginCodeBinding(bindings, 'limit'), true)
+  assert.equal(hasPluginCodeBinding(bindings, 'header-modifier'), false)
 })
 
 test('prefers the managed display name over legacy wasm spec fields', () => {

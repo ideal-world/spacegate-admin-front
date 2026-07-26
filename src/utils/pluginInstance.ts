@@ -41,6 +41,20 @@ export function pluginInstanceDisplayName(config: Model.PluginConfig): string {
   return config.code
 }
 
+/** 为配置下拉框生成用户可识别的实例名称，不暴露内部实例 ID。 */
+export function pluginConfigOptionName(config: Model.PluginConfig): string {
+  const managed = config as ManagedPluginConfig
+  const displayName = displayText(managed.display_name)
+  if (displayName) return displayName
+
+  if (config.kind === 'named') {
+    const name = displayText(config.name)
+    if (name) return name
+  }
+
+  return pluginInstanceDisplayName(config)
+}
+
 /** 从完整配置中提取稳定实例 ID，避免把 spec 或展示名称写入挂载引用。 */
 export function pluginConfigInstanceId(config: Model.PluginConfig): Model.PluginInstanceId {
   switch (config.kind) {

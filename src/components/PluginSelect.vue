@@ -9,16 +9,18 @@ import { getSavedWasmPluginImageSchema, type JsonSchema } from '../api/aiGateway
 import PluginForm from './PluginForm.vue';
 import SchemaForm from './SchemaForm.vue';
 import { useI18n } from 'vue-i18n'
-import { pluginInstanceOptionLabel } from '../utils/pluginInstance'
+import { pluginConfigOptionName } from '../utils/pluginInstance'
 
 const { locale, t } = useI18n();
 
 const props = withDefaults(defineProps<{
     bindingScope?: 'gateway' | 'route' | 'rule' | 'backend'
     bindingName?: string
+    blockedPluginCodes?: string[]
 }>(), {
     bindingScope: 'route',
     bindingName: '',
+    blockedPluginCodes: () => [],
 })
 
 type PluginCategory = 'native' | 'ai'
@@ -70,7 +72,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     native: '原生插件',
     ai: 'Wasm 扩展',
     pluginCategory: '插件分类',
-    pluginType: '具体插件',
+    pluginType: '选择插件',
     pluginConfig: '插件配置',
     configMode: '配置方式',
     code: '插件代码',
@@ -86,8 +88,6 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     emptyAiConfig: '暂无可绑定的 Wasm 扩展配置，请先到插件中心创建。',
     loadFailed: '插件列表加载失败，请确认 admin-server 和网关实例已启动。',
     wasmBinding: '绑定配置',
-    wasmBindingName: '调试标识',
-    wasmBindingNameHint: '系统按绑定位置自动生成内部标识；同一位置重复绑定同一插件时会更新这份配置。',
     wasmDefaultMode: '使用默认配置',
     wasmSchemaMode: '镜像 Schema 表单',
     wasmYamlMode: 'YAML 配置',
@@ -103,7 +103,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     native: 'Native Plugin',
     ai: 'Wasm Extension',
     pluginCategory: 'Plugin Category',
-    pluginType: 'Plugin',
+    pluginType: 'Select Plugin',
     pluginConfig: 'Plugin Configuration',
     configMode: 'Configuration Mode',
     code: 'Plugin Code',
@@ -119,8 +119,6 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     emptyAiConfig: 'No Wasm extension configuration is available. Create one in Plugin Center first.',
     loadFailed: 'Failed to load plugins. Make sure admin-server and gateway instance are running.',
     wasmBinding: 'Binding Configuration',
-    wasmBindingName: 'Debug ID',
-    wasmBindingNameHint: 'The internal ID is generated from the binding location. Rebinding the same plugin at the same location updates this config.',
     wasmDefaultMode: 'Use Default Config',
     wasmSchemaMode: 'Image Schema Form',
     wasmYamlMode: 'YAML Config',
@@ -143,7 +141,10 @@ defineExpose({
             return saveWasmBinding()
         }
         return Promise.resolve()
-    }
+    },
+    selectedPluginCode(): string | undefined {
+        return code.value
+    },
 })
 
 function toSpecRecord(value: unknown): PluginSpecRecord {
@@ -220,7 +221,7 @@ function configDescription(config: PluginConfigLite) {
 
 const nativePluginOptions = computed<NativePluginOption[]>(() =>
     pluginAttrs.value
-        .filter((item) => !isWasmCode(item.code))
+        .filter((item) => !isWasmCode(item.code) && !props.blockedPluginCodes.includes(item.code))
         .map((item) => ({
             code: item.code,
             name: displayNativeName(item),
@@ -231,7 +232,7 @@ const nativePluginOptions = computed<NativePluginOption[]>(() =>
 
 const aiPluginOptions = computed<AiPluginOption[]>(() =>
     wasmPluginConfigs.value
-        .filter((item) => item.kind === 'named' && isWasmCode(item.code) && item.spec.binding_scope === undefined)
+        .filter((item) => item.kind === 'named' && isWasmCode(item.code) && item.spec.binding_scope === undefined && !props.blockedPluginCodes.includes(item.code))
         .map((item) => ({
             key: `${item.code}:${item.name ?? ''}`,
             code: item.code,
@@ -264,8 +265,22 @@ const referenceConfigs = computed(() =>
     instances.value.filter((config) => config.kind === 'named')
 )
 
+/** 使用稳定字符串键管理配置选择，避免 Element Plus 对象值因重渲染失去选中状态。 */
+const selectedReferenceConfigKey = computed<string | undefined>({
+    get() {
+        const selected = modelValue.value
+        if (!selected) return undefined
+        const exists = referenceConfigs.value.some((config) => keyPluginId(pluginIdFromConfig(config)) === keyPluginId(selected))
+        return exists ? keyPluginId(selected) : undefined
+    },
+    set(value) {
+        const config = referenceConfigs.value.find((item) => keyPluginId(pluginIdFromConfig(item)) === value)
+        modelValue.value = config ? pluginIdFromConfig(config) : undefined
+    },
+})
+
 function referenceConfigLabel(config: PluginConfigLite) {
-    return pluginInstanceOptionLabel(config as Model.PluginConfig)
+    return pluginConfigOptionName(config as Model.PluginConfig)
 }
 
 function pickNewName() {
@@ -666,13 +681,18 @@ onMounted(async () => {
                 :description="texts.selectPluginTypeDesc"
             />
             <el-form-item v-else-if="category === 'native'" :label="texts.pluginConfig">
-                <el-select filterable v-model="modelValue">
+                <el-select filterable v-model="selectedReferenceConfigKey">
                     <el-option
                         v-for="item in referenceConfigs"
                         :key="keyPluginId(pluginIdFromConfig(item))"
                         :label="referenceConfigLabel(item)"
-                        :value="pluginIdFromConfig(item)"
-                    />
+                        :value="keyPluginId(pluginIdFromConfig(item))"
+                    >
+                        <div class="plugin-select-option">
+                            <strong>{{ referenceConfigLabel(item) }}</strong>
+                            <code>{{ item.code }}</code>
+                        </div>
+                    </el-option>
                 </el-select>
                 <div class="plugin-select__empty-hint" v-if="code && referenceIds.length === 0">
                     {{ texts.emptyConfig }}
@@ -681,12 +701,6 @@ onMounted(async () => {
 
             <section v-else class="plugin-select__section plugin-select__section--binding">
                 <div class="plugin-select__section-title">{{ texts.wasmBinding }}</div>
-                <el-form-item :label="texts.wasmBindingName">
-                    <div class="plugin-select__readonly-name">
-                        <code>wasm.{{ generatedWasmBindingName || '-' }}.json</code>
-                    </div>
-                    <div class="plugin-select__empty-hint">{{ texts.wasmBindingNameHint }}</div>
-                </el-form-item>
                 <div class="plugin-select__section-title">{{ texts.configMode }}</div>
                 <el-segmented
                     v-model="wasmConfigMode"
@@ -785,23 +799,6 @@ onMounted(async () => {
     color: #64748b;
     font-size: 12px;
     line-height: 1.5;
-}
-
-.plugin-select__readonly-name {
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    padding: 6px 10px;
-    border: 1px solid #dbe3ef;
-    border-radius: 6px;
-    background: #fff;
-}
-
-.plugin-select__readonly-name code {
-    color: #475569;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 12px;
-    word-break: break-all;
 }
 
 .plugin-select__form {
