@@ -14,6 +14,7 @@ import {
   parseYamlConfigText,
   pluginBindingPluginName,
   pluginInstanceDisplayName,
+  refreshBoundWasmPluginSource,
   setPluginInstanceRefEnabled,
   sortWasmPluginCenterConfigs,
   stableWasmBindingId,
@@ -58,6 +59,10 @@ test('builds wasm named plugin config and reports reload requirement outside spe
     vmPoolSize: 1,
     waitVmPoolSize: 0,
     ociAuth: {},
+    httpHeaders: {
+      Authorization: 'Bearer test-token',
+      'X-Plugin-Token': 'plugin-token',
+    },
     clusters: {},
     limits: {},
   })
@@ -70,6 +75,10 @@ test('builds wasm named plugin config and reports reload requirement outside spe
   assert.equal(result.config.spec.url, 'oci://registry.example.com/plugins/auth:v1')
   assert.equal(result.config.spec.image_repository, 'oci://registry.example.com/plugins/auth')
   assert.equal(result.config.spec.image_version, 'v1')
+  assert.deepEqual(result.config.spec.http_headers, {
+    Authorization: 'Bearer test-token',
+    'X-Plugin-Token': 'plugin-token',
+  })
   assert.equal('x_spacegate_reload_required' in result.config.spec, false)
 })
 
@@ -97,6 +106,7 @@ test('builds a bound wasm plugin config from a default config and schema values'
     vmPoolSize: 1,
     waitVmPoolSize: 0,
     ociAuth: {},
+    httpHeaders: {},
     clusters: {},
     limits: {},
   }).config
@@ -124,6 +134,84 @@ test('builds a bound wasm plugin config from a default config and schema values'
   assert.equal(result.config.spec.binding_owner, 'Route: catch-all / HAI')
   assert.equal(result.config.spec.binding_display_name, 'route / Route: catch-all / HAI / hai-mix-process')
   assert.deepEqual(defaults.spec.plugin_config, { defaultTenant: 'base' })
+})
+
+test('refreshes a bound wasm module source from its base plugin config', () => {
+  const result = buildBoundWasmPluginConfig({
+    baseConfig: {
+      code: 'wasm',
+      kind: 'named',
+      name: 'shared-auth',
+      spec: {
+        url: 'https://plugins.example.com/auth-v2.wasm',
+        image_url: 'https://plugins.example.com/auth-v2.wasm',
+        sha256: 'sha256:new-digest',
+        http_headers: { Authorization: 'Bearer new-token' },
+        plugin_config: { enabled: true },
+      },
+    },
+    existingConfig: {
+      code: 'wasm',
+      kind: 'named',
+      name: 'bind-route-auth',
+      spec: {
+        url: 'https://plugins.example.com/auth-v1.wasm',
+        image_url: 'https://plugins.example.com/auth-v1.wasm',
+        sha256: 'sha256:old-digest',
+        http_headers: { Authorization: 'Bearer old-token' },
+        binding_scope: 'route',
+        plugin_config: { enabled: false },
+      },
+    },
+    bindingName: 'bind-route-auth',
+    bindingScope: 'route',
+    configMode: 'json',
+    schemaConfig: { enabled: false },
+    yamlConfig: '',
+  })
+
+  assert.equal(result.config.spec.url, 'https://plugins.example.com/auth-v2.wasm')
+  assert.equal(result.config.spec.sha256, 'sha256:new-digest')
+  assert.deepEqual(result.config.spec.http_headers, { Authorization: 'Bearer new-token' })
+  assert.deepEqual(result.config.spec.plugin_config, { enabled: false })
+})
+
+test('refreshes saved binding sources without replacing their runtime config', () => {
+  const refreshed = refreshBoundWasmPluginSource(
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'shared-auth',
+      spec: {
+        url: 'https://plugins.example.com/auth-v2.wasm',
+        sha256: 'sha256:new-digest',
+        http_headers: { Authorization: 'Bearer new-token' },
+        plugin_name: 'shared-auth',
+      },
+    },
+    {
+      code: 'wasm',
+      kind: 'named',
+      name: 'bind-route-auth',
+      display_name: 'Route Authentication',
+      spec: {
+        url: 'https://plugins.example.com/auth-v1.wasm',
+        sha256: 'sha256:old-digest',
+        http_headers: { Authorization: 'Bearer old-token' },
+        binding_scope: 'route',
+        binding_base_plugin: 'shared-auth',
+        binding_config_mode: 'json',
+        plugin_config: { audience: 'orders' },
+        default_config: { audience: 'orders' },
+      },
+    },
+  )
+
+  assert.equal(refreshed.spec.url, 'https://plugins.example.com/auth-v2.wasm')
+  assert.equal(refreshed.spec.sha256, 'sha256:new-digest')
+  assert.deepEqual(refreshed.spec.http_headers, { Authorization: 'Bearer new-token' })
+  assert.deepEqual(refreshed.spec.plugin_config, { audience: 'orders' })
+  assert.equal(refreshed.display_name, 'Route Authentication')
 })
 
 test('parses yaml config text as a JSON-compatible object', () => {

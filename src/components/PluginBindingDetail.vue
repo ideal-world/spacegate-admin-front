@@ -68,7 +68,14 @@ function save() {
 </script>
 
 <template>
-  <el-drawer v-model="visible" :title="t('title.pluginBindingDetail')" direction="ltr" size="720px">
+  <el-dialog
+    v-model="visible"
+    :title="t('title.pluginBindingDetail')"
+    width="760px"
+    align-center
+    destroy-on-close
+    class="plugin-binding-detail-dialog"
+  >
     <el-alert
       v-if="error"
       type="warning"
@@ -134,7 +141,7 @@ function save() {
       <el-button @click="visible = false">{{ t('button.cancel') }}</el-button>
       <el-button type="primary" @click="save">{{ t('button.save') }}</el-button>
     </template>
-  </el-drawer>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -163,5 +170,27 @@ function save() {
   color: #94a3b8;
   font-size: 12px;
   line-height: 1.5;
+}
+
+:deep(.plugin-binding-detail-dialog) {
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+:deep(.plugin-binding-detail-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(.plugin-binding-detail-dialog .el-dialog__body) {
+  max-height: min(65vh, 720px);
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+:deep(.plugin-binding-detail-dialog .el-dialog__footer) {
+  padding: 14px 20px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

@@ -10,6 +10,9 @@ export type OciAuthInput = {
   identity_token?: string
 }
 
+/** HTTP(S) Wasm 制品下载使用的认证或签名请求头。 */
+export type HttpHeadersInput = Record<string, string>
+
 /** Wasm 构造器使用的插件配置字段，兼容 SDK 的完整配置和测试中的最小配置。 */
 export type PluginConfigLike = {
   code: string
@@ -50,6 +53,7 @@ export type BuildThirdPartyWasmPluginConfigInput = {
   vmPoolSize: number
   waitVmPoolSize: number
   ociAuth: OciAuthInput
+  httpHeaders: HttpHeadersInput
   clusters: Record<string, unknown>
   limits: Record<string, unknown>
 }
@@ -297,6 +301,30 @@ function defaultConfigFromSpec(spec: Record<string, unknown>) {
   return {}
 }
 
+/**
+ * 将已保存绑定实例的模块来源刷新为插件中心定义，同时保留该绑定独有的运行时配置与显示信息。
+ *
+ * 绑定实例不是独立的制品定义；基础插件更新 URL、认证头或摘要后，调用方应持久化此返回值。
+ */
+export function refreshBoundWasmPluginSource<T extends PluginConfigLike>(baseConfig: PluginConfigLike, bindingConfig: T): T {
+  if (!isWasmPluginBindingConfig(bindingConfig) || baseConfig.kind !== 'named') return bindingConfig
+  if (bindingConfig.spec?.binding_base_plugin !== baseConfig.name) return bindingConfig
+
+  const baseSpec = cloneSpec(baseConfig.spec)
+  const bindingSpec = cloneSpec(bindingConfig.spec)
+  const bindingOverrides = Object.fromEntries(
+    Object.entries(bindingSpec).filter(([key]) => key === 'default_config_disable' || key === 'default_config' || key === 'plugin_config' || key.startsWith('binding_')),
+  )
+
+  return {
+    ...bindingConfig,
+    spec: {
+      ...baseSpec,
+      ...bindingOverrides,
+    },
+  }
+}
+
 export function parseYamlConfigText(text: string) {
   const raw = text.trim()
   if (!raw) return {}
@@ -322,7 +350,6 @@ function runtimeConfigForMode(input: BuildBoundWasmPluginConfigInput, baseSpec: 
 
 export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInput): ThirdPartyWasmPluginConfigBuildResult {
   const baseSpec = cloneSpec(input.baseConfig.spec)
-  const existingSpec = cloneSpec(input.existingConfig?.spec)
   const baseName = input.baseConfig.kind === 'named' ? input.baseConfig.name : 'wasm'
   const instanceName = input.existingConfig?.kind === 'named'
     ? input.existingConfig.name
@@ -339,7 +366,7 @@ export function buildBoundWasmPluginConfig(input: BuildBoundWasmPluginConfigInpu
   const runtimeConfig = runtimeConfigForMode(input, baseSpec)
   const spec: Record<string, unknown> = {
     ...baseSpec,
-    ...existingSpec,
+    // 绑定实例只保留自己的运行时配置；来源字段始终以插件中心定义为准，避免旧绑定继续拉取旧模块。
     default_config_disable: false,
     default_config: runtimeConfig,
     plugin_config: runtimeConfig,
@@ -419,6 +446,13 @@ export function buildThirdPartyWasmPluginConfig(input: BuildThirdPartyWasmPlugin
     spec.oci_auth = ociAuth
   } else {
     delete spec.oci_auth
+  }
+
+  const httpHeaders = compactObject(input.httpHeaders)
+  if (Object.keys(httpHeaders).length > 0) {
+    spec.http_headers = httpHeaders
+  } else {
+    delete spec.http_headers
   }
 
   return {

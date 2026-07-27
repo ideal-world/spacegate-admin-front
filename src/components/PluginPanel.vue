@@ -10,9 +10,11 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n'
 import {
     hasPluginInstanceRef,
+    isWasmPluginBindingConfig,
     isWasmPluginCenterConfig,
     isWasmPluginCode,
     pluginConfigToInstanceRef,
+    refreshBoundWasmPluginSource,
     setPluginInstanceRefEnabled,
     sortWasmPluginCenterConfigs,
 } from '../utils/wasmPlugin'
@@ -587,7 +589,21 @@ async function onCardMenu(command: string, item: Model.PluginAttributes) {
     }
 }
 
-async function onThirdPartyWasmSaved() {
+/** 更新基础 Wasm 插件后，将所有引用它的绑定实例同步到新的模块来源。 */
+async function onThirdPartyWasmSaved(savedConfig: Model.PluginConfig) {
+    const baseConfig = toPluginConfigLite(savedConfig)
+    if (baseConfig?.kind === 'named') {
+        const latestInstances = toPluginConfigLiteList(unwrapResponse<unknown>(
+            await Api.getConfigPluginsByCode(WASM_PLUGIN_CODE),
+        ))
+        const bindings = latestInstances.filter((instance) =>
+            isWasmPluginBindingConfig(instance) && instance.spec.binding_base_plugin === baseConfig.name,
+        )
+        for (const binding of bindings) {
+            const refreshed = refreshBoundWasmPluginSource(baseConfig, binding)
+            await Api.putConfigPlugin(asPluginConfig(refreshed))
+        }
+    }
     wasmReloadNoticeVisible.value = true
     await loadWasmInstances()
     emit('changed')

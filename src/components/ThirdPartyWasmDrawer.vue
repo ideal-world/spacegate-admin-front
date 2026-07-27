@@ -9,12 +9,19 @@ import {
   parseImageReference,
 } from '../utils/wasmPlugin'
 
+/** 单个 HTTP(S) Wasm 下载请求头，值在界面中始终按敏感信息掩码展示。 */
+type HttpHeaderFormItem = {
+  name: string
+  value: string
+}
+
 const props = defineProps<{
   instance?: Model.PluginConfig
 }>()
 
 const emit = defineEmits<{
-  saved: []
+  /** 已保存的插件中心定义，用于同步其绑定实例的模块来源。 */
+  saved: [config: Model.PluginConfig]
 }>()
 
 const visible = defineModel<boolean>({
@@ -63,6 +70,7 @@ const form = reactive({
   oci_password: '',
   oci_bearer_token: '',
   oci_identity_token: '',
+  http_headers: [] as HttpHeaderFormItem[],
   clusters_text: '{}',
   limits_text: '{}',
 })
@@ -143,6 +151,11 @@ function loadInstance(instance: Model.PluginConfig | undefined) {
   form.oci_bearer_token = String(ociAuth.bearer_token ?? '')
   form.oci_identity_token = String(ociAuth.identity_token ?? '')
 
+  const httpHeaders = (spec.http_headers ?? {}) as Record<string, unknown>
+  form.http_headers = Object.entries(httpHeaders)
+    .filter(([, value]) => typeof value === 'string')
+    .map(([name, value]) => ({ name, value: String(value) }))
+
   form.clusters_text = stringifyJson(spec.clusters ?? {})
   form.limits_text = stringifyJson(spec.limits ?? {})
 }
@@ -184,6 +197,29 @@ function buildOciAuth() {
     bearer_token: form.oci_bearer_token.trim(),
     identity_token: form.oci_identity_token.trim(),
   }
+}
+
+/** 将表单行规整为运行时使用的 header map，避免空白键和值进入配置。 */
+function buildHttpHeaders() {
+  const headers: Record<string, string> = {}
+  for (const item of form.http_headers) {
+    const name = item.name.trim()
+    const value = item.value.trim()
+    if (!name && !value) continue
+    if (!name || !value) {
+      throw new Error('HTTP 请求头的名称和值必须同时填写')
+    }
+    headers[name] = value
+  }
+  return headers
+}
+
+function addHttpHeader() {
+  form.http_headers.push({ name: '', value: '' })
+}
+
+function removeHttpHeader(index: number) {
+  form.http_headers.splice(index, 1)
 }
 
 function validateForm(instanceName: string, imageUrl: string) {
@@ -234,6 +270,7 @@ function buildPluginConfig(): Model.PluginConfig {
     vmPoolSize: form.vm_pool_size,
     waitVmPoolSize: form.wait_vm_pool_size,
     ociAuth: buildOciAuth(),
+    httpHeaders: buildHttpHeaders(),
     clusters: parseJson(form.clusters_text, 'Cluster 映射', { objectOnly: true }),
     limits: parseJson(form.limits_text, '资源限制', { objectOnly: true }),
   }).config
@@ -249,7 +286,7 @@ async function save() {
       await Api.postConfigPlugin(config)
     }
     ElMessage.success('Wasm 插件配置已保存，请执行全局重载后生效')
-    emit('saved')
+    emit('saved', config)
     visible.value = false
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
@@ -482,6 +519,31 @@ async function save() {
             </el-card>
           </el-form>
         </el-tab-pane>
+
+        <el-tab-pane label="HTTP(S) 认证">
+          <el-form label-position="top" class="third-party-wasm__form">
+            <el-card shadow="never">
+              <template #header>
+                <div class="third-party-wasm__card-title">
+                  <span>远程文件请求头</span>
+                  <small>仅用于 http(s):// Wasm 文件下载；支持 Authorization、OSS 签名和自定义 Header。</small>
+                </div>
+              </template>
+              <el-alert
+                type="warning"
+                :closable="false"
+                title="请求头值会保存为插件配置中的敏感信息，界面默认掩码显示。"
+                class="third-party-wasm__headers-alert"
+              />
+              <div v-for="(item, index) in form.http_headers" :key="index" class="third-party-wasm__header-row">
+                <el-input v-model="item.name" placeholder="Authorization" aria-label="HTTP 请求头名称" />
+                <el-input v-model="item.value" type="password" show-password placeholder="Bearer &lt;token&gt;" aria-label="HTTP 请求头值" />
+                <el-button text type="danger" @click="removeHttpHeader(index)">删除</el-button>
+              </div>
+              <el-button plain @click="addHttpHeader">添加请求头</el-button>
+            </el-card>
+          </el-form>
+        </el-tab-pane>
       </el-tabs>
     </div>
 
@@ -502,6 +564,18 @@ async function save() {
   gap: 8px;
   align-items: center;
   font-weight: 600;
+}
+
+.third-party-wasm__headers-alert {
+  margin-bottom: 12px;
+}
+
+.third-party-wasm__header-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(220px, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .third-party-wasm__intro {
