@@ -144,6 +144,48 @@ const listenerEndpoint = (listener: Model.SgListener) => {
                             </template>
                         </OptionalField>
                     </el-form-item>
+                    <template v-if="modelValue.parameters.redis_url">
+                        <el-form-item :label="t('label.redisPoolMaxSize')">
+                            <OptionalField v-model="modelValue.parameters.redis_pool_max_size" :default="32" class="gateway-optional-field">
+                                <template #none>
+                                    <el-tag type="info" effect="plain">{{ texts.optional }}</el-tag>
+                                </template>
+                                <template #some>
+                                    <el-input-number v-model="modelValue.parameters.redis_pool_max_size" :min="1" :step="1" controls-position="right" />
+                                </template>
+                            </OptionalField>
+                        </el-form-item>
+                        <el-form-item :label="t('label.redisPoolWaitTimeoutMs')">
+                            <OptionalField v-model="modelValue.parameters.redis_pool_wait_timeout_ms" :default="1000" class="gateway-optional-field">
+                                <template #none>
+                                    <el-tag type="info" effect="plain">{{ texts.optional }}</el-tag>
+                                </template>
+                                <template #some>
+                                    <el-input-number v-model="modelValue.parameters.redis_pool_wait_timeout_ms" :min="1" :step="100" controls-position="right" />
+                                </template>
+                            </OptionalField>
+                        </el-form-item>
+                        <el-form-item :label="t('label.redisPoolCreateTimeoutMs')">
+                            <OptionalField v-model="modelValue.parameters.redis_pool_create_timeout_ms" :default="1000" class="gateway-optional-field">
+                                <template #none>
+                                    <el-tag type="info" effect="plain">{{ texts.optional }}</el-tag>
+                                </template>
+                                <template #some>
+                                    <el-input-number v-model="modelValue.parameters.redis_pool_create_timeout_ms" :min="1" :step="100" controls-position="right" />
+                                </template>
+                            </OptionalField>
+                        </el-form-item>
+                        <el-form-item :label="t('label.redisPoolRecycleTimeoutMs')">
+                            <OptionalField v-model="modelValue.parameters.redis_pool_recycle_timeout_ms" :default="1000" class="gateway-optional-field">
+                                <template #none>
+                                    <el-tag type="info" effect="plain">{{ texts.optional }}</el-tag>
+                                </template>
+                                <template #some>
+                                    <el-input-number v-model="modelValue.parameters.redis_pool_recycle_timeout_ms" :min="1" :step="100" controls-position="right" />
+                                </template>
+                            </OptionalField>
+                        </el-form-item>
+                    </template>
                     <el-form-item :label="t('label.logLevel')">
                         <OptionalField v-model="modelValue.parameters.log_level" :default="'info'" class="gateway-optional-field">
                             <template #none>
