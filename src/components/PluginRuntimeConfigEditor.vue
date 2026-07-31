@@ -103,12 +103,21 @@ watch(
 )
 
 function switchMode(next: EditorMode) {
-  if (next === 'schema') {
+  if (mode.value === 'json' && next !== 'json') {
     try {
-      const parsed = parseRawConfig(mode.value)
-      if (typeof parsed !== 'string') runtimeObject.value = parsed
-    } catch {
-      // 保留原文本，用户可切回文本模式修正格式。
+      const parsed = parseRawConfig('json')
+      if (typeof parsed === 'string') return
+      runtimeObject.value = parsed
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      ElMessage.error(`JSON 配置无效，修正后才能切换：${message}`)
+      return
+    }
+  }
+  if (next === 'schema') {
+    if (mode.value === 'xml') {
+      ElMessage.error('XML 配置不能转换为 Schema 表单，请使用 XML 或 JSON 模式编辑。')
+      return
     }
   } else if (next === 'json') {
     rawText.value = JSON.stringify(runtimeObject.value, null, 2)

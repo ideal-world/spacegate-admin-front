@@ -41,6 +41,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     formModeDesc: '根据插件 Schema 生成表单，适合常规配置。',
     jsonModeDesc: '直接编辑插件 spec JSON，适合复制、导入或配置高级字段。',
     jsonExampleTitle: 'JSON 配置示例',
+    jsonEditorTitle: 'JSON 配置编辑',
     fillExample: '填入示例',
     copyExample: '复制示例',
     exampleCopied: '示例已复制',
@@ -51,6 +52,7 @@ const texts = computed(() => locale.value.startsWith('zh') ? {
     formModeDesc: 'Generated from the plugin schema. Use it for regular configuration.',
     jsonModeDesc: 'Edit plugin spec JSON directly for copy, import, or advanced fields.',
     jsonExampleTitle: 'JSON Configuration Example',
+    jsonEditorTitle: 'JSON Configuration Editor',
     fillExample: 'Use Example',
     copyExample: 'Copy Example',
     exampleCopied: 'Example copied',
@@ -74,9 +76,15 @@ watch(() => modelValue.value.code, async (code) => {
 }, { immediate: true })
 
 watch(pluginSchema, (schema) => {
-    if (!schema) return
+    if (!schema) {
+        editMode.value = 'json'
+        return
+    }
     const spec = (modelValue.value.spec as Record<string, any>) ?? {}
     specModel.value = { ...spec }
+    if (Object.keys(schema).length === 0) {
+        editMode.value = 'json'
+    }
     nextTick(() => {
         if (schemaFormRef.value && Object.keys(specModel.value).length === 0) {
             schemaFormRef.value.initDefaults(schema, specModel.value)
@@ -94,19 +102,21 @@ watch(() => modelValue.value.code, () => {
     setSchema(modelValue.value.code)
 }, { immediate: true })
 
-// Sync specModel → JSON editor when switching to JSON mode
-watch(editMode, (mode) => {
+// 在 JSON 容器挂载后初始化 Monaco，再同步表单和 JSON 两种编辑模式。
+watch(editMode, async (mode) => {
     if (mode === 'json') {
+        await nextTick()
+        setSchema(modelValue.value.code)
         setValue(specModel.value)
-    }
-})
-
-// Sync JSON editor → specModel when switching to form mode
-watch(editMode, (mode) => {
-    if (mode === 'form' && hasSchema.value) {
-        const val = getValue()
-        if (val !== undefined) {
-            specModel.value = val
+    } else if (hasSchema.value) {
+        try {
+            const val = getValue()
+            if (val !== undefined) {
+                specModel.value = val
+            }
+        } catch (error) {
+            editMode.value = 'json'
+            ElMessage.error(`JSON 配置无效，无法切换到表单：${error instanceof Error ? error.message : String(error)}`)
         }
     }
 })
@@ -182,7 +192,6 @@ function applyJsonExample() {
     modelValue.value.spec = parsed
     editMode.value = 'json'
     nextTick(() => {
-        setValue(parsed)
         ElMessage.success(texts.value.exampleApplied)
     })
 }
@@ -225,9 +234,10 @@ async function copyJsonExample() {
             </div>
         </div>
 
-        <!-- Mode toggle (only when schema available) -->
-        <div v-if="hasSchema" class="plugin-form__tabs">
+        <!-- JSON 始终可用；Schema 表单仅在服务端提供结构定义时作为快捷编辑方式。 -->
+        <div class="plugin-form__tabs">
             <button
+                v-if="hasSchema"
                 type="button"
                 :class="['plugin-form__tab', editMode === 'form' && 'plugin-form__tab--active']"
                 @click="editMode = 'form'"
@@ -249,12 +259,17 @@ async function copyJsonExample() {
         </div>
 
         <!-- Monaco JSON editor -->
-        <div v-if="editMode === 'json' || !hasSchema" class="plugin-form__content">
+        <div v-show="editMode === 'json' || !hasSchema" class="plugin-form__content">
             <div class="plugin-form__example">
                 <strong>{{ texts.jsonExampleTitle }}</strong>
                 <pre>{{ jsonExample }}</pre>
             </div>
-            <div ref="editorRef" class="plugin-form-editor__body"></div>
+            <div class="plugin-form__editor-panel">
+                <div class="plugin-form__editor-header">
+                    <strong>{{ texts.jsonEditorTitle }}</strong>
+                </div>
+                <div ref="editorRef" class="plugin-form-editor__body"></div>
+            </div>
         </div>
     </div>
 </template>
@@ -286,7 +301,8 @@ async function copyJsonExample() {
 }
 
 .plugin-form__heading strong,
-.plugin-form__example strong {
+.plugin-form__example strong,
+.plugin-form__editor-header strong {
     display: block;
     color: #0f172a;
     font-size: 14px;
@@ -371,9 +387,21 @@ async function copyJsonExample() {
     line-height: 1.5;
 }
 
+.plugin-form__editor-panel {
+    overflow: hidden;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.plugin-form__editor-header {
+    padding: 12px;
+    border-bottom: 1px solid #dbe3ef;
+}
+
 .plugin-form-editor__body {
-    display: flex;
-    min-height: 320px;
+    min-height: 360px;
+    background: #fff;
 }
 
 @media (max-width: 720px) {

@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SchemaArrayField from './SchemaArrayField.vue'
-
-type JsonSchema = Record<string, any>
+import SchemaJsonField from './SchemaJsonField.vue'
+import { isJsonObject, isSchemaJsonValue, resolveSchema, schemaFieldEditorMode, type JsonSchema } from '../utils/schemaEditor'
 
 const props = defineProps<{
   schema: JsonSchema
+  /** 当前对象相对于根配置的嵌套层数，根对象为 0。 */
+  depth?: number
 }>()
 const { locale } = useI18n()
 
@@ -16,21 +18,27 @@ const modelValue = defineModel<Record<string, any>>({
 
 const rootSchema = computed(() => props.schema ?? {})
 const effectiveSchema = computed(() => resolveSchema(rootSchema.value, rootSchema.value))
+const effectiveProperties = computed(() => schemaProperties(effectiveSchema.value))
 
-function resolveSchema(schema: JsonSchema, root: JsonSchema): JsonSchema {
-  if (!schema?.$ref) {
-    return schema
-  }
-  const path = String(schema.$ref).replace(/^#\//, '').split('/')
-  let current: any = root
-  for (const part of path) {
-    current = current?.[part]
-  }
-  return current ? { ...current, ...schema, $ref: undefined } : schema
+function fieldSchema(schema: unknown): JsonSchema {
+  if (!isJsonObject(schema)) return {}
+  return resolveSchema(schema, rootSchema.value)
 }
 
-function fieldSchema(schema: JsonSchema): JsonSchema {
-  return resolveSchema(schema, rootSchema.value)
+/** 提取对象字段定义，非对象 Schema 统一按空对象处理。 */
+function schemaProperties(schema: JsonSchema): Record<string, JsonSchema> {
+  if (!isJsonObject(schema.properties)) return {}
+  return Object.fromEntries(
+    Object.entries(schema.properties)
+      .filter((entry): entry is [string, Record<string, unknown>] => isJsonObject(entry[1])),
+  )
+}
+
+/** 提取必填字段名，忽略非字符串声明。 */
+function schemaRequired(schema: JsonSchema): string[] {
+  return Array.isArray(schema.required)
+    ? schema.required.filter((key): key is string => typeof key === 'string')
+    : []
 }
 
 function titleOf(key: string, schema: JsonSchema) {
@@ -65,7 +73,22 @@ function ensureArray(key: string) {
   return modelValue.value[key]
 }
 
-const requiredKeys = computed(() => new Set(effectiveSchema.value.required ?? []))
+/** 判断对象字段是否仍允许使用递归表单；超出三层后回退为 JSON 编辑。 */
+function usesNestedForm(schema: JsonSchema) {
+  return schemaFieldEditorMode(schema, (props.depth ?? 0) + 1) === 'form'
+}
+
+/** 无结构 Schema 的对象值也必须使用 JSON 编辑，避免对象被字符串化。 */
+function usesJsonEditor(schema: JsonSchema, value: unknown) {
+  return isSchemaJsonValue(schema, value)
+}
+
+/** 提取数组元素 Schema；缺失时按任意 JSON 元素处理。 */
+function arrayItemSchema(schema: JsonSchema): JsonSchema {
+  return fieldSchema(schema.items)
+}
+
+const requiredKeys = computed(() => new Set(schemaRequired(effectiveSchema.value)))
 
 function defaultValueFor(rawField: any): any {
   const field = fieldSchema(rawField)
@@ -79,7 +102,7 @@ function defaultValueFor(rawField: any): any {
 
 function initDefaults(schema: JsonSchema, target: Record<string, any>) {
   const resolved = resolveSchema(schema, rootSchema.value)
-  const props = resolved.properties ?? {}
+  const props = schemaProperties(resolved)
   for (const [key, raw] of Object.entries(props)) {
     if (target[key] !== undefined) continue
     const field = resolveSchema(raw as JsonSchema, rootSchema.value)
@@ -95,7 +118,7 @@ function initDefaults(schema: JsonSchema, target: Record<string, any>) {
 function validate(): string[] {
   const errors: string[] = []
   const resolved = effectiveSchema.value
-  const reqKeys = resolved.required ?? []
+  const reqKeys = schemaRequired(resolved)
   for (const key of reqKeys) {
     const val = modelValue.value[key]
     if (val === undefined || val === null || val === '') {
@@ -111,8 +134,8 @@ defineExpose({ validate, initDefaults })
 
 <template>
   <div class="schema-form">
-    <template v-for="(rawField, key) in effectiveSchema.properties ?? {}" :key="key">
-      <template v-if="fieldSchema(rawField).type === 'object' || fieldSchema(rawField).properties">
+    <template v-for="(rawField, key) in effectiveProperties" :key="key">
+      <template v-if="(fieldSchema(rawField).type === 'object' || fieldSchema(rawField).properties) && usesNestedForm(fieldSchema(rawField))">
         <el-card class="schema-form__card schema-form__wide" shadow="never">
           <template #header>
             <div class="schema-form__card-title">
@@ -122,6 +145,7 @@ defineExpose({ validate, initDefaults })
           </template>
           <SchemaForm
             :schema="fieldSchema(rawField)"
+            :depth="(depth ?? 0) + 1"
             :model-value="ensureObject(String(key))"
             @update:model-value="(value) => { modelValue[String(key)] = value }"
           />
@@ -148,8 +172,13 @@ defineExpose({ validate, initDefaults })
           <template v-else-if="fieldSchema(rawField).type === 'array'">
             <SchemaArrayField
               :model-value="ensureArray(String(key))"
+              :item-schema="arrayItemSchema(fieldSchema(rawField))"
+              :depth="depth ?? 0"
               @update:model-value="(value) => { modelValue[String(key)] = value }"
             />
+          </template>
+          <template v-else-if="usesJsonEditor(fieldSchema(rawField), modelValue[String(key)])">
+            <SchemaJsonField v-model="modelValue[String(key)]" />
           </template>
           <template v-else>
             <el-input v-model="modelValue[String(key)]" :placeholder="descriptionOf(fieldSchema(rawField))" />
